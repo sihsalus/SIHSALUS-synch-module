@@ -1,0 +1,6 @@
+org\openmrs\module\synchronizationmr\api\dao\SynchronizationMRDao.class
+org\openmrs\module\synchronizationmr\SynchronizationMR.class
+org\openmrs\module\synchronizationmr\SynchronizationMRActivator.class
+org\openmrs\module\synchronizationmr\api\impl\SynchronizationMRServiceImpl.class
+org\openmrs\module\synchronizationmr\api\SynchronizationMRService.class
+org\openmrs\module\synchronizationmr\SynchronizationMRConfig.class
