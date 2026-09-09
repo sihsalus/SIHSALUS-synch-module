@@ -7,24 +7,6 @@
  * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
  * graphic logo is a trademark of OpenMRS Inc.
  */
-package org.openmrs.module.synchronizationmr.api;
+package org.openmrs.module.synchronizationmr;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.openmrs.User;
-import org.openmrs.api.UserService;
-import org.openmrs.module.synchronizationmr.SynchronizationMR;
-import org.openmrs.module.synchronizationmr.api.dao.SynchronizationMRDao;
-import org.openmrs.module.synchronizationmr.api.impl.SynchronizationMRServiceImpl;
-import static org.mockito.Mockito.*;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
-
-/**
- * This is a unit test, which verifies logic in SynchronizationMRService. It doesn't extend
- * BaseModuleContextSensitiveTest, thus it is run without the in-memory DB and Spring context.
- */
 public class SynchronizationMRServiceTest {}

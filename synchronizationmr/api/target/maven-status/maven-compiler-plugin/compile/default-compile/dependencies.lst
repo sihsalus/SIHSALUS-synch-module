@@ -27,7 +27,6 @@ classpath:C:\Users\PC\.m2\repository\ca\uhn\hapi\hapi-structures-v26\2.1\hapi-st
 classpath:C:\Users\PC\.m2\repository\org\javassist\javassist\3.27.0-GA\javassist-3.27.0-GA.jar	782774:1788993113964
 classpath:C:\Users\PC\.m2\repository\org\hibernate\hibernate-core\5.4.21.Final\hibernate-core-5.4.21.Final.jar	7327515:1788993115503
 classpath:C:\Users\PC\.m2\repository\javax\persistence\javax.persistence-api\2.2\javax.persistence-api-2.2.jar	164556:1770415084624
-classpath:C:\Users\PC\.m2\repository\net\bytebuddy\byte-buddy\1.10.10\byte-buddy-1.10.10.jar	3472118:1788993115236
 classpath:C:\Users\PC\.m2\repository\antlr\antlr\2.7.7\antlr-2.7.7.jar	445288:1770415085159
 classpath:C:\Users\PC\.m2\repository\org\jboss\spec\javax\transaction\jboss-transaction-api_1.2_spec\1.1.1.Final\jboss-transaction-api_1.2_spec-1.1.1.Final.jar	26290:1788993114913
 classpath:C:\Users\PC\.m2\repository\org\jboss\jandex\2.1.3.Final\jandex-2.1.3.Final.jar	195684:1788993115548
@@ -90,3 +89,4 @@ classpath:C:\Users\PC\.m2\repository\com\sun\activation\jakarta.activation\2.0.0
 classpath:C:\Users\PC\.m2\repository\org\apache\lucene\lucene-analyzers-phonetic\5.5.5\lucene-analyzers-phonetic-5.5.5.jar	26126:1788993125602
 classpath:C:\Users\PC\.m2\repository\org\apache\lucene\lucene-analyzers-common\5.5.5\lucene-analyzers-common-5.5.5.jar	1576592:1788993127332
 classpath:C:\Users\PC\.m2\repository\commons-codec\commons-codec\1.10\commons-codec-1.10.jar	284184:1788993126760
+classpath:C:\Users\PC\.m2\repository\net\bytebuddy\byte-buddy\1.15.4\byte-buddy-1.15.4.jar	4245480:1788997230190
