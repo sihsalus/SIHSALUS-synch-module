@@ -18,6 +18,20 @@
 	<!-- /Base Module Properties -->
 	
 	<require_version>2.4.2</require_version>
+
+    <advice>
+        <point>org.openmrs.api.PatientService</point>
+        <class>org.openmrs.module.synchronizationmr.advice.PatientCreationAdvice</class>
+    </advice>
+    <privilege>
+        <name>View Synchronization Records</name>
+        <description>Consultar identidades de sincronización y eventos pendientes sin datos personales del paciente.</description>
+    </privilege>
+    <globalProperty>
+        <property>synchronizationmr.nodeLabel</property>
+        <defaultValue>NODO-LOCAL</defaultValue>
+        <description>Nombre visible del nodo, por ejemplo POSTA-01 o MAESTRO-MICRORRED. Su identidad estable es el UUID del nodo.</description>
+    </globalProperty>
 	
 	<aware_of_modules>
 		<aware_of_module>org.openmrs.module.legacyui</aware_of_module>

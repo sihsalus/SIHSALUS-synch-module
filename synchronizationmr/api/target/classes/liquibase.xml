@@ -36,4 +36,48 @@
                                  referencedColumnNames="user_id" />
     </changeSet> -->
  
+    <changeSet id="synchronizationmr-20260914-patient-capture" author="sihsalus">
+        <!-- Una fila por instalación: identidad del nodo y último número de paciente asignado.
+             singleton_id siempre vale 1; node_uuid se genera en la primera creación confirmada.
+             patient_sequence empieza en 0 y aumenta con cada paciente nuevo capturado. -->
+        <createTable tableName="synchronizationmr_local_node">
+            <column name="singleton_id" type="int"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="node_uuid" type="varchar(38)"><constraints unique="true" /></column>
+            <column name="patient_sequence" type="bigint"><constraints nullable="false" /></column>
+        </createTable>
+        <insert tableName="synchronizationmr_local_node">
+            <column name="singleton_id" valueNumeric="1" />
+            <column name="patient_sequence" valueNumeric="0" />
+        </insert>
+        <!-- Una fila por paciente capturado. patient_id enlaza al paciente local de OpenMRS;
+             patient_uuid conserva su UUID nativo. origin_node_uuid y entity_sequence
+             identifican su origen y número. El tipo PATIENT está implícito en esta tabla. -->
+        <createTable tableName="synchronizationmr_patient_identity">
+            <column name="patient_id" type="int"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="patient_uuid" type="varchar(38)"><constraints nullable="false" unique="true" /></column>
+            <column name="origin_node_uuid" type="varchar(38)"><constraints nullable="false" /></column>
+            <column name="entity_sequence" type="bigint"><constraints nullable="false" /></column>
+        </createTable>
+        <addUniqueConstraint tableName="synchronizationmr_patient_identity"
+            columnNames="origin_node_uuid,entity_sequence" constraintName="syncmr_patient_origin_sequence_uq" />
+        <addForeignKeyConstraint baseTableName="synchronizationmr_patient_identity" baseColumnNames="patient_id"
+            referencedTableName="patient" referencedColumnNames="patient_id" constraintName="syncmr_patient_identity_fk" />
+        <!-- Inicio de la cola persistente: un evento de creación por paciente en esta etapa.
+             event_uuid identifica el evento; patient_id lo enlaza a la identidad anterior.
+             operation = CREATE (creación), state = PENDING (pendiente), date_created = fecha.
+             Todavía no contiene el contenido clínico a enviar ni administra envíos o reintentos. -->
+        <createTable tableName="synchronizationmr_patient_event">
+            <column name="event_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="patient_id" type="int"><constraints nullable="false" unique="true" /></column>
+            <column name="operation" type="varchar(16)"><constraints nullable="false" /></column>
+            <column name="state" type="varchar(16)"><constraints nullable="false" /></column>
+            <column name="date_created" type="datetime"><constraints nullable="false" /></column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="synchronizationmr_patient_event" baseColumnNames="patient_id"
+            referencedTableName="synchronizationmr_patient_identity" referencedColumnNames="patient_id"
+            constraintName="syncmr_patient_event_fk" />
+        <createIndex tableName="synchronizationmr_patient_event" indexName="syncmr_patient_event_state_idx">
+            <column name="state" />
+        </createIndex>
+    </changeSet>
 </databaseChangeLog>

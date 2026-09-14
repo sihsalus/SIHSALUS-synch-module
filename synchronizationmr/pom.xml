@@ -137,4 +137,20 @@
     <properties>
         <openmrsPlatformVersion>2.4.2</openmrsPlatformVersion>
     </properties>
+    <profiles>
+        <!-- Las dependencias de pruebas de OpenMRS 2.4 necesitan accesos de reflexión antiguos.
+             Estas opciones se aplican únicamente a las pruebas, no al OMOD desplegado. -->
+        <profile>
+            <id>tests-on-modern-jdk</id>
+            <activation><jdk>[9,)</jdk></activation>
+            <build><plugins><plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <argLine>--add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.text=ALL-UNNAMED --add-opens java.desktop/java.awt.font=ALL-UNNAMED</argLine>
+                </configuration>
+            </plugin></plugins></build>
+        </profile>
+    </profiles>
 </project>

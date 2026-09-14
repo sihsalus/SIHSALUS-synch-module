@@ -1,0 +1,121 @@
+/**
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
+package org.openmrs.module.synchronizationmr.api.dao;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.UUID;
+
+import org.hibernate.SessionFactory;
+import org.openmrs.Patient;
+import org.openmrs.module.synchronizationmr.sync.PatientSyncRecord;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+
+/**
+ * Usa la conexión actual de Hibernate: paciente, contador, identidad y evento se confirman o se
+ * deshacen juntos. Este DAO solo escribe en las tablas propias del módulo.
+ */
+@Repository("synchronizationmr.PatientSyncDao")
+public class PatientSyncDao {
+	
+	@Autowired
+	private SessionFactory sessionFactory;
+	
+	public boolean patientExists(Integer patientId) {
+        if (patientId == null) {
+            return false;
+        }
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> {
+            try (PreparedStatement statement = connection.prepareStatement("select patient_id from patient where patient_id = ?")) {
+                statement.setInt(1, patientId);
+                try (ResultSet rows = statement.executeQuery()) {
+                    return rows.next();
+                }
+            }
+        });
+    }
+	
+	public PatientSyncRecord findByPatientUuid(String uuid, String label) {
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> find(connection, uuid, label, false));
+    }
+	
+	public PatientSyncRecord recordCreation(Patient patient, String label) {
+        // Guarda los cambios pendientes de Hibernate para poder enlazar nuestra fila al paciente.
+        sessionFactory.getCurrentSession().flush();
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> {
+            String nodeUuid;
+            long previous;
+            // La única fila del contador se bloquea hasta confirmar el guardado.
+            // Así, dos registros simultáneos no reciben el mismo número.
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "select node_uuid, patient_sequence from synchronizationmr_local_node where singleton_id = 1 for update");
+                    ResultSet rows = statement.executeQuery()) {
+                if (!rows.next()) {
+                    throw new SQLException("Falta la fila del nodo de sincronización; revise las migraciones del módulo");
+                }
+                nodeUuid = rows.getString(1);
+                previous = rows.getLong(2);
+            }
+            // Consulta el registro actualizado bajo bloqueo para evitar duplicar la misma identidad.
+            PatientSyncRecord existing = find(connection, patient.getUuid(), label, true);
+            if (existing != null) {
+                return existing;
+            }
+            if (nodeUuid == null) {
+                nodeUuid = UUID.randomUUID().toString();
+            }
+            long sequence = Math.addExact(previous, 1L);
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "update synchronizationmr_local_node set node_uuid = ?, patient_sequence = ? where singleton_id = 1")) {
+                statement.setString(1, nodeUuid);
+                statement.setLong(2, sequence);
+                statement.executeUpdate();
+            }
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "insert into synchronizationmr_patient_identity (patient_id, patient_uuid, origin_node_uuid, entity_sequence) values (?, ?, ?, ?)")) {
+                statement.setInt(1, patient.getPatientId());
+                statement.setString(2, patient.getUuid());
+                statement.setString(3, nodeUuid);
+                statement.setLong(4, sequence);
+                statement.executeUpdate();
+            }
+            String eventUuid = UUID.randomUUID().toString();
+            Timestamp created = new Timestamp(System.currentTimeMillis());
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "insert into synchronizationmr_patient_event (event_uuid, patient_id, operation, state, date_created) values (?, ?, 'CREATE', 'PENDING', ?)")) {
+                statement.setString(1, eventUuid);
+                statement.setInt(2, patient.getPatientId());
+                statement.setTimestamp(3, created);
+                statement.executeUpdate();
+            }
+            return new PatientSyncRecord(nodeUuid, label, sequence, patient.getUuid(), eventUuid, "PENDING", created);
+        });
+    }
+	
+	private PatientSyncRecord find(Connection connection, String uuid, String label, boolean lock) throws SQLException {
+        String sql = "select i.origin_node_uuid, i.entity_sequence, i.patient_uuid, e.event_uuid, e.state, e.date_created"
+                + " from synchronizationmr_patient_identity i join synchronizationmr_patient_event e on e.patient_id = i.patient_id"
+                + " where i.patient_uuid = ?" + (lock ? " for update" : "");
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, uuid);
+            try (ResultSet rows = statement.executeQuery()) {
+                if (!rows.next()) {
+                    return null;
+                }
+                return new PatientSyncRecord(rows.getString(1), label, rows.getLong(2), rows.getString(3),
+                        rows.getString(4), rows.getString(5), rows.getTimestamp(6));
+            }
+        }
+    }
+}
