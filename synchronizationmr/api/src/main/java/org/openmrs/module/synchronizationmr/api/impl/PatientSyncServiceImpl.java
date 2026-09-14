@@ -20,6 +20,14 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 public class PatientSyncServiceImpl extends BaseOpenmrsService implements PatientSyncService {
 	
+	@Override
+	public String getCreationPayload(String patientUuid) {
+		if (patientUuid == null || patientUuid.trim().isEmpty()) {
+			throw new APIException("Se requiere el UUID del paciente");
+		}
+		return dao.findCreationPayload(patientUuid);
+	}
+	
 	public static final String NODE_LABEL_PROPERTY = "synchronizationmr.nodeLabel";
 	
 	private PatientSyncDao dao;

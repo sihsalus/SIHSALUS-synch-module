@@ -32,6 +32,26 @@ public class PatientSyncDao {
 	@Autowired
 	private SessionFactory sessionFactory;
 	
+	@Autowired
+	private LocalNodeDao localNodeDao;
+	
+	@Autowired
+	private org.openmrs.module.synchronizationmr.sync.PatientCreationPayloadSerializer payloadSerializer;
+	
+	/** Consulta separada porque el JSON sí contiene datos personales. */
+	public String findCreationPayload(String patientUuid) {
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> {
+            try (PreparedStatement query = connection.prepareStatement(
+                    "select e.payload_json from synchronizationmr_patient_event e join synchronizationmr_patient_identity i"
+                    + " on i.patient_id = e.patient_id where i.patient_uuid = ?")) {
+                query.setString(1, patientUuid);
+                try (ResultSet rows = query.executeQuery()) {
+                    return rows.next() ? rows.getString(1) : null;
+                }
+            }
+        });
+    }
+	
 	public boolean patientExists(Integer patientId) {
         if (patientId == null) {
             return false;
@@ -54,7 +74,7 @@ public class PatientSyncDao {
         // Guarda los cambios pendientes de Hibernate para poder enlazar nuestra fila al paciente.
         sessionFactory.getCurrentSession().flush();
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
-            String nodeUuid;
+            String nodeUuid = localNodeDao.getOrCreateNodeUuid();
             long previous;
             // La única fila del contador se bloquea hasta confirmar el guardado.
             // Así, dos registros simultáneos no reciben el mismo número.
@@ -64,7 +84,6 @@ public class PatientSyncDao {
                 if (!rows.next()) {
                     throw new SQLException("Falta la fila del nodo de sincronización; revise las migraciones del módulo");
                 }
-                nodeUuid = rows.getString(1);
                 previous = rows.getLong(2);
             }
             // Consulta el registro actualizado bajo bloqueo para evitar duplicar la misma identidad.
@@ -72,14 +91,10 @@ public class PatientSyncDao {
             if (existing != null) {
                 return existing;
             }
-            if (nodeUuid == null) {
-                nodeUuid = UUID.randomUUID().toString();
-            }
             long sequence = Math.addExact(previous, 1L);
             try (PreparedStatement statement = connection.prepareStatement(
-                    "update synchronizationmr_local_node set node_uuid = ?, patient_sequence = ? where singleton_id = 1")) {
-                statement.setString(1, nodeUuid);
-                statement.setLong(2, sequence);
+                    "update synchronizationmr_local_node set patient_sequence = ? where singleton_id = 1")) {
+                statement.setLong(1, sequence);
                 statement.executeUpdate();
             }
             try (PreparedStatement statement = connection.prepareStatement(
@@ -92,11 +107,14 @@ public class PatientSyncDao {
             }
             String eventUuid = UUID.randomUUID().toString();
             Timestamp created = new Timestamp(System.currentTimeMillis());
+            // Se construye una sola vez, dentro de la transacción y después de descartar duplicados.
+            String payload = payloadSerializer.serialize(patient, nodeUuid, sequence, eventUuid, created);
             try (PreparedStatement statement = connection.prepareStatement(
-                    "insert into synchronizationmr_patient_event (event_uuid, patient_id, operation, state, date_created) values (?, ?, 'CREATE', 'PENDING', ?)")) {
+                    "insert into synchronizationmr_patient_event (event_uuid, patient_id, operation, state, date_created, payload_json) values (?, ?, 'CREATE', 'PENDING', ?, ?)")) {
                 statement.setString(1, eventUuid);
                 statement.setInt(2, patient.getPatientId());
                 statement.setTimestamp(3, created);
+                statement.setString(4, payload);
                 statement.executeUpdate();
             }
             return new PatientSyncRecord(nodeUuid, label, sequence, patient.getUuid(), eventUuid, "PENDING", created);

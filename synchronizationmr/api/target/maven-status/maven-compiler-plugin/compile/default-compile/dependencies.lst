@@ -1,3 +1,6 @@
+classpath:C:\Users\PC\.m2\repository\com\fasterxml\jackson\core\jackson-databind\2.11.2\jackson-databind-2.11.2.jar	1420449:1788993123927
+classpath:C:\Users\PC\.m2\repository\com\fasterxml\jackson\core\jackson-annotations\2.11.2\jackson-annotations-2.11.2.jar	68217:1788993122446
+classpath:C:\Users\PC\.m2\repository\com\fasterxml\jackson\core\jackson-core\2.11.2\jackson-core-2.11.2.jar	351495:1788993122641
 classpath:C:\Users\PC\.m2\repository\org\openmrs\api\openmrs-api\2.4.2\openmrs-api-2.4.2.jar	2831872:1788993107627
 classpath:C:\Users\PC\.m2\repository\commons-collections\commons-collections\3.2.2\commons-collections-3.2.2.jar	588337:1770327265491
 classpath:C:\Users\PC\.m2\repository\org\apache\commons\commons-lang3\3.11\commons-lang3-3.11.jar	577742:1788993108687
@@ -71,9 +74,6 @@ classpath:C:\Users\PC\.m2\repository\javax\validation\validation-api\2.0.1.Final
 classpath:C:\Users\PC\.m2\repository\org\hibernate\hibernate-validator\5.4.3.Final\hibernate-validator-5.4.3.Final.jar	763295:1788993121842
 classpath:C:\Users\PC\.m2\repository\org\codehaus\jackson\jackson-core-asl\1.9.13\jackson-core-asl-1.9.13.jar	232248:1788993122111
 classpath:C:\Users\PC\.m2\repository\org\codehaus\jackson\jackson-mapper-asl\1.9.13\jackson-mapper-asl-1.9.13.jar	780664:1788993122359
-classpath:C:\Users\PC\.m2\repository\com\fasterxml\jackson\core\jackson-core\2.11.2\jackson-core-2.11.2.jar	351495:1788993122641
-classpath:C:\Users\PC\.m2\repository\com\fasterxml\jackson\core\jackson-annotations\2.11.2\jackson-annotations-2.11.2.jar	68217:1788993122446
-classpath:C:\Users\PC\.m2\repository\com\fasterxml\jackson\core\jackson-databind\2.11.2\jackson-databind-2.11.2.jar	1420449:1788993123927
 classpath:C:\Users\PC\.m2\repository\org\codehaus\groovy\groovy-all\2.4.20\groovy-all-2.4.20.jar	7202399:1788993124520
 classpath:C:\Users\PC\.m2\repository\net\sf\ehcache\ehcache\2.10.6\ehcache-2.10.6.jar	10237841:1788993126130
 classpath:C:\Users\PC\.m2\repository\org\aspectj\aspectjrt\1.9.6\aspectjrt-1.9.6.jar	121746:1788993123139

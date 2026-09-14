@@ -45,6 +45,143 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
 	
 	private PatientCreationAdvice advice;
 	
+	@Autowired
+	private org.openmrs.module.synchronizationmr.api.dao.PatientSyncDao patientSyncDao;
+	
+	@Test
+	public void creationPayloadPreservesIdentityAndClinicalReferences() throws Exception {
+		Patient patient = newPatient();
+		patient.getPersonName().setGivenName("María \"Luz\"");
+		patient.setBirthdate(new java.text.SimpleDateFormat("yyyy-MM-dd").parse("2000-02-29"));
+		patient.setBirthdateEstimated(true);
+		org.openmrs.PersonAddress address = new org.openmrs.PersonAddress();
+		address.setAddress1("Calle de prueba 123");
+		address.setCityVillage("Santa Clotilde");
+		address.setStateProvince("Loreto");
+		address.setCountry("Perú");
+		address.setPreferred(true);
+		patient.addAddress(address);
+		Context.getPatientService().savePatient(patient);
+		PatientSyncRecord record = sync().getByPatientUuid(patient.getUuid());
+		com.fasterxml.jackson.databind.JsonNode json = new com.fasterxml.jackson.databind.ObjectMapper().readTree(sync()
+		        .getCreationPayload(patient.getUuid()));
+		assertEquals(2, json.get("schemaVersion").asInt());
+		assertEquals(record.getEventUuid(), json.get("eventUuid").asText());
+		assertEquals(record.getOriginNodeUuid(), json.get("originNodeUuid").asText());
+		assertEquals(record.getSequence(), json.get("entitySequence").asLong());
+		assertEquals("PATIENT", json.get("entityType").asText());
+		assertEquals("CREATE", json.get("operation").asText());
+		assertNotNull(java.time.Instant.parse(json.get("occurredAt").asText()));
+		com.fasterxml.jackson.databind.JsonNode data = json.get("payload");
+		assertEquals(patient.getUuid(), data.get("patientUuid").asText());
+		assertEquals("2000-02-29", data.get("birthdate").asText());
+		assertTrue(data.get("birthdateEstimated").asBoolean());
+		assertTrue(data.get("deathDate").isNull());
+		assertEquals("María \"Luz\"", data.get("names").get(0).get("givenName").asText());
+		assertEquals(patient.getPatientIdentifier().getIdentifierType().getUuid(),
+		    data.get("identifiers").get(0).get("identifierTypeUuid").asText());
+		assertEquals(patient.getPatientIdentifier().getLocation().getUuid(),
+		    data.get("identifiers").get(0).get("locationUuid").asText());
+		assertFalse(data.has("patientId"));
+		assertFalse(data.has("creator"));
+		assertEquals(1, data.get("addresses").size());
+		assertEquals(address.getUuid(), data.get("addresses").get(0).get("uuid").asText());
+		assertEquals("Calle de prueba 123", data.get("addresses").get(0).get("address1").asText());
+		assertEquals("Perú", data.get("addresses").get(0).get("country").asText());
+		// La copia original tampoco cambia al editar una dirección después del registro.
+		String snapshot = sync().getCreationPayload(patient.getUuid());
+		address.setAddress1("Dirección posterior");
+		Context.getPatientService().savePatient(patient);
+		assertEquals(snapshot, sync().getCreationPayload(patient.getUuid()));
+		
+		// Evidencia exportada únicamente por esta prueba, que crea un paciente ficticio.
+		// El JSON procede de la consulta al evento guardado, no de reconstruir al paciente.
+		String nodeUuid = Context.getService(LocalNodeService.class).getOrCreateNodeUuid();
+		assertEquals(nodeUuid, json.get("originNodeUuid").asText());
+		java.nio.file.Path directory = java.nio.file.Paths.get("target", "demo-sincronizacion");
+		java.nio.file.Files.createDirectories(directory);
+		com.fasterxml.jackson.databind.ObjectMapper evidenceMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+		evidenceMapper.writerWithDefaultPrettyPrinter().writeValue(directory.resolve("paciente-creacion.json").toFile(),
+		    json);
+		com.fasterxml.jackson.databind.node.ObjectNode comparison = evidenceMapper.createObjectNode();
+		comparison.put("nota", "Datos ficticios de una prueba local; no demuestra entrega al maestro");
+		comparison.put("patientIdLocal", patient.getPatientId());
+		comparison.put("uuidPacienteOpenMRS", patient.getUuid());
+		comparison.put("uuidPacienteEnJson", data.get("patientUuid").asText());
+		comparison.put("uuidNodoLocal", nodeUuid);
+		comparison.put("uuidOrigenEnJson", json.get("originNodeUuid").asText());
+		comparison.put("uuidEventoGuardado", record.getEventUuid());
+		comparison.put("uuidEventoEnJson", json.get("eventUuid").asText());
+		comparison.put("identificadorVisible", record.getDisplayIdentifier());
+		comparison.put("secuenciaGuardada", record.getSequence());
+		comparison.put("secuenciaEnJson", json.get("entitySequence").asLong());
+		evidenceMapper.writerWithDefaultPrettyPrinter().writeValue(
+		    directory.resolve("comparacion-identificadores.json").toFile(), comparison);
+		
+		System.out.println("EVIDENCIA FICTICIA: " + directory.toAbsolutePath());
+		System.out.println("JSON DE CREACIÓN VERIFICADO: versión=2 | direcciones guardadas | UUID conservado");
+	}
+	
+	@Test
+	public void editingPatientDoesNotRewriteOriginalPayload() {
+		Patient patient = Context.getPatientService().savePatient(newPatient());
+		String original = sync().getCreationPayload(patient.getUuid());
+		assertNotNull(original);
+		patient.getPersonName().setGivenName("Nombre posterior");
+		Context.getPatientService().savePatient(patient);
+		sync().recordCreatedPatient(patient);
+		assertEquals(original, sync().getCreationPayload(patient.getUuid()));
+	}
+	
+	@Test
+    public void legacyEventWithoutPayloadIsNotReconstructedFromCurrentPatient() throws Exception {
+        Patient patient = Context.getPatientService().savePatient(newPatient());
+        try (java.sql.PreparedStatement statement = getConnection().prepareStatement(
+                "update synchronizationmr_patient_event set payload_json = null where patient_id = ?")) {
+            statement.setInt(1, patient.getPatientId());
+            statement.executeUpdate();
+        }
+        assertNotNull(sync().getByPatientUuid(patient.getUuid()));
+        sync().recordCreatedPatient(patient);
+        assertNull(sync().getCreationPayload(patient.getUuid()));
+    }
+	
+	@Test
+    public void serializationFailureRollsBackPatientIdentityAndCounter() {
+        Object original = org.springframework.test.util.ReflectionTestUtils.getField(patientSyncDao, "payloadSerializer");
+        org.openmrs.module.synchronizationmr.sync.PatientCreationPayloadSerializer failing =
+                mock(org.openmrs.module.synchronizationmr.sync.PatientCreationPayloadSerializer.class);
+        when(failing.serialize(any(), anyString(), anyLong(), anyString(), any()))
+                .thenThrow(new org.openmrs.api.APIException("Error simulado al construir el JSON"));
+        TestTransaction.flagForCommit();
+        TestTransaction.end();
+        try {
+            Patient prior = Context.getPatientService().savePatient(newPatient());
+            long sequence = sync().getByPatientUuid(prior.getUuid()).getSequence();
+            org.springframework.test.util.ReflectionTestUtils.setField(patientSyncDao, "payloadSerializer", failing);
+            Patient failed = newPatient();
+            assertThrows(org.openmrs.api.APIException.class,
+                    () -> Context.getPatientService().savePatient(failed));
+            assertNull(Context.getPatientService().getPatientByUuid(failed.getUuid()));
+            assertNull(sync().getByPatientUuid(failed.getUuid()));
+            assertNull(sync().getCreationPayload(failed.getUuid()));
+            org.springframework.test.util.ReflectionTestUtils.setField(patientSyncDao, "payloadSerializer", original);
+            Patient next = Context.getPatientService().savePatient(newPatient());
+            assertEquals(sequence + 1, sync().getByPatientUuid(next.getUuid()).getSequence());
+        }
+        finally {
+            org.springframework.test.util.ReflectionTestUtils.setField(patientSyncDao, "payloadSerializer", original);
+            TestTransaction.start();
+        }
+    }
+	
+	@Test
+	public void patientUsesPreviouslyInitializedNodeUuid() {
+		String uuid = Context.getService(LocalNodeService.class).getOrCreateNodeUuid();
+		Patient patient = Context.getPatientService().savePatient(newPatient());
+		assertEquals(uuid, sync().getByPatientUuid(patient.getUuid()).getOriginNodeUuid());
+	}
+	
 	@Test
 	public void capturesWithoutAnOuterTestTransaction() {
 		// Sin transacción externa de prueba: el interceptor debe agrupar el guardado y el evento.

@@ -38,7 +38,7 @@
  
     <changeSet id="synchronizationmr-20260914-patient-capture" author="sihsalus">
         <!-- Una fila por instalación: identidad del nodo y último número de paciente asignado.
-             singleton_id siempre vale 1; node_uuid se genera en la primera creación confirmada.
+             singleton_id siempre vale 1; node_uuid se genera al solicitarlo al DAO común y confirmar la transacción.
              patient_sequence empieza en 0 y aumenta con cada paciente nuevo capturado. -->
         <createTable tableName="synchronizationmr_local_node">
             <column name="singleton_id" type="int"><constraints primaryKey="true" nullable="false" /></column>
@@ -79,5 +79,13 @@
         <createIndex tableName="synchronizationmr_patient_event" indexName="syncmr_patient_event_state_idx">
             <column name="state" />
         </createIndex>
+    </changeSet>
+    <!-- Migración adicional: conserva las instalaciones y eventos de la versión anterior. -->
+    <changeSet id="synchronizationmr-20260914-patient-payload-v1" author="sihsalus">
+        <addColumn tableName="synchronizationmr_patient_event">
+            <!-- JSON inmutable del evento y sus datos básicos. Los eventos antiguos quedan sin JSON;
+                 no podemos reconstruir fielmente sus datos originales leyendo el paciente actual. -->
+            <column name="payload_json" type="clob" />
+        </addColumn>
     </changeSet>
 </databaseChangeLog>

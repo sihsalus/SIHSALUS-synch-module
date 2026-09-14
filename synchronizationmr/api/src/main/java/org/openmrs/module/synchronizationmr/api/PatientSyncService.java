@@ -18,6 +18,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 public interface PatientSyncService extends OpenmrsService {
 	
+	/**
+	 * JSON original de creación. Devuelve null si no hay evento o si es anterior a esta captura.
+	 * Requiere ambos permisos porque contiene datos personales.
+	 */
+	@Authorized(value = { "View Synchronization Records", "Get Patients" }, requireAll = true)
+	@Transactional(readOnly = true)
+	String getCreationPayload(String patientUuid);
+	
 	/** Comprueba si ya existe como paciente, incluso si antes estaba registrado solo como persona. */
 	@Transactional(propagation = Propagation.MANDATORY)
 	boolean patientExists(Integer patientId);

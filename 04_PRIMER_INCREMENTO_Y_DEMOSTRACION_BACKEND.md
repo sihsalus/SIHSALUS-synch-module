@@ -1,6 +1,34 @@
 # Primer incremento: registro de pacientes nuevos
 
+> Actualización posterior: ahora los eventos nuevos guardan una copia JSON de los datos básicos
+> del paciente. Véase [05_JSON_DE_CREACION_DEL_PACIENTE.md](05_JSON_DE_CREACION_DEL_PACIENTE.md).
+> Las referencias de esta guía al evento sin contenido describen el primer incremento anterior.
+> El total actual es 26 pruebas; los totales de 22 que siguen corresponden al paso del nodo independiente.
+
 ## Explicación sencilla
+
+Actualización: la identidad del nodo ya puede obtenerse sin crear un paciente. Se añadió
+`LocalNodeService.getOrCreateNodeUuid()` y un `LocalNodeDao` común. No se genera automáticamente
+al arrancar: se genera cuando una operación solicita el UUID y se confirma su transacción.
+Si ya existe se conserva; obtenerlo no avanza la secuencia de pacientes ni crea eventos.
+Las futuras capturas de encuentros y órdenes podrán utilizar esta operación, pero aún no
+están implementadas. No se modificó la estructura de las tablas.
+
+Desde la carpeta `synchronizationmr`, ejecutar las cuatro pruebas del nodo:
+
+```powershell
+mvn -pl api '-Dtest=LocalNodeServiceIntegrationTest' test
+```
+
+Comprueban obtención repetida sin crear pacientes ni eventos, persistencia sin transacción
+externa, reversión al cancelar la transacción y dos primeras llamadas simultáneas.
+Además se añadió `PatientCaptureIntegrationTest#patientUsesPreviouslyInitializedNodeUuid`,
+que comprueba que un paciente nuevo conserva el origen preparado previamente.
+El total actual es 22 pruebas: 8 unitarias, 10 de integración de pacientes y 4 del nodo.
+
+El UUID del paciente y la identidad de sincronización de origen deberán conservarse al
+recibir un paciente en otro nodo. La recepción todavía no está implementada; esta decisión
+no resuelve registros independientes de una misma persona ni la incorporación de pacientes anteriores.
 
 En este documento, «alta» significa registrar un paciente nuevo; no significa darle el alta médica.
 Lo implementado guarda al paciente en OpenMRS y deja anotado que su creación está pendiente de
@@ -28,7 +56,7 @@ sincronización. Liquibase es el archivo de instrucciones que las crea al instal
 | Columna | Qué guarda |
 |---|---|
 | `singleton_id` | Siempre 1: identifica la única fila de configuración local. No identifica a un paciente. |
-| `node_uuid` | Código estable de esta instalación, generado en la primera creación confirmada. |
+| `node_uuid` | Código estable de esta instalación, generado al solicitarlo al servicio común y confirmar la transacción. |
 | `patient_sequence` | Último número de sincronización asignado a un paciente aquí. Comienza en 0. |
 
 El nombre visible POSTA-01 se configura en la propiedad `synchronizationmr.nodeLabel`, fuera de esta tabla.
@@ -82,7 +110,7 @@ funciones diferentes y no tienen por qué coincidir.
 
 ## Qué se implementó
 
-Verificación del 2026-09-14: `mvn -o package` terminó correctamente; 8 pruebas unitarias y 9 pruebas de integración local, sin fallos, errores ni casos omitidos. El paquete se generó en `synchronizationmr/omod/target/synchronizationmr-1.0.0-SNAPSHOT.omod`. No se desplegó en un servidor.
+Verificación del 2026-09-14: `mvn -o package` terminó correctamente; 8 pruebas unitarias y 14 pruebas de integración local, sin fallos, errores ni casos omitidos. El paquete se generó en `synchronizationmr/omod/target/synchronizationmr-1.0.0-SNAPSHOT.omod`. No se desplegó en un servidor.
 
 Captura de altas realizadas por `PatientService.savePatient`, incluidas las conversiones de una Person existente a Patient. Registra una identidad de sincronización y un evento CREATE/PENDING. Las ediciones de pacientes existentes no crean otra identidad ni otro evento de alta.
 
@@ -101,7 +129,7 @@ Este incremento **todavía no transmite datos entre servidores**, no captura enc
 
 La representación legible será **POSTA-01 / PACIENTE / 1**. No se guarda ni se analiza como una cadena compuesta: la identidad técnica se forma con UUID del origen, tipo y secuencia. Dos postas pueden tener un paciente número 1 sin confundirlos. Cambiar el nombre visible no modifica la identidad.
 
-El nombre por defecto es NODO-LOCAL, no un establecimiento real. El UUID del nodo se asigna en la primera captura confirmada y se conserva en su tabla. No clonar una base ya inicializada para crear otra posta independiente: copiaría también esa identidad. El aprovisionamiento/registro de nuevos nodos y la importación remota todavía deben diseñarse; el nombre visible por sí solo no distingue clones.
+El nombre por defecto es NODO-LOCAL, no un establecimiento real. El UUID del nodo se obtiene mediante LocalNodeService.getOrCreateNodeUuid(), sin necesitar un paciente. Se conserva cuando se confirma la transacción. La captura de pacientes reutiliza el mismo LocalNodeDao. No clonar una base ya inicializada para crear otra posta independiente: copiaría también esa identidad. El aprovisionamiento/registro de nuevos nodos y la importación remota todavía deben diseñarse; el nombre visible por sí solo no distingue clones.
 
 ## Cómo funciona este incremento
 
