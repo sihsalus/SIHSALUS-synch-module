@@ -21,6 +21,28 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 public class PatientSyncServiceImpl extends BaseOpenmrsService implements PatientSyncService {
 	
 	@Override
+	public long getHighestPatientSequence(String originNodeUuid) {
+		return dao.findHighestPatientSequence(validateOrigin(originNodeUuid));
+	}
+	
+	@Override
+	public java.util.List<org.openmrs.module.synchronizationmr.sync.PatientSyncEvent> getPatientEventsAfter(
+	        String originNodeUuid, long afterSequence, int limit) {
+		String origin = validateOrigin(originNodeUuid);
+		if (afterSequence < 0 || limit < 1 || limit > 100) {
+			throw new APIException("La secuencia debe ser cero o positiva y el límite debe estar entre 1 y 100");
+		}
+		return dao.findPatientEventsAfter(origin, afterSequence, limit);
+	}
+	
+	private String validateOrigin(String origin) {
+		if (origin == null || !origin.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) {
+			throw new APIException("Se requiere un UUID de origen válido");
+		}
+		return origin.toLowerCase(java.util.Locale.ROOT);
+	}
+	
+	@Override
 	public String getCreationPayload(String patientUuid) {
 		if (patientUuid == null || patientUuid.trim().isEmpty()) {
 			throw new APIException("Se requiere el UUID del paciente");

@@ -24,6 +24,10 @@
         <class>org.openmrs.module.synchronizationmr.advice.PatientCreationAdvice</class>
     </advice>
     <privilege>
+        <name>Receive Synchronization Records</name>
+        <description>Recibir eventos de sincronización y registrar pacientes de otros nodos.</description>
+    </privilege>
+    <privilege>
         <name>View Synchronization Records</name>
         <description>Consultar identidades de sincronización y eventos pendientes sin datos personales del paciente.</description>
     </privilege>

@@ -71,6 +71,9 @@ public class PatientCreationAdvice implements MethodInterceptor {
 			throw new APIException("El interceptor de pacientes requiere una transacción de escritura de OpenMRS");
 		}
 		Patient patient = (Patient) invocation.getArguments()[0];
+		if (org.openmrs.module.synchronizationmr.sync.IncomingPatientSave.isReceiving(patient)) {
+			return invocation.proceed();
+		}
 		boolean creation = !service().patientExists(patient.getPatientId());
 		Object result = invocation.proceed();
 		if (creation) {

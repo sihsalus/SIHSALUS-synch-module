@@ -29,6 +29,55 @@ import org.springframework.stereotype.Repository;
 @Repository("synchronizationmr.PatientSyncDao")
 public class PatientSyncDao {
 	
+	public long findHighestPatientSequence(String origin) {
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> {
+            try (PreparedStatement query = connection.prepareStatement(
+                    "select coalesce(max(entity_sequence), 0) from synchronizationmr_patient_identity where origin_node_uuid = ?")) {
+                query.setString(1, origin);
+                try (ResultSet rows = query.executeQuery()) {
+                    rows.next();
+                    return rows.getLong(1);
+                }
+            }
+        });
+    }
+	
+	public java.util.List<org.openmrs.module.synchronizationmr.sync.PatientSyncEvent> findPatientEventsAfter(
+            String origin, long afterSequence, int limit) {
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> {
+            java.util.List<org.openmrs.module.synchronizationmr.sync.PatientSyncEvent> events = new java.util.ArrayList<>();
+            // LEFT JOIN conserva identidades cuyo evento falte: un JOIN interno ocultaría ese fallo.
+            // No filtramos por estado global: otro destino podría necesitar un evento ya entregado.
+            try (PreparedStatement query = connection.prepareStatement(
+                    "select i.entity_sequence, i.patient_uuid, e.event_uuid, e.payload_json"
+                    + " from synchronizationmr_patient_identity i left join synchronizationmr_patient_event e"
+                    + " on e.patient_id = i.patient_id where i.origin_node_uuid = ? and i.entity_sequence > ?"
+                    + " order by i.entity_sequence asc")) {
+                query.setString(1, origin);
+                query.setLong(2, afterSequence);
+                query.setMaxRows(limit);
+                long previous = afterSequence;
+                try (ResultSet rows = query.executeQuery()) {
+                    while (rows.next()) {
+                        long sequence = rows.getLong(1);
+                        if (previous == Long.MAX_VALUE || sequence != previous + 1) {
+                            throw new org.openmrs.api.APIException("No se puede entregar la página: falta la secuencia " + (previous + 1));
+                        }
+                        String eventUuid = rows.getString(3);
+                        String payload = rows.getString(4);
+                        if (eventUuid == null || payload == null || payload.trim().isEmpty()) {
+                            throw new org.openmrs.api.APIException("No se puede entregar la página: falta el evento o su JSON en la secuencia " + sequence);
+                        }
+                        events.add(new org.openmrs.module.synchronizationmr.sync.PatientSyncEvent(
+                                origin, sequence, eventUuid, rows.getString(2), payload));
+                        previous = sequence;
+                    }
+                }
+            }
+            return java.util.Collections.unmodifiableList(events);
+        });
+    }
+	
 	@Autowired
 	private SessionFactory sessionFactory;
 	

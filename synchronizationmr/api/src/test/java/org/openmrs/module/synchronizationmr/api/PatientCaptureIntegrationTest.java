@@ -45,6 +45,113 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
 	
 	private PatientCreationAdvice advice;
 	
+	@Test
+	public void queriesOrderedPagesWithoutChangingPendingEvents() {
+		Patient a = Context.getPatientService().savePatient(newPatient());
+		Patient b = Context.getPatientService().savePatient(newPatient());
+		Patient c = Context.getPatientService().savePatient(newPatient());
+		PatientSyncRecord first = sync().getByPatientUuid(a.getUuid());
+		String origin = first.getOriginNodeUuid();
+		java.util.List<org.openmrs.module.synchronizationmr.sync.PatientSyncEvent> page = sync().getPatientEventsAfter(
+		    origin, first.getSequence() - 1, 2);
+		assertEquals(2, page.size());
+		assertEquals(a.getUuid(), page.get(0).getPatientUuid());
+		assertEquals(b.getUuid(), page.get(1).getPatientUuid());
+		assertEquals(first.getEventUuid(), page.get(0).getEventUuid());
+		assertEquals(sync().getCreationPayload(a.getUuid()), page.get(0).getPayloadJson());
+		java.util.List<org.openmrs.module.synchronizationmr.sync.PatientSyncEvent> next = sync().getPatientEventsAfter(
+		    origin, page.get(1).getSequence(), 2);
+		assertEquals(1, next.size());
+		assertEquals(c.getUuid(), next.get(0).getPatientUuid());
+		assertEquals(next.get(0).getSequence(), sync().getHighestPatientSequence(origin));
+		assertTrue(sync().getPatientEventsAfter(origin, next.get(0).getSequence(), 2).isEmpty());
+		assertEquals("PENDING", sync().getByPatientUuid(a.getUuid()).getState());
+		assertEquals("PENDING", sync().getByPatientUuid(b.getUuid()).getState());
+		assertEquals("PENDING", sync().getByPatientUuid(c.getUuid()).getState());
+		System.out.println("CONSULTA VERIFICADA: primera página=2 | segunda página=1 | sin confirmar entregas");
+	}
+	
+	@Test
+    public void missingPayloadAbortsPageInsteadOfSkippingEvent() throws Exception {
+        Patient a = Context.getPatientService().savePatient(newPatient());
+        Patient b = Context.getPatientService().savePatient(newPatient());
+        Context.getPatientService().savePatient(newPatient());
+        PatientSyncRecord first = sync().getByPatientUuid(a.getUuid());
+        try (java.sql.PreparedStatement query = getConnection().prepareStatement(
+                "update synchronizationmr_patient_event set payload_json = null where patient_id = ?")) {
+            query.setInt(1, b.getPatientId());
+            query.executeUpdate();
+        }
+        assertThrows(org.openmrs.api.APIException.class, () -> sync().getPatientEventsAfter(
+                first.getOriginNodeUuid(), first.getSequence() - 1, 3));
+    }
+	
+	@Test
+    public void missingEventIsNotHiddenByQuery() throws Exception {
+        Patient patient = Context.getPatientService().savePatient(newPatient());
+        PatientSyncRecord record = sync().getByPatientUuid(patient.getUuid());
+        try (java.sql.PreparedStatement query = getConnection().prepareStatement(
+                "delete from synchronizationmr_patient_event where patient_id = ?")) {
+            query.setInt(1, patient.getPatientId());
+            query.executeUpdate();
+        }
+        assertEquals(record.getSequence(), sync().getHighestPatientSequence(record.getOriginNodeUuid()));
+        assertThrows(org.openmrs.api.APIException.class, () -> sync().getPatientEventsAfter(
+                record.getOriginNodeUuid(), record.getSequence() - 1, 1));
+    }
+	
+	@Test
+    public void higherSequenceDoesNotHideGap() throws Exception {
+        Patient patient = Context.getPatientService().savePatient(newPatient());
+        PatientSyncRecord record = sync().getByPatientUuid(patient.getUuid());
+        // Solo en la base de pruebas: simula una identidad ausente antes de otra disponible.
+        try (java.sql.PreparedStatement query = getConnection().prepareStatement(
+                "update synchronizationmr_patient_identity set entity_sequence = ? where patient_id = ?")) {
+            query.setLong(1, record.getSequence() + 1);
+            query.setInt(2, patient.getPatientId());
+            query.executeUpdate();
+        }
+        assertEquals(record.getSequence() + 1, sync().getHighestPatientSequence(record.getOriginNodeUuid()));
+        assertThrows(org.openmrs.api.APIException.class, () -> sync().getPatientEventsAfter(
+                record.getOriginNodeUuid(), record.getSequence() - 1, 2));
+    }
+	
+	@Test
+    public void queriesSeparateOriginsAndRejectInvalidArguments() throws Exception {
+        Patient a = Context.getPatientService().savePatient(newPatient());
+        Patient b = Context.getPatientService().savePatient(newPatient());
+        PatientSyncRecord local = sync().getByPatientUuid(a.getUuid());
+        PatientSyncRecord foreign = sync().getByPatientUuid(b.getUuid());
+        String otherOrigin = UUID.randomUUID().toString();
+        // Simula un registro ya importado; todavía no implementa la recepción por red.
+        try (java.sql.PreparedStatement query = getConnection().prepareStatement(
+                "update synchronizationmr_patient_identity set origin_node_uuid = ?, entity_sequence = 1 where patient_id = ?")) {
+            query.setString(1, otherOrigin);
+            query.setInt(2, b.getPatientId());
+            query.executeUpdate();
+        }
+        String json = new org.openmrs.module.synchronizationmr.sync.PatientCreationPayloadSerializer()
+                .serialize(b, otherOrigin, 1, foreign.getEventUuid(), foreign.getDateCreated());
+        try (java.sql.PreparedStatement query = getConnection().prepareStatement(
+                "update synchronizationmr_patient_event set payload_json = ? where patient_id = ?")) {
+            query.setString(1, json);
+            query.setInt(2, b.getPatientId());
+            query.executeUpdate();
+        }
+        assertEquals(local.getSequence(), sync().getHighestPatientSequence(local.getOriginNodeUuid()));
+        assertEquals(1, sync().getHighestPatientSequence(otherOrigin));
+        assertEquals(b.getUuid(), sync().getPatientEventsAfter(otherOrigin, 0, 10).get(0).getPatientUuid());
+        assertEquals(1, sync().getPatientEventsAfter(local.getOriginNodeUuid(), local.getSequence() - 1, 10).size());
+        String unknown = UUID.randomUUID().toString();
+        assertEquals(0, sync().getHighestPatientSequence(unknown));
+        assertTrue(sync().getPatientEventsAfter(unknown, 0, 1).isEmpty());
+        assertTrue(sync().getPatientEventsAfter(otherOrigin, Long.MAX_VALUE, 1).isEmpty());
+        assertThrows(org.openmrs.api.APIException.class, () -> sync().getPatientEventsAfter(otherOrigin, -1, 1));
+        assertThrows(org.openmrs.api.APIException.class, () -> sync().getPatientEventsAfter(otherOrigin, 0, 0));
+        assertThrows(org.openmrs.api.APIException.class, () -> sync().getPatientEventsAfter(otherOrigin, 0, 101));
+        assertThrows(org.openmrs.api.APIException.class, () -> sync().getHighestPatientSequence("POSTA-01"));
+    }
+	
 	@Autowired
 	private org.openmrs.module.synchronizationmr.api.dao.PatientSyncDao patientSyncDao;
 	

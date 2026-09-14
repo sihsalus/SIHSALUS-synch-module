@@ -88,4 +88,11 @@
             <column name="payload_json" type="clob" />
         </addColumn>
     </changeSet>
+    <changeSet id="synchronizationmr-20260914-patient-receipt" author="sihsalus">
+        <!-- Confirmación consecutiva de pacientes recibidos por origen; no es el MAX de identidades. -->
+        <createTable tableName="synchronizationmr_patient_receipt">
+            <column name="origin_node_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="confirmed_sequence" type="bigint"><constraints nullable="false" /></column>
+        </createTable>
+    </changeSet>
 </databaseChangeLog>

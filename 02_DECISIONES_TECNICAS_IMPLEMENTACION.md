@@ -11,6 +11,31 @@
 
 ## A. Decisiones CONFIRMADAS
 
+### Actualización acordada con el usuario: distribución completa en la microrred
+
+Decisión explícita del usuario en esta conversación: por ahora todas las postas deben recibir
+todos los registros de pacientes, encuentros y órdenes incluidos en el alcance del componente.
+No se filtra por pacientes atendidos ni por establecimiento asignado. Esta decisión posterior
+no se atribuye a la conversación original con Iván.
+
+- Las postas se comunican con el maestro, nunca directamente entre ellas.
+- Periódicamente entregan sus eventos locales faltantes al maestro y consultan al maestro los
+  eventos que les faltan de los demás orígenes. La frecuencia todavía no está fijada.
+- Cada receptor lleva una confirmación consecutiva por origen y tipo de entidad. La mayor
+  secuencia disponible no sustituye esa confirmación. Los eventos se solicitan por páginas.
+- Solo se avanza la confirmación después de guardar correctamente los datos y confirmar la
+  transacción. Los reenvíos idénticos no deben duplicar registros.
+- El maestro conserva y redistribuye el origen y el identificador de sincronización originales.
+  No se devuelve a una posta su propio origen como si fuera una importación remota.
+- Con conectividad y procesamiento satisfactorio, todos convergen a los mismos registros
+  incluidos en el alcance. Durante una desconexión o un error puede haber diferencias temporales.
+
+“Todos los registros” define la distribución, no amplía automáticamente los campos del JSON ni
+da por implementadas las ediciones, la incorporación de pacientes anteriores, encuentros u órdenes.
+Actualmente solo existe captura, consulta y recepción local de creaciones de pacientes; el
+transporte HTTP y el ciclo periódico siguen pendientes. El estado global PENDING no representa
+la entrega a todas las postas: la recepción de cada instalación se consulta por sus confirmaciones.
+
 ### A.1 Mecanismo de detección de eventos
 Se implementa mediante **AOP Advice** de OpenMRS (interceptores `before()` /
 `after()`), NO modificando directamente el código de los servicios existentes.

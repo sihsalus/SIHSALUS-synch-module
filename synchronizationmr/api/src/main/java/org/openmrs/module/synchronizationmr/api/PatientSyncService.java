@@ -18,6 +18,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 public interface PatientSyncService extends OpenmrsService {
 	
+	/** Mayor secuencia registrada para este origen, o cero. No es una confirmación consecutiva. */
+	@Authorized("View Synchronization Records")
+	@Transactional(readOnly = true)
+	long getHighestPatientSequence(String originNodeUuid);
+	
+	/**
+	 * Consulta exclusiva después de afterSequence, de 1 a 100 eventos, ordenados. Un hueco o evento
+	 * sin contenido aborta la página; nunca confirma ni modifica entregas.
+	 */
+	@Authorized(value = { "View Synchronization Records", "Get Patients" }, requireAll = true)
+	@Transactional(readOnly = true)
+	java.util.List<org.openmrs.module.synchronizationmr.sync.PatientSyncEvent> getPatientEventsAfter(String originNodeUuid,
+	        long afterSequence, int limit);
+	
 	/**
 	 * JSON original de creación. Devuelve null si no hay evento o si es anterior a esta captura.
 	 * Requiere ambos permisos porque contiene datos personales.

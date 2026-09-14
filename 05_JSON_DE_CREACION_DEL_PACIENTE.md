@@ -1,5 +1,8 @@
 # Copia JSON de la creación del paciente
 
+> Paso posterior implementado: [consulta de registros faltantes por origen](06_CONSULTA_DE_REGISTROS_FALTANTES.md).
+> El total del proyecto pasó a 34 pruebas; las 29 indicadas abajo corresponden a este incremento del JSON.
+
 Este incremento completa el contenido básico del evento pendiente. No envía datos al maestro
 ni incorpora automáticamente pacientes anteriores a la instalación del módulo.
 

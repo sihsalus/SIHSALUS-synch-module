@@ -95,4 +95,23 @@
             </list>
         </property>
     </bean>
+    <bean id="synchronizationmr.PatientReceiveService"
+          class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+        <property name="transactionManager" ref="transactionManager" />
+        <property name="target">
+            <bean class="org.openmrs.module.synchronizationmr.api.impl.PatientReceiveServiceImpl">
+                <property name="dao" ref="synchronizationmr.PatientReceiveDao" />
+            </bean>
+        </property>
+        <property name="preInterceptors" ref="serviceInterceptors" />
+        <property name="transactionAttributeSource" ref="transactionAttributeSource" />
+    </bean>
+    <bean parent="serviceContext">
+        <property name="moduleService">
+            <list>
+                <value>org.openmrs.module.synchronizationmr.api.PatientReceiveService</value>
+                <ref bean="synchronizationmr.PatientReceiveService" />
+            </list>
+        </property>
+    </bean>
 </beans>
