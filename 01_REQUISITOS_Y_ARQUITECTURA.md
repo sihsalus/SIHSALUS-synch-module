@@ -5,6 +5,9 @@
 > para programar. Este documento se mantiene estable; los detalles de implementación
 > que van cambiando con cada reunión técnica están en
 > `02_DECISIONES_TECNICAS_IMPLEMENTACION.md`.
+>
+> Versión alineada con el informe final "Arquitectura y perfil funcional del
+> componente de sincronización" (R3.1/R3.2, modelo C4).
 
 ## 1. Qué es el componente
 
@@ -24,6 +27,10 @@ sincronización.** Es un servidor separado; su integración con el servidor maes
 de la microrred queda fuera de alcance (trabajo futuro, según indicación explícita
 del especialista del proyecto).
 
+**Topología: maestro-cliente centralizado, no P2P entre postas.** Las postas no se
+comunican directamente entre sí — todo pasa primero por el servidor maestro de la
+microrred, que redistribuye hacia las demás (patrón "antena de telecomunicaciones").
+
 ## 2. Datos del repositorio actual
 
 - Paquete base: `org.openmrs.module.synchronizationmr`
@@ -34,6 +41,8 @@ del especialista del proyecto).
   `SynchronizationMRService`, etc.) generada por el arquetipo oficial de OpenMRS.
   Se mantiene en el repositorio sin usarse como base real; las entidades y
   servicios del componente se crean aparte, con nombres propios por componente.
+- El repositorio del módulo Sync nativo de OpenMRS (`openmrs-module-sync`) está
+  clonado localmente y disponible para consulta directa de código (ver doc 02, A.9).
 
 ## 3. Requisitos Funcionales (16)
 
@@ -69,18 +78,21 @@ del especialista del proyecto).
 ## 5. Componentes de la arquitectura (Nivel 3 — C4)
 
 Todos viven dentro del módulo OMOD, embebidos en el contenedor Backend OpenMRS.
+La columna "Tecnología" corresponde exactamente a la etiqueta usada en el diagrama
+C4 de nivel 3 del informe de arquitectura — úsala como guía directa de qué tipo de
+clase/anotación de Spring u OpenMRS corresponde a cada componente.
 
-| Componente | RF que cubre | Notas de implementación |
-|---|---|---|
-| Interceptor de eventos clínicos | RF-01, RF-11 | Mecanismo AOP Advice (before/after) sobre los servicios de Paciente, Encounter y Order. Ver documento 02. |
-| Gestor de identificadores de sincronización | RF-02, RF-03 | Tabla propia vía OMOD/Liquibase, con llave foránea hacia las tablas nativas. No usa el UUID nativo (es un hash, no sirve para comparar secuencialmente). |
-| Configurador de rol del nodo | RF-04 | Vía Global Properties de OpenMRS (cliente/maestro). |
-| Motor de comparación y sincronización | RF-05, RF-06 | Compara identificadores propios vs. los del nodo homólogo (patrón "pregúntale al otro hasta dónde tiene"). |
-| Servicio de envío y propagación | RF-07, RF-08 | Cliente HTTP saliente; también reenvía hacia postas cuando el nodo es maestro. |
-| Servicio de recepción y confirmación | RF-09 | Endpoint REST que recibe entidades entrantes, valida y confirma. |
-| Detector de conectividad y cola de transacciones diferidas | RF-10, RF-12, RF-13 | Verifica conexión periódicamente; cola persistente vía OMOD. Confirmado como necesario por el especialista del proyecto. |
-| API de consulta protegida | RF-14 | Endpoint REST de solo consulta, exige autenticación. |
-| Módulo de seguridad y auditoría | RF-15, RF-16 | Cifra/autentica toda comunicación saliente/entrante; punto centralizado de seguridad (todo el tráfico pasa por aquí antes de llegar al gateway de salida del establecimiento). |
+| Componente | Tecnología (C4) | RF que cubre | Notas de implementación |
+|---|---|---|---|
+| Interceptor de eventos clínicos | OpenMRS AOP Advice | RF-01 (contribuye a RF-11 junto con el diseño offline-first general) | Mecanismo AOP Advice (before/after) sobre los servicios de Paciente, Encounter y Order. Solo notifica el evento; no bloquea el registro local. Ver documento 02. |
+| Gestor de identificadores de sincronización | Spring Service | RF-02, RF-03 | Tabla propia vía OMOD/Liquibase, con llave foránea hacia las tablas nativas. No usa el UUID nativo (es un hash, no sirve para comparar secuencialmente). |
+| Configurador de rol del nodo | Spring Service | RF-04 | Vía Global Properties de OpenMRS (cliente/maestro). |
+| Motor de comparación y sincronización | Spring Service | RF-05, RF-06 | Compara identificadores propios vs. los del nodo homólogo (patrón "pregúntale al otro hasta dónde tiene"). |
+| Servicio de envío y propagación | Spring Service | RF-07, RF-08 | Cliente HTTP saliente; también reenvía hacia postas cuando el nodo es maestro. |
+| Servicio de recepción y confirmación | Spring MVC Controller | RF-09 | Endpoint REST que recibe entidades entrantes, valida y confirma. |
+| Detector de conectividad y cola de transacciones diferidas | Spring Scheduler | RF-10, RF-12, RF-13 | Verifica conexión periódicamente; cola persistente vía OMOD. Confirmado como necesario por el especialista del proyecto. |
+| API de consulta protegida | Spring MVC Controller | RF-14 | Endpoint REST de solo consulta, exige autenticación. |
+| Módulo de seguridad y auditoría | Spring Service | RF-15, RF-16 | Cifra/autentica TODA comunicación saliente y entrante (incluida la que llega al Servicio de recepción y a la API de consulta); punto centralizado de seguridad, único que interactúa con el gateway de salida del establecimiento. |
 
 ## 6. Orden de implementación sugerido
 

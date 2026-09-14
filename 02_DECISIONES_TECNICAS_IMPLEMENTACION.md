@@ -81,6 +81,12 @@ Aporta 3 ideas ya incorporadas a la arquitectura:
 - Política de resolución de conflictos "last-in-wins" (el cambio más reciente
   prevalece) — se adopta el mismo criterio salvo indicación distinta.
 
+**Actualización:** el repositorio `openmrs-module-sync` ya está clonado
+localmente en el entorno de Codex, quien lo analizó directamente (no solo vía
+deepwiki). Esto permite consultar el código fuente real del interceptor y del
+mecanismo Parent/Child al momento de diseñar las clases equivalentes del
+componente, en vez de basarse solo en la descripción de la wiki.
+
 Referencias: https://github.com/openmrs/openmrs-module-sync y
 https://openmrs.atlassian.net/wiki/spaces/docs/pages/25461419/Sync+Module
 
@@ -91,8 +97,11 @@ El especialista lo describió en términos generales ("un contador, como eventos
 manejado por APIs en JSON"), pero no se ha confirmado el detalle exacto de
 implementación (por ejemplo, si la comparación es siempre iniciada por el
 maestro, o si también las postas pueden iniciar una comparación hacia el
-maestro). Antes de cerrar el diseño del Motor de comparación, conviene
-confirmar esto con el especialista si surge alguna duda de implementación.
+maestro). El informe de arquitectura (flujo F2) sí describe un mecanismo
+concreto: el maestro pregunta periódicamente a cada posta su último
+identificador registrado, compara y solicita lo que falte. Esto puede usarse
+como base de trabajo, pero conviene confirmar con el especialista si surge
+alguna duda durante la implementación.
 
 ### B.2 Restricción de edición de datos personales del paciente
 En una conversación se mencionó una regla del MINSA sobre no editar datos
