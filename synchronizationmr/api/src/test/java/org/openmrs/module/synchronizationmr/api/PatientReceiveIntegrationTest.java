@@ -97,6 +97,10 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
 		assertEquals(1, receiver().receivePatient(json));
 		Patient saved = Context.getPatientService().getPatientByUuid(source.getUuid());
 		assertNotNull(saved);
+		PatientSyncRecord reused = sync().ensurePatientSyncRecord(saved.getPatientId());
+		assertEquals(origin, reused.getOriginNodeUuid());
+		assertEquals(1, reused.getSequence());
+		assertEquals(json, sync().getCreationPayload(saved.getUuid()));
 		assertEquals("María", saved.getGivenName());
 		assertEquals(source.getPersonName().getUuid(), saved.getPersonName().getUuid());
 		assertEquals(source.getPersonAddress().getUuid(), saved.getPersonAddress().getUuid());

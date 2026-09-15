@@ -38,6 +38,10 @@
         <description>Recibir eventos de sincronización y registrar pacientes de otros nodos.</description>
     </privilege>
     <privilege>
+        <name>Prepare Synchronization Records</name>
+        <description>Preparar la identidad y el evento de sincronización de un paciente local preexistente.</description>
+    </privilege>
+    <privilege>
         <name>View Synchronization Records</name>
         <description>Consultar identidades de sincronización y eventos pendientes sin datos personales del paciente.</description>
     </privilege>

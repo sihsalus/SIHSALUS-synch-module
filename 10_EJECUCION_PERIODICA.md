@@ -1,5 +1,9 @@
 # 10. Ejecución periódica del cliente
 
+La preparación explícita de pacientes antiguos se añadió posteriormente en
+[11_PACIENTES_PREEXISTENTES.md](11_PACIENTES_PREEXISTENTES.md). No activa una carga masiva
+ni resuelve la reconciliación de personas registradas independientemente en varias instancias.
+
 ## Qué cambia
 
 El OMOD ahora puede programar el cliente de pacientes al iniciar. La programación está

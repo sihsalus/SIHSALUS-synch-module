@@ -21,6 +21,28 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 public class PatientSyncServiceImpl extends BaseOpenmrsService implements PatientSyncService {
 	
 	@Override
+	public PatientSyncRecord ensurePatientSyncRecord(Integer localPatientId) {
+		requireWriteTransaction();
+		if (localPatientId == null || localPatientId <= 0) {
+			throw new APIException("Se requiere el identificador interno de un paciente local guardado");
+		}
+		// Carga la entidad local real; no acepta una copia enviada desde otra instancia.
+		Patient patient = org.openmrs.api.context.Context.getPatientService().getPatient(localPatientId);
+		if (patient == null || Boolean.TRUE.equals(patient.getVoided())) {
+			throw new APIException("No se puede preparar un paciente inexistente o anulado");
+		}
+		// Reutiliza el bloqueo del contador y la comprobación de identidad del alta.
+		// Si ya vino de otro nodo, conserva ese origen; no lo convierte en una nueva alta local.
+		PatientSyncRecord record = dao.recordCreation(patient, nodeLabel());
+		String payload = dao.findCreationPayload(patient.getUuid());
+		if (payload == null || payload.trim().isEmpty()) {
+			throw new APIException(
+			        "El registro existente no tiene JSON; requiere revisión y no se regenerará automáticamente");
+		}
+		return record;
+	}
+	
+	@Override
 	public java.util.List<String> getPatientOrigins(String afterOriginUuid, int limit) {
 		if (limit < 1 || limit > 100) {
 			throw new APIException("El límite debe estar entre 1 y 100");

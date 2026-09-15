@@ -18,6 +18,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 public interface PatientSyncService extends OpenmrsService {
 	
+	/**
+	 * Prepara un paciente local existente una sola vez, conservando la identidad y el JSON si ya
+	 * existen. El número recibido es el patient_id local; no se utiliza para comparar instancias.
+	 */
+	@Authorized(value = { "Prepare Synchronization Records", "Get Patients" }, requireAll = true)
+	@Transactional
+	PatientSyncRecord ensurePatientSyncRecord(Integer localPatientId);
+	
 	/** Orígenes conocidos, ordenados por UUID y paginados; null inicia la primera página. */
 	@Authorized("View Synchronization Records")
 	@Transactional(readOnly = true)

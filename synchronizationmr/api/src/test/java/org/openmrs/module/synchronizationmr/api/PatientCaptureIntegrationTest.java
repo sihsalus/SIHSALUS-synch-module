@@ -46,6 +46,65 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
 	private PatientCreationAdvice advice;
 	
 	@Test
+	public void preparesPreexistingPatientWithoutCreatingAnotherPatient() throws Exception {
+		Patient patient = Context.getPatientService().getPatient(2);
+		String uuid = patient.getUuid();
+		assertNull(sync().getByPatientUuid(uuid));
+		int count = Context.getPatientService().getAllPatients().size();
+		PatientSyncRecord prepared = sync().ensurePatientSyncRecord(2);
+		assertEquals(uuid, prepared.getPatientUuid());
+		assertEquals(count, Context.getPatientService().getAllPatients().size());
+		com.fasterxml.jackson.databind.JsonNode json = new com.fasterxml.jackson.databind.ObjectMapper().readTree(sync()
+		        .getCreationPayload(uuid));
+		assertEquals(prepared.getOriginNodeUuid(), json.path("originNodeUuid").asText());
+		assertEquals(prepared.getSequence(), json.path("entitySequence").asLong());
+		assertEquals(uuid, json.path("payload").path("patientUuid").asText());
+		assertEquals(prepared.getEventUuid(),
+		    sync().getPatientEventsAfter(prepared.getOriginNodeUuid(), prepared.getSequence() - 1, 1).get(0).getEventUuid());
+		System.out.println("PACIENTE PREEXISTENTE VERIFICADO: misma entidad local, identidad y JSON disponibles para envío");
+	}
+	
+	@Test
+	public void preparingAgainPreservesSequenceAndOriginalSnapshot() {
+		Patient patient = Context.getPatientService().getPatient(2);
+		PatientSyncRecord first = sync().ensurePatientSyncRecord(2);
+		String json = sync().getCreationPayload(patient.getUuid());
+		patient.setGender("F".equals(patient.getGender()) ? "M" : "F");
+		Context.getPatientService().savePatient(patient);
+		PatientSyncRecord second = sync().ensurePatientSyncRecord(2);
+		assertEquals(first.getEventUuid(), second.getEventUuid());
+		assertEquals(first.getSequence(), second.getSequence());
+		assertEquals(first.getOriginNodeUuid(), second.getOriginNodeUuid());
+		assertEquals(json, sync().getCreationPayload(patient.getUuid()));
+		assertEquals(first.getSequence(), sync().getHighestPatientSequence(first.getOriginNodeUuid()));
+	}
+	
+	@Test
+    public void preparationRejectsMissingPatientAndMissingHistoricalPayload() throws Exception {
+        assertThrows(org.openmrs.api.APIException.class, () -> sync().ensurePatientSyncRecord(null));
+        assertThrows(org.openmrs.api.APIException.class, () -> sync().ensurePatientSyncRecord(Integer.MAX_VALUE));
+        sync().ensurePatientSyncRecord(2);
+        try (java.sql.PreparedStatement query = getConnection().prepareStatement(
+                "update synchronizationmr_patient_event set payload_json = null where patient_id = 2")) {
+            query.executeUpdate();
+        }
+        assertThrows(org.openmrs.api.APIException.class, () -> sync().ensurePatientSyncRecord(2));
+        assertNull(sync().getCreationPayload(Context.getPatientService().getPatient(2).getUuid()));
+    }
+	
+	@Test
+	public void preparationRollsBackWithItsCallingTransaction() {
+		String uuid = Context.getPatientService().getPatient(2).getUuid();
+		sync().ensurePatientSyncRecord(2);
+		TestTransaction.flagForRollback();
+		TestTransaction.end();
+		TestTransaction.start();
+		assertNotNull(Context.getPatientService().getPatient(2));
+		assertNull(sync().getByPatientUuid(uuid));
+		assertNull(sync().getCreationPayload(uuid));
+	}
+	
+	@Test
 	public void queriesOrderedPagesWithoutChangingPendingEvents() {
 		Patient a = Context.getPatientService().savePatient(newPatient());
 		Patient b = Context.getPatientService().savePatient(newPatient());
