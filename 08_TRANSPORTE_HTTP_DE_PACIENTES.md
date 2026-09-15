@@ -122,10 +122,11 @@ entre instancias. Los datos usados son ficticios.
 
 ## 5. Qué sigue
 
-El siguiente incremento será el cliente de la posta: conectar al maestro, enviar sus eventos,
-consultar los orígenes disponibles y recibir las páginas en orden. Después podremos programar
-ese ciclo y probar interrupciones y reintentos. Sigue pendiente incorporar encuentros, órdenes
-y resolver los pacientes preexistentes que no tienen una identidad de sincronización registrada.
+El cliente de la posta ya tiene un primer ciclo explícito, descrito en
+[09_CLIENTE_DE_LA_POSTA.md](09_CLIENTE_DE_LA_POSTA.md): conecta al maestro, envía sus eventos,
+consulta los orígenes disponibles y recibe las páginas en orden. Falta configurar y programar
+su ejecución automática y probarlo entre instancias reales. Sigue pendiente incorporar encuentros,
+órdenes y resolver los pacientes preexistentes sin una identidad de sincronización registrada.
 
 `protocolVersion: 1` en la respuesta `node` identifica esta primera interfaz HTTP. Es distinto
 de `schemaVersion: 1/2` del JSON del paciente, que sigue describiendo las versiones del contenido

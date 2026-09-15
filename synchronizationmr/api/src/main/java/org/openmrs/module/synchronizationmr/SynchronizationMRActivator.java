@@ -12,6 +12,8 @@ package org.openmrs.module.synchronizationmr;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.module.BaseModuleActivator;
+import org.openmrs.module.synchronizationmr.sync.PatientSyncScheduler;
+import org.openmrs.module.synchronizationmr.sync.PatientSyncScheduleConfig;
 
 /**
  * This class contains the logic that is run every time this module is either started or shutdown
@@ -20,18 +22,33 @@ public class SynchronizationMRActivator extends BaseModuleActivator {
 	
 	private Log log = LogFactory.getLog(this.getClass());
 	
+	private final PatientSyncScheduler patientScheduler = new PatientSyncScheduler();
+	
 	/**
 	 * @see #started()
 	 */
 	public void started() {
-		log.info("Started SynchronizationMR");
+		log.info("Módulo SynchronizationMR iniciado");
+		try {
+			patientScheduler.start(new PatientSyncScheduleConfig(System.getenv()));
+		}
+		catch (RuntimeException invalid) {
+			log.error("No se pudo iniciar la sincronización periódica; revise su configuración");
+		}
 	}
 	
 	/**
 	 * @see #shutdown()
 	 */
 	public void shutdown() {
-		log.info("Shutdown SynchronizationMR");
+		patientScheduler.stop();
+		log.info("Módulo SynchronizationMR detenido");
+	}
+	
+	@Override
+	public void willStop() {
+		// Detiene el trabajo antes de que OpenMRS retire los servicios del módulo.
+		patientScheduler.stop();
 	}
 	
 }
