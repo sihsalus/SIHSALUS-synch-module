@@ -140,6 +140,14 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
         }
         assertEquals(local.getSequence(), sync().getHighestPatientSequence(local.getOriginNodeUuid()));
         assertEquals(1, sync().getHighestPatientSequence(otherOrigin));
+        java.util.List<String> origins = sync().getPatientOrigins(null, 100);
+        assertTrue(origins.contains(otherOrigin));
+        assertTrue(origins.contains(local.getOriginNodeUuid()));
+        java.util.List<String> sortedOrigins = new java.util.ArrayList<>(origins);
+        java.util.Collections.sort(sortedOrigins);
+        assertEquals(sortedOrigins, origins);
+        assertEquals(origins.get(0), sync().getPatientOrigins(null, 1).get(0));
+        assertEquals(origins.get(1), sync().getPatientOrigins(origins.get(0), 1).get(0));
         assertEquals(b.getUuid(), sync().getPatientEventsAfter(otherOrigin, 0, 10).get(0).getPatientUuid());
         assertEquals(1, sync().getPatientEventsAfter(local.getOriginNodeUuid(), local.getSequence() - 1, 10).size());
         String unknown = UUID.randomUUID().toString();

@@ -18,6 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 public interface PatientSyncService extends OpenmrsService {
 	
+	/** Orígenes conocidos, ordenados por UUID y paginados; null inicia la primera página. */
+	@Authorized("View Synchronization Records")
+	@Transactional(readOnly = true)
+	java.util.List<String> getPatientOrigins(String afterOriginUuid, int limit);
+	
 	/** Mayor secuencia registrada para este origen, o cero. No es una confirmación consecutiva. */
 	@Authorized("View Synchronization Records")
 	@Transactional(readOnly = true)

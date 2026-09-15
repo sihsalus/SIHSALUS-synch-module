@@ -19,6 +19,16 @@
 	
 	<require_version>2.4.2</require_version>
 
+    <servlet>
+        <servlet-name>patientSync</servlet-name>
+        <servlet-class>org.openmrs.module.synchronizationmr.web.PatientSyncHttpServlet</servlet-class>
+    </servlet>
+    <globalProperty>
+        <property>synchronizationmr.nodeRole</property>
+        <defaultValue>UNCONFIGURED</defaultValue>
+        <description>Rol de esta instalación: MASTER o POSTA. Debe configurarse para habilitar la comunicación autenticada.</description>
+    </globalProperty>
+
     <advice>
         <point>org.openmrs.api.PatientService</point>
         <class>org.openmrs.module.synchronizationmr.advice.PatientCreationAdvice</class>

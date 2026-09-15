@@ -29,6 +29,20 @@ import org.springframework.stereotype.Repository;
 @Repository("synchronizationmr.PatientSyncDao")
 public class PatientSyncDao {
 	
+	public java.util.List<String> findPatientOrigins(String afterOrigin, int limit) {
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> {
+            java.util.List<String> origins = new java.util.ArrayList<>();
+            try (PreparedStatement query = connection.prepareStatement(
+                    "select distinct origin_node_uuid from synchronizationmr_patient_identity where origin_node_uuid > ? order by origin_node_uuid")) {
+                query.setString(1, afterOrigin); query.setMaxRows(limit);
+                try (ResultSet rows = query.executeQuery()) {
+                    while (rows.next()) { origins.add(rows.getString(1)); }
+                }
+            }
+            return java.util.Collections.unmodifiableList(origins);
+        });
+    }
+	
 	public long findHighestPatientSequence(String origin) {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             try (PreparedStatement query = connection.prepareStatement(

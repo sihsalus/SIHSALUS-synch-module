@@ -21,6 +21,14 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 public class PatientSyncServiceImpl extends BaseOpenmrsService implements PatientSyncService {
 	
 	@Override
+	public java.util.List<String> getPatientOrigins(String afterOriginUuid, int limit) {
+		if (limit < 1 || limit > 100) {
+			throw new APIException("El límite debe estar entre 1 y 100");
+		}
+		return dao.findPatientOrigins(afterOriginUuid == null ? "" : validateOrigin(afterOriginUuid), limit);
+	}
+	
+	@Override
 	public long getHighestPatientSequence(String originNodeUuid) {
 		return dao.findHighestPatientSequence(validateOrigin(originNodeUuid));
 	}

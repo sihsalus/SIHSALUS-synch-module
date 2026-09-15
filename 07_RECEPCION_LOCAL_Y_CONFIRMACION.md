@@ -112,6 +112,7 @@ mvn -pl api test
 El total es 45 pruebas: 11 unitarias y 34 de integración local.
 La migración y los bloqueos aún deben probarse en el motor del servidor de despliegue.
 
-El trabajo siguiente es resolver la configuración del transporte posta–maestro, permisos y
-catálogos compartidos, y exponer la consulta/recepción con confirmaciones antes de automatizar
-el ciclo periódico. No se añadió un temporizador que simule una comunicación que aún no existe.
+El incremento siguiente ya expone la consulta y recepción mediante peticiones HTTP autenticadas:
+ver [08_TRANSPORTE_HTTP_DE_PACIENTES.md](08_TRANSPORTE_HTTP_DE_PACIENTES.md).
+El cliente periódico, la configuración de las instancias y los catálogos compartidos siguen
+pendientes. Las 45 pruebas indicadas arriba corresponden a `api`; el transporte añade 15 en `omod`.
