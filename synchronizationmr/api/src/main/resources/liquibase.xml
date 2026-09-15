@@ -95,4 +95,30 @@
             <column name="confirmed_sequence" type="bigint"><constraints nullable="false" /></column>
         </createTable>
     </changeSet>
+    <changeSet id="synchronizationmr-20260915-encounter-capture" author="sihsalus">
+        <addColumn tableName="synchronizationmr_local_node">
+            <column name="encounter_sequence" type="bigint" defaultValueNumeric="0"><constraints nullable="false" /></column>
+        </addColumn>
+        <!-- ENCOUNTER está implícito en esta tabla. Todavía no almacena el JSON clínico. -->
+        <createTable tableName="synchronizationmr_encounter_event">
+            <column name="event_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="encounter_id" type="int"><constraints nullable="false" unique="true" /></column>
+            <column name="encounter_uuid" type="varchar(38)"><constraints nullable="false" unique="true" /></column>
+            <column name="patient_id" type="int"><constraints nullable="false" /></column>
+            <column name="patient_uuid" type="varchar(38)"><constraints nullable="false" /></column>
+            <column name="origin_node_uuid" type="varchar(38)"><constraints nullable="false" /></column>
+            <column name="entity_sequence" type="bigint"><constraints nullable="false" /></column>
+            <column name="operation" type="varchar(16)"><constraints nullable="false" /></column>
+            <column name="state" type="varchar(16)"><constraints nullable="false" /></column>
+            <column name="date_created" type="datetime"><constraints nullable="false" /></column>
+        </createTable>
+        <addUniqueConstraint tableName="synchronizationmr_encounter_event" columnNames="origin_node_uuid,entity_sequence" constraintName="syncmr_enc_origin_sequence_uq" />
+        <addForeignKeyConstraint baseTableName="synchronizationmr_encounter_event" baseColumnNames="encounter_id" referencedTableName="encounter" referencedColumnNames="encounter_id" constraintName="syncmr_enc_event_enc_fk" />
+        <addForeignKeyConstraint baseTableName="synchronizationmr_encounter_event" baseColumnNames="patient_id" referencedTableName="patient" referencedColumnNames="patient_id" constraintName="syncmr_enc_event_patient_fk" />
+    </changeSet>
+    <changeSet id="synchronizationmr-20260915-encounter-payload" author="sihsalus">
+        <!-- Los eventos anteriores quedan sin JSON: no se reconstruye su historia automáticamente. -->
+        <addColumn tableName="synchronizationmr_encounter_event"><column name="payload_json" type="clob" /></addColumn>
+    </changeSet>
 </databaseChangeLog>
+ 

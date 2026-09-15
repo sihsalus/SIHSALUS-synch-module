@@ -33,6 +33,10 @@
         <point>org.openmrs.api.PatientService</point>
         <class>org.openmrs.module.synchronizationmr.advice.PatientCreationAdvice</class>
     </advice>
+    <advice>
+        <point>org.openmrs.api.EncounterService</point>
+        <class>org.openmrs.module.synchronizationmr.advice.EncounterCreationAdvice</class>
+    </advice>
     <privilege>
         <name>Receive Synchronization Records</name>
         <description>Recibir eventos de sincronización y registrar pacientes de otros nodos.</description>

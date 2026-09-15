@@ -6,11 +6,13 @@ org\openmrs\module\synchronizationmr\sync\IncomingPatientSave.class
 org\openmrs\module\synchronizationmr\api\PatientSyncService.class
 org\openmrs\module\synchronizationmr\api\SynchronizationMRService.class
 org\openmrs\module\synchronizationmr\api\LocalNodeService.class
+org\openmrs\module\synchronizationmr\api\impl\EncounterSyncServiceImpl.class
 org\openmrs\module\synchronizationmr\advice\PatientCreationAdvice.class
 org\openmrs\module\synchronizationmr\sync\PatientIncomingEvent.class
 org\openmrs\module\synchronizationmr\SynchronizationMRActivator.class
 org\openmrs\module\synchronizationmr\api\impl\SynchronizationMRServiceImpl.class
 org\openmrs\module\synchronizationmr\sync\PatientCreationPayloadSerializer.class
+org\openmrs\module\synchronizationmr\sync\EncounterCreationPayloadSerializer.class
 org\openmrs\module\synchronizationmr\sync\PatientSyncScheduler.class
 org\openmrs\module\synchronizationmr\api\dao\PatientReceiveDao.class
 org\openmrs\module\synchronizationmr\sync\PatientSyncClient.class
@@ -22,5 +24,8 @@ org\openmrs\module\synchronizationmr\sync\PatientSyncRecord.class
 org\openmrs\module\synchronizationmr\SynchronizationMR.class
 org\openmrs\module\synchronizationmr\api\PatientReceiveService.class
 org\openmrs\module\synchronizationmr\sync\PatientRemoteTransport.class
+org\openmrs\module\synchronizationmr\api\dao\EncounterSyncDao.class
 org\openmrs\module\synchronizationmr\api\impl\PatientReceiveServiceImpl.class
+org\openmrs\module\synchronizationmr\advice\EncounterCreationAdvice.class
 org\openmrs\module\synchronizationmr\api\dao\PatientSyncDao.class
+org\openmrs\module\synchronizationmr\api\EncounterSyncService.class

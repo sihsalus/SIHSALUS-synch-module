@@ -1,8 +1,12 @@
+C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\advice\EncounterCreationAdvice.java
 C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\advice\PatientCreationAdvice.java
+C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\EncounterSyncDao.java
 C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\LocalNodeDao.java
 C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\PatientReceiveDao.java
 C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\PatientSyncDao.java
 C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\SynchronizationMRDao.java
+C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\EncounterSyncService.java
+C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\impl\EncounterSyncServiceImpl.java
 C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\impl\LocalNodeServiceImpl.java
 C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\impl\PatientReceiveServiceImpl.java
 C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\impl\PatientSyncServiceImpl.java
@@ -11,6 +15,7 @@ C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\ap
 C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\PatientReceiveService.java
 C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\PatientSyncService.java
 C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\SynchronizationMRService.java
+C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterCreationPayloadSerializer.java
 C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\IncomingPatientSave.java
 C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\PatientCreationPayloadSerializer.java
 C:\Users\PC\OneDrive\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\PatientHttpsTransport.java
