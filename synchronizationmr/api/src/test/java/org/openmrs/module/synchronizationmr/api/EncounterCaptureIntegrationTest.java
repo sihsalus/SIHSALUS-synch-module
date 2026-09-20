@@ -36,7 +36,7 @@ public class EncounterCaptureIntegrationTest extends BaseModuleContextSensitiveT
 		com.fasterxml.jackson.databind.JsonNode json = mapper.readTree(original);
 		assertEquals(encounter.getUuid(), json.path("payload").path("encounterUuid").asText());
 		assertEquals(encounter.getPatient().getUuid(), json.path("payload").path("patientUuid").asText());
-		assertEquals(Context.getService(LocalNodeService.class).getOrCreateNodeUuid(), json.path("originNodeUuid").asText());
+		assertEquals(Context.getService(LocalNodeService.class).getLocalServerId(), json.path("originServerId").asText());
 		encounter.setEncounterDatetime(new Date(1000));
 		Context.getEncounterService().saveEncounter(encounter);
 		Context.getService(EncounterSyncService.class).recordCreatedEncounter(encounter);
@@ -51,6 +51,7 @@ public class EncounterCaptureIntegrationTest extends BaseModuleContextSensitiveT
 	public void prepare() throws Exception {
 		new Liquibase("src/main/resources/liquibase.xml", new FileSystemResourceAccessor(), new JdbcConnection(
 		        getConnection())).update("");
+		Context.getAdministrationService().saveGlobalProperty(new org.openmrs.GlobalProperty("server.id", "testServer_1"));
 		advice = new EncounterCreationAdvice();
 		Context.addAdvice(EncounterService.class, advice);
 	}
@@ -81,14 +82,14 @@ public class EncounterCaptureIntegrationTest extends BaseModuleContextSensitiveT
         long patientCounter = number("select patient_sequence from synchronizationmr_local_node where singleton_id = 1");
         Encounter encounter = Context.getEncounterService().saveEncounter(sample());
         try (PreparedStatement statement = getConnection().prepareStatement(
-                "select encounter_uuid, patient_id, patient_uuid, origin_node_uuid, entity_sequence, state from synchronizationmr_encounter_event where encounter_id = ?")) {
+                "select encounter_uuid, patient_id, patient_uuid, origin_server_id, entity_sequence, state from synchronizationmr_encounter_event where encounter_id = ?")) {
             statement.setInt(1, encounter.getEncounterId());
             try (ResultSet rows = statement.executeQuery()) {
                 assertTrue(rows.next());
                 assertEquals(encounter.getUuid(), rows.getString(1));
                 assertEquals(2, rows.getInt(2));
                 assertEquals(patientUuid, rows.getString(3));
-                assertEquals(Context.getService(LocalNodeService.class).getOrCreateNodeUuid(), rows.getString(4));
+                assertEquals(Context.getService(LocalNodeService.class).getLocalServerId(), rows.getString(4));
                 assertTrue(rows.getLong(5) > 0);
                 assertEquals("PENDING", rows.getString(6));
             }

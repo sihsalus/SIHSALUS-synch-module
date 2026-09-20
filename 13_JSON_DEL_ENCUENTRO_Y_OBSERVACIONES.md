@@ -1,5 +1,11 @@
 # 13. JSON del encuentro y sus observaciones
 
+> Actualización de identidad: [documento 14](14_IDENTIDAD_SERVER_ID_Y_ENTORNO.md).
+> `server.id` sustituye al UUID de nodo; pacientes usan esquema 3, encuentros esquema 2
+> y HTTP protocolo 2. Las referencias al UUID de origen y la configuración anterior
+> que siguen describen la implementación histórica de este incremento.
+
+
 ## Qué viene primero
 
 En este incremento se prepara **el contenido** del evento del encuentro. Las observaciones

@@ -14,9 +14,7 @@ import java.util.Date;
 /** Permite consultar la identidad y el evento de creación pendiente, sin incluir datos personales. */
 public class PatientSyncRecord {
 	
-	private final String originNodeUuid;
-	
-	private final String nodeLabel;
+	private final String originServerId;
 	
 	private final long sequence;
 	
@@ -28,10 +26,10 @@ public class PatientSyncRecord {
 	
 	private final Date dateCreated;
 	
-	public PatientSyncRecord(String originNodeUuid, String nodeLabel, long sequence, String patientUuid, String eventUuid,
-	    String state, Date dateCreated) {
-		this.originNodeUuid = originNodeUuid;
-		this.nodeLabel = nodeLabel;
+	public PatientSyncRecord(String originServerId, long sequence, String patientUuid, String eventUuid, String state,
+	    Date dateCreated) {
+		this.originServerId = originServerId;
+		
 		this.sequence = sequence;
 		this.patientUuid = patientUuid;
 		this.eventUuid = eventUuid;
@@ -39,12 +37,8 @@ public class PatientSyncRecord {
 		this.dateCreated = new Date(dateCreated.getTime());
 	}
 	
-	public String getOriginNodeUuid() {
-		return originNodeUuid;
-	}
-	
-	public String getNodeLabel() {
-		return nodeLabel;
+	public String getOriginServerId() {
+		return originServerId;
 	}
 	
 	public String getEntityType() {
@@ -72,6 +66,6 @@ public class PatientSyncRecord {
 	}
 	
 	public String getDisplayIdentifier() {
-		return nodeLabel + " / PACIENTE / " + sequence;
+		return originServerId + " / PACIENTE / " + sequence;
 	}
 }

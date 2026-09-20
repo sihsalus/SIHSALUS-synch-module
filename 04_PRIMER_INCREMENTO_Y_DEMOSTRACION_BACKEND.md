@@ -1,5 +1,11 @@
 # Primer incremento: registro de pacientes nuevos
 
+> Actualización de identidad: [documento 14](14_IDENTIDAD_SERVER_ID_Y_ENTORNO.md).
+> `server.id` sustituye al UUID de nodo; pacientes usan esquema 3, encuentros esquema 2
+> y HTTP protocolo 2. Las referencias al UUID de origen y la configuración anterior
+> que siguen describen la implementación histórica de este incremento.
+
+
 > Actualización posterior: ahora los eventos nuevos guardan una copia JSON de los datos básicos
 > del paciente. Véase [05_JSON_DE_CREACION_DEL_PACIENTE.md](05_JSON_DE_CREACION_DEL_PACIENTE.md).
 > Las referencias de esta guía al evento sin contenido describen el primer incremento anterior.

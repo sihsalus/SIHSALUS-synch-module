@@ -11,6 +11,22 @@
 
 ## A. Decisiones CONFIRMADAS
 
+### Reunión posterior: incorporación inicial e identidad del establecimiento
+
+El relato `Explicación_Ivan_Creación_Servidor_y_Aclaraciones_Flujo_Componente_Sincronización.txt`
+establece la necesidad de incorporar registros anteriores a instalar el OMOD sin esperar
+un encuentro, identificar los establecimientos mediante `server.id`, incluir las observaciones
+con el encuentro y manejar órdenes por separado. Se mantiene la distribución completa en
+la microrred y el transporte mediante solicitudes REST; la infraestructura VPN se resuelve aparte.
+
+Primer ajuste implementado: [14_IDENTIDAD_SERVER_ID_Y_ENTORNO.md](14_IDENTIDAD_SERVER_ID_Y_ENTORNO.md).
+`server.id` sustituye completamente al UUID de nodo: es el origen de identidades,
+eventos y confirmaciones, no una etiqueta adicional. La migración se prepara para
+registros de sincronización vacíos y no elimina datos clínicos. La propiedad del
+archivo del SDK debe configurarse también como Global Property de OpenMRS.
+La incorporación masiva, la ampliación del JSON y el transporte de encuentros/órdenes
+siguen pendientes. Las secciones históricas siguientes describen incrementos anteriores.
+
 ### Actualización acordada con el usuario: distribución completa en la microrred
 
 Decisión explícita del usuario en esta conversación: por ahora todas las postas deben recibir

@@ -12,7 +12,7 @@ package org.openmrs.module.synchronizationmr.sync;
 /** Evento consultado para entrega. Contiene datos personales; no debe imprimirse en registros. */
 public final class PatientSyncEvent {
 	
-	private final String originNodeUuid;
+	private final String originServerId;
 	
 	private final long sequence;
 	
@@ -22,16 +22,16 @@ public final class PatientSyncEvent {
 	
 	private final String payloadJson;
 	
-	public PatientSyncEvent(String originNodeUuid, long sequence, String eventUuid, String patientUuid, String payloadJson) {
-		this.originNodeUuid = originNodeUuid;
+	public PatientSyncEvent(String originServerId, long sequence, String eventUuid, String patientUuid, String payloadJson) {
+		this.originServerId = originServerId;
 		this.sequence = sequence;
 		this.eventUuid = eventUuid;
 		this.patientUuid = patientUuid;
 		this.payloadJson = payloadJson;
 	}
 	
-	public String getOriginNodeUuid() {
-		return originNodeUuid;
+	public String getOriginServerId() {
+		return originServerId;
 	}
 	
 	public String getEntityType() {

@@ -29,11 +29,44 @@ import org.springframework.stereotype.Repository;
 @Repository("synchronizationmr.PatientSyncDao")
 public class PatientSyncDao {
 	
+	private static final String PENDING_PATIENTS = " from patient p join person person on person.person_id = p.patient_id"
+	        + " left join synchronizationmr_patient_identity i on i.patient_id = p.patient_id"
+	        + " left join synchronizationmr_patient_event e on e.patient_id = i.patient_id"
+	        + " where person.voided = false and (i.patient_id is null or e.event_uuid is null"
+	        + " or e.payload_json is null or trim(e.payload_json) = '')";
+	
+	public java.util.List<Integer> lockAndFindPatientsPendingPreparation(int limit) {
+        sessionFactory.getCurrentSession().flush();
+        // Same lock as capture/import: concurrent batches cannot allocate two identities.
+        localNodeDao.getLocalServerId();
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> {
+            java.util.List<Integer> ids = new java.util.ArrayList<>();
+            try (PreparedStatement query = connection.prepareStatement(
+                    "select p.patient_id" + PENDING_PATIENTS + " order by p.patient_id")) {
+                query.setMaxRows(limit);
+                try (ResultSet rows = query.executeQuery()) {
+                    while (rows.next()) { ids.add(rows.getInt(1)); }
+                }
+            }
+            return ids;
+        });
+    }
+	
+	public long countPatientsPendingPreparation() {
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> {
+            try (PreparedStatement query = connection.prepareStatement("select count(*)" + PENDING_PATIENTS);
+                    ResultSet rows = query.executeQuery()) {
+                rows.next();
+                return rows.getLong(1);
+            }
+        });
+    }
+	
 	public java.util.List<String> findPatientOrigins(String afterOrigin, int limit) {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             java.util.List<String> origins = new java.util.ArrayList<>();
             try (PreparedStatement query = connection.prepareStatement(
-                    "select distinct origin_node_uuid from synchronizationmr_patient_identity where origin_node_uuid > ? order by origin_node_uuid")) {
+                    "select distinct origin_server_id from synchronizationmr_patient_identity where origin_server_id > ? order by origin_server_id")) {
                 query.setString(1, afterOrigin); query.setMaxRows(limit);
                 try (ResultSet rows = query.executeQuery()) {
                     while (rows.next()) { origins.add(rows.getString(1)); }
@@ -46,7 +79,7 @@ public class PatientSyncDao {
 	public long findHighestPatientSequence(String origin) {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             try (PreparedStatement query = connection.prepareStatement(
-                    "select coalesce(max(entity_sequence), 0) from synchronizationmr_patient_identity where origin_node_uuid = ?")) {
+                    "select coalesce(max(entity_sequence), 0) from synchronizationmr_patient_identity where origin_server_id = ?")) {
                 query.setString(1, origin);
                 try (ResultSet rows = query.executeQuery()) {
                     rows.next();
@@ -65,7 +98,7 @@ public class PatientSyncDao {
             try (PreparedStatement query = connection.prepareStatement(
                     "select i.entity_sequence, i.patient_uuid, e.event_uuid, e.payload_json"
                     + " from synchronizationmr_patient_identity i left join synchronizationmr_patient_event e"
-                    + " on e.patient_id = i.patient_id where i.origin_node_uuid = ? and i.entity_sequence > ?"
+                    + " on e.patient_id = i.patient_id where i.origin_server_id = ? and i.entity_sequence > ?"
                     + " order by i.entity_sequence asc")) {
                 query.setString(1, origin);
                 query.setLong(2, afterSequence);
@@ -129,20 +162,20 @@ public class PatientSyncDao {
         });
     }
 	
-	public PatientSyncRecord findByPatientUuid(String uuid, String label) {
-        return sessionFactory.getCurrentSession().doReturningWork(connection -> find(connection, uuid, label, false));
+	public PatientSyncRecord findByPatientUuid(String uuid) {
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> find(connection, uuid, false));
     }
 	
-	public PatientSyncRecord recordCreation(Patient patient, String label) {
+	public PatientSyncRecord recordCreation(Patient patient) {
         // Guarda los cambios pendientes de Hibernate para poder enlazar nuestra fila al paciente.
         sessionFactory.getCurrentSession().flush();
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
-            String nodeUuid = localNodeDao.getOrCreateNodeUuid();
+            String serverId = localNodeDao.getLocalServerId();
             long previous;
             // La única fila del contador se bloquea hasta confirmar el guardado.
             // Así, dos registros simultáneos no reciben el mismo número.
             try (PreparedStatement statement = connection.prepareStatement(
-                    "select node_uuid, patient_sequence from synchronizationmr_local_node where singleton_id = 1 for update");
+                    "select server_id, patient_sequence from synchronizationmr_local_node where singleton_id = 1 for update");
                     ResultSet rows = statement.executeQuery()) {
                 if (!rows.next()) {
                     throw new SQLException("Falta la fila del nodo de sincronización; revise las migraciones del módulo");
@@ -150,7 +183,7 @@ public class PatientSyncDao {
                 previous = rows.getLong(2);
             }
             // Consulta el registro actualizado bajo bloqueo para evitar duplicar la misma identidad.
-            PatientSyncRecord existing = find(connection, patient.getUuid(), label, true);
+            PatientSyncRecord existing = find(connection, patient.getUuid(), true);
             if (existing != null) {
                 return existing;
             }
@@ -161,17 +194,17 @@ public class PatientSyncDao {
                 statement.executeUpdate();
             }
             try (PreparedStatement statement = connection.prepareStatement(
-                    "insert into synchronizationmr_patient_identity (patient_id, patient_uuid, origin_node_uuid, entity_sequence) values (?, ?, ?, ?)")) {
+                    "insert into synchronizationmr_patient_identity (patient_id, patient_uuid, origin_server_id, entity_sequence) values (?, ?, ?, ?)")) {
                 statement.setInt(1, patient.getPatientId());
                 statement.setString(2, patient.getUuid());
-                statement.setString(3, nodeUuid);
+                statement.setString(3, serverId);
                 statement.setLong(4, sequence);
                 statement.executeUpdate();
             }
             String eventUuid = UUID.randomUUID().toString();
             Timestamp created = new Timestamp(System.currentTimeMillis());
             // Se construye una sola vez, dentro de la transacción y después de descartar duplicados.
-            String payload = payloadSerializer.serialize(patient, nodeUuid, sequence, eventUuid, created);
+            String payload = payloadSerializer.serialize(patient, serverId, sequence, eventUuid, created);
             try (PreparedStatement statement = connection.prepareStatement(
                     "insert into synchronizationmr_patient_event (event_uuid, patient_id, operation, state, date_created, payload_json) values (?, ?, 'CREATE', 'PENDING', ?, ?)")) {
                 statement.setString(1, eventUuid);
@@ -180,12 +213,12 @@ public class PatientSyncDao {
                 statement.setString(4, payload);
                 statement.executeUpdate();
             }
-            return new PatientSyncRecord(nodeUuid, label, sequence, patient.getUuid(), eventUuid, "PENDING", created);
+            return new PatientSyncRecord(serverId, sequence, patient.getUuid(), eventUuid, "PENDING", created);
         });
     }
 	
-	private PatientSyncRecord find(Connection connection, String uuid, String label, boolean lock) throws SQLException {
-        String sql = "select i.origin_node_uuid, i.entity_sequence, i.patient_uuid, e.event_uuid, e.state, e.date_created"
+	private PatientSyncRecord find(Connection connection, String uuid, boolean lock) throws SQLException {
+        String sql = "select i.origin_server_id, i.entity_sequence, i.patient_uuid, e.event_uuid, e.state, e.date_created"
                 + " from synchronizationmr_patient_identity i join synchronizationmr_patient_event e on e.patient_id = i.patient_id"
                 + " where i.patient_uuid = ?" + (lock ? " for update" : "");
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -194,7 +227,7 @@ public class PatientSyncDao {
                 if (!rows.next()) {
                     return null;
                 }
-                return new PatientSyncRecord(rows.getString(1), label, rows.getLong(2), rows.getString(3),
+                return new PatientSyncRecord(rows.getString(1), rows.getLong(2), rows.getString(3),
                         rows.getString(4), rows.getString(5), rows.getTimestamp(6));
             }
         }

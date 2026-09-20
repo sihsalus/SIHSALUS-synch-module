@@ -12,13 +12,10 @@ package org.openmrs.module.synchronizationmr.api;
 import org.openmrs.api.OpenmrsService;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Identidad compartida por las capturas de pacientes, encuentros y órdenes. */
+/** server.id es la única identidad del nodo, compartida por todas las entidades. */
 public interface LocalNodeService extends OpenmrsService {
 	
-	/**
-	 * Obtiene o crea el UUID sin registrar pacientes ni avanzar sus contadores. Participa en la
-	 * transacción actual o inicia una si no existe.
-	 */
+	/** Lee la Global Property y fija su valor antes de asignar secuencias o comunicarse. */
 	@Transactional
-	String getOrCreateNodeUuid();
+	String getLocalServerId();
 }

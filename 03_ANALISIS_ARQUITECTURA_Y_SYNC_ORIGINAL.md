@@ -1,5 +1,11 @@
 # Análisis de arquitectura y del módulo Sync original
 
+> Actualización de identidad: [documento 14](14_IDENTIDAD_SERVER_ID_Y_ENTORNO.md).
+> `server.id` sustituye al UUID de nodo; pacientes usan esquema 3, encuentros esquema 2
+> y HTTP protocolo 2. Las referencias al UUID de origen y la configuración anterior
+> que siguen describen la implementación histórica de este incremento.
+
+
 Fecha: 2026-09-14. Estado: revisión técnica con actualización de alcance aprobada por el usuario: altas de pacientes, encuentros y órdenes con identificación secuencial y mecanismo de entrega común. Posteriormente se implementó el primer incremento de captura local de pacientes; su detalle y evidencia están en [04_PRIMER_INCREMENTO_Y_DEMOSTRACION_BACKEND.md](04_PRIMER_INCREMENTO_Y_DEMOSTRACION_BACKEND.md). Las demás recomendaciones siguen siendo propuestas.
 
 ## 1. Alcance y evidencia revisada

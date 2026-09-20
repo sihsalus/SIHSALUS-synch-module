@@ -34,7 +34,7 @@ public class PatientSyncHttpServletTest {
 	
 	private final PatientSyncPeerSession peer = mock(PatientSyncPeerSession.class);
 	
-	private final String origin = UUID.randomUUID().toString();
+	private final String origin = "testServer_1";
 	
 	private boolean authenticationFails;
 	
@@ -82,7 +82,7 @@ public class PatientSyncHttpServletTest {
 	}
 	
 	private String event() {
-		return "{\"schemaVersion\":2,\"originNodeUuid\":\"" + origin + "\",\"eventUuid\":\"" + UUID.randomUUID()
+		return "{\"schemaVersion\":3,\"originServerId\":\"" + origin + "\",\"eventUuid\":\"" + UUID.randomUUID()
 		        + "\",\"entityType\":\"PATIENT\",\"entitySequence\":1,\"operation\":\"CREATE\","
 		        + "\"occurredAt\":\"2026-09-14T00:00:00Z\",\"payload\":{\"patientUuid\":\"" + UUID.randomUUID()
 		        + "\",\"addresses\":[]}}";
@@ -123,14 +123,24 @@ public class PatientSyncHttpServletTest {
 	
 	@Test
 	public void returnsNodeAndOrigins() throws Exception {
-		when(node.getOrCreateNodeUuid()).thenReturn(origin);
+		when(node.getLocalServerId()).thenReturn(origin);
 		when(peer.getLocalRole()).thenReturn("MASTER");
 		MockHttpServletResponse response = call(request("GET", "node"));
 		assertEquals(200, response.getStatus());
 		assertTrue(response.getContentAsString().contains(origin));
+		assertEquals("testServer_1", new ObjectMapper().readTree(response.getContentAsString()).get("serverId").asText());
 		assertEquals("no-store", response.getHeader("Cache-Control"));
 		when(sync.getPatientOrigins(null, 25)).thenReturn(Collections.singletonList(origin));
 		assertTrue(call(request("GET", "origins")).getContentAsString().contains(origin));
+	}
+	
+	@Test
+	public void rejectsMissingServerIdentityOnEveryResource() throws Exception {
+		when(node.getLocalServerId()).thenThrow(new APIException("Configure server.id"));
+		for (String resource : Arrays.asList("node", "origins", "status", "events", "receive")) {
+			assertEquals(409, call(request("receive".equals(resource) ? "POST" : "GET", resource)).getStatus());
+		}
+		verifyNoInteractions(sync, receiver);
 	}
 	
 	@Test

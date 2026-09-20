@@ -34,9 +34,9 @@ public class PatientCreationPayloadSerializer {
 	
 	public String serialize(Patient patient, String origin, long sequence, String eventUuid, Date created) {
 		ObjectNode event = mapper.createObjectNode();
-		event.put("schemaVersion", 2);
+		event.put("schemaVersion", 4);
 		event.put("eventUuid", required(eventUuid, "evento"));
-		event.put("originNodeUuid", required(origin, "nodo de origen"));
+		event.put("originServerId", ServerId.requireValid(origin));
 		event.put("entityType", "PATIENT");
 		event.put("entitySequence", sequence);
 		event.put("operation", "CREATE");
@@ -46,6 +46,14 @@ public class PatientCreationPayloadSerializer {
 		data.put("gender", patient.getGender());
 		// Una fecha de nacimiento es una fecha civil, no un instante convertido a UTC.
 		data.put("birthdate", dateOnly(patient.getBirthdate()));
+		data.put(
+		    "birthtime",
+		    patient.getBirthtime() == null ? null : new SimpleDateFormat("HH:mm:ss", Locale.ROOT).format(patient
+		            .getBirthtime()));
+		ArrayNode attributes = data.putArray("attributes");
+		for (org.openmrs.PersonAttribute attribute : patient.getActiveAttributes()) {
+			attributes.add(PatientAttributeValues.serialize(attribute, mapper));
+		}
 		data.put("birthdateEstimated", Boolean.TRUE.equals(patient.getBirthdateEstimated()));
 		data.put("dead", Boolean.TRUE.equals(patient.getDead()));
 		data.put("deathDate", patient.getDeathDate() == null ? null : patient.getDeathDate().toInstant().toString());

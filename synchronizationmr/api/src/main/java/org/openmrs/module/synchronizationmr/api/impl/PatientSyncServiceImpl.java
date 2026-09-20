@@ -11,7 +11,7 @@ package org.openmrs.module.synchronizationmr.api.impl;
 
 import org.openmrs.Patient;
 import org.openmrs.api.APIException;
-import org.openmrs.api.AdministrationService;
+import org.openmrs.module.synchronizationmr.sync.ServerId;
 import org.openmrs.api.impl.BaseOpenmrsService;
 import org.openmrs.module.synchronizationmr.api.PatientSyncService;
 import org.openmrs.module.synchronizationmr.api.dao.PatientSyncDao;
@@ -19,6 +19,27 @@ import org.openmrs.module.synchronizationmr.sync.PatientSyncRecord;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 public class PatientSyncServiceImpl extends BaseOpenmrsService implements PatientSyncService {
+	
+	@Override
+	public int prepareExistingPatients(int limit) {
+		requireWriteTransaction();
+		if (limit < 1 || limit > 100) {
+			throw new APIException("El lote debe estar entre 1 y 100 pacientes");
+		}
+		java.util.List<Integer> ids = dao.lockAndFindPatientsPendingPreparation(limit);
+		for (Integer id : ids) {
+			if (Thread.currentThread().isInterrupted()) {
+				throw new APIException("Preparación interrumpida; el lote no se confirma");
+			}
+			ensurePatientSyncRecord(id);
+		}
+		return ids.size();
+	}
+	
+	@Override
+	public long countPatientsPendingPreparation() {
+		return dao.countPatientsPendingPreparation();
+	}
 	
 	@Override
 	public PatientSyncRecord ensurePatientSyncRecord(Integer localPatientId) {
@@ -33,7 +54,7 @@ public class PatientSyncServiceImpl extends BaseOpenmrsService implements Patien
 		}
 		// Reutiliza el bloqueo del contador y la comprobación de identidad del alta.
 		// Si ya vino de otro nodo, conserva ese origen; no lo convierte en una nueva alta local.
-		PatientSyncRecord record = dao.recordCreation(patient, nodeLabel());
+		PatientSyncRecord record = dao.recordCreation(patient);
 		String payload = dao.findCreationPayload(patient.getUuid());
 		if (payload == null || payload.trim().isEmpty()) {
 			throw new APIException(
@@ -43,22 +64,22 @@ public class PatientSyncServiceImpl extends BaseOpenmrsService implements Patien
 	}
 	
 	@Override
-	public java.util.List<String> getPatientOrigins(String afterOriginUuid, int limit) {
+	public java.util.List<String> getPatientOrigins(String afterOriginServerId, int limit) {
 		if (limit < 1 || limit > 100) {
 			throw new APIException("El límite debe estar entre 1 y 100");
 		}
-		return dao.findPatientOrigins(afterOriginUuid == null ? "" : validateOrigin(afterOriginUuid), limit);
+		return dao.findPatientOrigins(afterOriginServerId == null ? "" : validateOrigin(afterOriginServerId), limit);
 	}
 	
 	@Override
-	public long getHighestPatientSequence(String originNodeUuid) {
-		return dao.findHighestPatientSequence(validateOrigin(originNodeUuid));
+	public long getHighestPatientSequence(String originServerId) {
+		return dao.findHighestPatientSequence(validateOrigin(originServerId));
 	}
 	
 	@Override
 	public java.util.List<org.openmrs.module.synchronizationmr.sync.PatientSyncEvent> getPatientEventsAfter(
-	        String originNodeUuid, long afterSequence, int limit) {
-		String origin = validateOrigin(originNodeUuid);
+	        String originServerId, long afterSequence, int limit) {
+		String origin = validateOrigin(originServerId);
 		if (afterSequence < 0 || limit < 1 || limit > 100) {
 			throw new APIException("La secuencia debe ser cero o positiva y el límite debe estar entre 1 y 100");
 		}
@@ -66,10 +87,10 @@ public class PatientSyncServiceImpl extends BaseOpenmrsService implements Patien
 	}
 	
 	private String validateOrigin(String origin) {
-		if (origin == null || !origin.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) {
-			throw new APIException("Se requiere un UUID de origen válido");
+		if (!ServerId.isValid(origin)) {
+			throw new APIException("Se requiere un server.id de origen válido");
 		}
-		return origin.toLowerCase(java.util.Locale.ROOT);
+		return origin;
 	}
 	
 	@Override
@@ -80,18 +101,10 @@ public class PatientSyncServiceImpl extends BaseOpenmrsService implements Patien
 		return dao.findCreationPayload(patientUuid);
 	}
 	
-	public static final String NODE_LABEL_PROPERTY = "synchronizationmr.nodeLabel";
-	
 	private PatientSyncDao dao;
-	
-	private AdministrationService administrationService;
 	
 	public void setDao(PatientSyncDao dao) {
 		this.dao = dao;
-	}
-	
-	public void setAdministrationService(AdministrationService service) {
-		this.administrationService = service;
 	}
 	
 	@Override
@@ -107,7 +120,7 @@ public class PatientSyncServiceImpl extends BaseOpenmrsService implements Patien
 		        || patient.getUuid().trim().isEmpty()) {
 			throw new APIException("Para registrar la sincronización se necesita un paciente guardado y con UUID");
 		}
-		return dao.recordCreation(patient, nodeLabel());
+		return dao.recordCreation(patient);
 	}
 	
 	@Override
@@ -115,15 +128,7 @@ public class PatientSyncServiceImpl extends BaseOpenmrsService implements Patien
 		if (uuid == null || uuid.trim().isEmpty()) {
 			throw new APIException("Se requiere el UUID del paciente");
 		}
-		return dao.findByPatientUuid(uuid, nodeLabel());
-	}
-	
-	private String nodeLabel() {
-		String label = administrationService.getGlobalProperty(NODE_LABEL_PROPERTY);
-		if (label == null || label.trim().isEmpty()) {
-			return "NODO-LOCAL";
-		}
-		return label.trim();
+		return dao.findByPatientUuid(uuid);
 	}
 	
 	private void requireWriteTransaction() {

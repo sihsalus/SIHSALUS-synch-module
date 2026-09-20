@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
  
-<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog/1.9"
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog/1.9
-                  http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-1.9.xsd">
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                  http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
  
     <!--
     	See http://wiki.openmrs.org/display/docs/Module+liquibase+File for 
@@ -119,6 +119,39 @@
     <changeSet id="synchronizationmr-20260915-encounter-payload" author="sihsalus">
         <!-- Los eventos anteriores quedan sin JSON: no se reconstruye su historia automáticamente. -->
         <addColumn tableName="synchronizationmr_encounter_event"><column name="payload_json" type="clob" /></addColumn>
+    </changeSet>
+    <changeSet id="synchronizationmr-20260920-server-id" author="sihsalus">
+        <!-- Vinculación adicional: no renombra UUID, secuencias ni eventos existentes.
+             Se completa mediante la API Java al configurar la comunicación. -->
+        <addColumn tableName="synchronizationmr_local_node">
+            <column name="server_id" type="varchar(100)" />
+        </addColumn>
+    </changeSet>
+    <changeSet id="synchronizationmr-20260920-server-id-only" author="sihsalus">
+        <!-- Si hay historial previo se detiene: hace falta mapear esos orígenes explícitamente. -->
+        <preConditions onFail="HALT" onError="HALT">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM synchronizationmr_patient_identity</sqlCheck>
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM synchronizationmr_patient_event</sqlCheck>
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM synchronizationmr_encounter_event</sqlCheck>
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM synchronizationmr_patient_receipt</sqlCheck>
+        </preConditions>
+        <!-- En una instalación nueva las tablas de sincronización están vacías.
+             El historial antiguo requiere una migración explícita; no se elimina.
+             No se tocan las tablas clínicas ni se modifica ningún changeset anterior. -->
+        <dropColumn tableName="synchronizationmr_local_node" columnName="node_uuid" />
+        <renameColumn tableName="synchronizationmr_patient_identity" oldColumnName="origin_node_uuid" newColumnName="origin_server_id" columnDataType="varchar(100)" />
+        <modifyDataType tableName="synchronizationmr_patient_identity" columnName="origin_server_id" newDataType="varchar(100)" />
+        <renameColumn tableName="synchronizationmr_encounter_event" oldColumnName="origin_node_uuid" newColumnName="origin_server_id" columnDataType="varchar(100)" />
+        <modifyDataType tableName="synchronizationmr_encounter_event" columnName="origin_server_id" newDataType="varchar(100)" />
+        <renameColumn tableName="synchronizationmr_patient_receipt" oldColumnName="origin_node_uuid" newColumnName="origin_server_id" columnDataType="varchar(100)" />
+        <modifyDataType tableName="synchronizationmr_patient_receipt" columnName="origin_server_id" newDataType="varchar(100)" />
+    </changeSet>
+    <changeSet id="synchronizationmr-20260920-server-id-collation" author="sihsalus" dbms="mysql,mariadb">
+        <!-- Comparación exacta y orden idéntico al de Java para nombres ASCII y paginación. -->
+        <sql>ALTER TABLE synchronizationmr_local_node MODIFY server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL</sql>
+        <sql>ALTER TABLE synchronizationmr_patient_identity MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
+        <sql>ALTER TABLE synchronizationmr_encounter_event MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
+        <sql>ALTER TABLE synchronizationmr_patient_receipt MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
     </changeSet>
 </databaseChangeLog>
  

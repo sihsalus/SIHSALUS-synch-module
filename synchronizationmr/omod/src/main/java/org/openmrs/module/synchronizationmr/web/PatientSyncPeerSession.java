@@ -27,7 +27,7 @@ public class PatientSyncPeerSession implements AutoCloseable {
 	
 	private String localRole;
 	
-	private String peerUuid;
+	private String peerServerId;
 	
 	public PatientSyncPeerSession(String username, String password) {
 		try {
@@ -59,10 +59,9 @@ public class PatientSyncPeerSession implements AutoCloseable {
 		}
 		localRole = Context.getAdministrationService().getGlobalProperty("synchronizationmr.nodeRole", "UNCONFIGURED");
 		User user = Context.getAuthenticatedUser();
-		peerUuid = user.getUserProperty("synchronizationmr.peerNodeUuid");
+		peerServerId = user.getUserProperty("synchronizationmr.peerServerId");
 		String role = user.getUserProperty("synchronizationmr.peerRole");
-		if (peerUuid == null
-		        || !peerUuid.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+		if (!org.openmrs.module.synchronizationmr.sync.ServerId.isValid(peerServerId)
 		        || !("MASTER".equals(localRole) && "POSTA".equals(role) || "POSTA".equals(localRole)
 		                && "MASTER".equals(role))) {
 			throw new APIAuthenticationException("La cuenta remota no corresponde a una conexión posta–maestro configurada");
@@ -73,7 +72,7 @@ public class PatientSyncPeerSession implements AutoCloseable {
 		if (!Context.hasPrivilege("Receive Synchronization Records") || !Context.hasPrivilege("Add Patients")) {
 			throw new APIAuthenticationException("Faltan permisos de recepción");
 		}
-		if ("MASTER".equals(localRole) && !peerUuid.equals(origin)) {
+		if ("MASTER".equals(localRole) && !peerServerId.equals(origin)) {
 			throw new APIAuthenticationException("Una posta solo puede enviar eventos de su propio origen");
 		}
 	}
@@ -82,8 +81,8 @@ public class PatientSyncPeerSession implements AutoCloseable {
 		return localRole;
 	}
 	
-	public String getPeerUuid() {
-		return peerUuid;
+	public String getPeerServerId() {
+		return peerServerId;
 	}
 	
 	@Override

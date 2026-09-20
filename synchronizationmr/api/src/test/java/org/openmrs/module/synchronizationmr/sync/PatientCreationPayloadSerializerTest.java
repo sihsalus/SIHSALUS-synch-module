@@ -29,6 +29,39 @@ public class PatientCreationPayloadSerializerTest {
 	}
 	
 	@Test
+	public void emitsOptionalFieldsAndPreservesSimpleAttributesWithoutVoidedHistory() throws Exception {
+		Patient patient = new Patient();
+		assertTrue(payload(patient).get("birthtime").isNull());
+		assertEquals(0, payload(patient).get("attributes").size());
+		org.openmrs.PersonAttributeType type = new org.openmrs.PersonAttributeType();
+		type.setName("Contacto");
+		type.setFormat("java.lang.String");
+		org.openmrs.PersonAttribute attribute = new org.openmrs.PersonAttribute(type, "Teléfono ficticio");
+		patient.addAttribute(attribute);
+		JsonNode item = payload(patient).get("attributes").get(0);
+		assertEquals(attribute.getUuid(), item.get("uuid").asText());
+		assertEquals(type.getUuid(), item.get("attributeTypeUuid").asText());
+		assertEquals("Teléfono ficticio", item.get("value").asText());
+		assertTrue(item.get("valueReferenceUuid").isNull());
+		attribute.setVoided(true);
+		assertEquals(0, payload(patient).get("attributes").size());
+	}
+	
+	@Test
+    public void rejectsUnsupportedAttributeFormatsAndMalformedNumbers() {
+        Patient patient = new Patient();
+        org.openmrs.PersonAttributeType type = new org.openmrs.PersonAttributeType();
+        type.setName("Referencia no soportada");
+        type.setFormat("org.openmrs.Patient");
+        org.openmrs.PersonAttribute attribute = new org.openmrs.PersonAttribute(type, "12");
+        patient.addAttribute(attribute);
+        assertThrows(APIException.class, () -> payload(patient));
+        type.setFormat("java.lang.Integer");
+        attribute.setValue("doce");
+        assertThrows(APIException.class, () -> payload(patient));
+    }
+	
+	@Test
 	public void patientWithoutAddressesHasEmptyArray() throws Exception {
 		JsonNode addresses = payload(new Patient()).get("addresses");
 		assertTrue(addresses.isArray());

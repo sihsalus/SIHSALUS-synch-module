@@ -18,10 +18,10 @@ public class EncounterCreationPayloadSerializer {
 	
 	public String serialize(Encounter encounter, String origin, long sequence, String eventUuid, Date created) {
         ObjectNode event = mapper.createObjectNode();
-        event.put("schemaVersion", 1);
+        event.put("schemaVersion", 2);
         event.put("entityType", "ENCOUNTER");
         event.put("operation", "CREATE");
-        event.put("originNodeUuid", origin);
+        event.put("originServerId", ServerId.requireValid(origin));
         event.put("entitySequence", sequence);
         event.put("eventUuid", eventUuid);
         event.put("occurredAt", instant(created));

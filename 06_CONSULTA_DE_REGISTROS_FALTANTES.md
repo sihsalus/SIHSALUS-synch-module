@@ -1,5 +1,11 @@
 # Consulta de eventos de pacientes por origen
 
+> Actualización de identidad: [documento 14](14_IDENTIDAD_SERVER_ID_Y_ENTORNO.md).
+> `server.id` sustituye al UUID de nodo; pacientes usan esquema 3, encuentros esquema 2
+> y HTTP protocolo 2. Las referencias al UUID de origen y la configuración anterior
+> que siguen describen la implementación histórica de este incremento.
+
+
 > Paso posterior: [recepción local y confirmación consecutiva](07_RECEPCION_LOCAL_Y_CONFIRMACION.md).
 > El total actual es 45 pruebas; las 34 indicadas abajo corresponden al incremento de consultas.
 

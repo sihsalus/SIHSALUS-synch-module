@@ -61,7 +61,6 @@
         <property name="target">
             <bean class="org.openmrs.module.synchronizationmr.api.impl.PatientSyncServiceImpl">
                 <property name="dao" ref="synchronizationmr.PatientSyncDao" />
-                <property name="administrationService" ref="adminService" />
             </bean>
         </property>
         <property name="preInterceptors" ref="serviceInterceptors" />

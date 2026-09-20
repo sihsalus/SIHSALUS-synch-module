@@ -29,6 +29,6 @@ public class PatientReceiveServiceImpl extends BaseOpenmrsService implements Pat
 	
 	@Override
 	public long getConfirmedPatientSequence(String origin) {
-		return dao.confirmed(PatientIncomingEvent.uuid(origin));
+		return dao.confirmed(org.openmrs.module.synchronizationmr.sync.ServerId.requireValid(origin));
 	}
 }

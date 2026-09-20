@@ -1,5 +1,11 @@
 # 12. Primera captura de encuentros
 
+> Actualización de identidad: [documento 14](14_IDENTIDAD_SERVER_ID_Y_ENTORNO.md).
+> `server.id` sustituye al UUID de nodo; pacientes usan esquema 3, encuentros esquema 2
+> y HTTP protocolo 2. Las referencias al UUID de origen y la configuración anterior
+> que siguen describen la implementación histórica de este incremento.
+
+
 > Actualización: los encuentros nuevos ya guardan su JSON con observaciones desde el incremento
 > [13_JSON_DEL_ENCUENTRO_Y_OBSERVACIONES.md](13_JSON_DEL_ENCUENTRO_Y_OBSERVACIONES.md).
 > Esta guía describe el paso anterior, que solo guardaba metadatos.

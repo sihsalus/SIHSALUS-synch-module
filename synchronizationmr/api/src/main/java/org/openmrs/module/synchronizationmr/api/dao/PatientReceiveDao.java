@@ -35,7 +35,7 @@ public class PatientReceiveDao {
 	
 	private long confirmed(Connection connection, String origin) throws SQLException {
         try (PreparedStatement query = connection.prepareStatement(
-                "select confirmed_sequence from synchronizationmr_patient_receipt where origin_node_uuid = ?")) {
+                "select confirmed_sequence from synchronizationmr_patient_receipt where origin_server_id = ?")) {
             query.setString(1, origin);
             try (ResultSet rows = query.executeQuery()) { return rows.next() ? rows.getLong(1) : 0L; }
         }
@@ -48,7 +48,7 @@ public class PatientReceiveDao {
         }
         // El mismo bloqueo local serializa creación e importación, incluso la primera recepción.
         // En esta primera versión se prioriza la corrección sobre la recepción paralela por origen.
-        String local = localNodeDao.getOrCreateNodeUuid();
+        String local = localNodeDao.getLocalServerId();
         if (local.equals(event.origin)) { throw new APIException("No se importan como remotos eventos del propio origen"); }
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             long confirmed = confirmed(connection, event.origin);
@@ -56,7 +56,7 @@ public class PatientReceiveDao {
                 try (PreparedStatement query = connection.prepareStatement(
                         "select i.patient_uuid, e.event_uuid, e.payload_json from synchronizationmr_patient_identity i"
                         + " join synchronizationmr_patient_event e on e.patient_id = i.patient_id"
-                        + " where i.origin_node_uuid = ? and i.entity_sequence = ?")) {
+                        + " where i.origin_server_id = ? and i.entity_sequence = ?")) {
                     query.setString(1, event.origin);
                     query.setLong(2, event.sequence);
                     try (ResultSet rows = query.executeQuery()) {
@@ -79,7 +79,7 @@ public class PatientReceiveDao {
             Patient saved = IncomingPatientSave.save(incoming, () -> Context.getPatientService().savePatient(incoming));
             sessionFactory.getCurrentSession().flush();
             try (PreparedStatement insert = connection.prepareStatement(
-                    "insert into synchronizationmr_patient_identity (patient_id, patient_uuid, origin_node_uuid, entity_sequence) values (?, ?, ?, ?)")) {
+                    "insert into synchronizationmr_patient_identity (patient_id, patient_uuid, origin_server_id, entity_sequence) values (?, ?, ?, ?)")) {
                 insert.setInt(1, saved.getPatientId()); insert.setString(2, event.patientUuid);
                 insert.setString(3, event.origin); insert.setLong(4, event.sequence); insert.executeUpdate();
             }
@@ -92,12 +92,12 @@ public class PatientReceiveDao {
             // PENDING conserva el evento para otros destinos; la recepción local se confirma en su propia tabla.
             if (confirmed == 0) {
                 try (PreparedStatement insert = connection.prepareStatement(
-                        "insert into synchronizationmr_patient_receipt (origin_node_uuid, confirmed_sequence) values (?, ?)")) {
+                        "insert into synchronizationmr_patient_receipt (origin_server_id, confirmed_sequence) values (?, ?)")) {
                     insert.setString(1, event.origin); insert.setLong(2, event.sequence); insert.executeUpdate();
                 }
             } else {
                 try (PreparedStatement update = connection.prepareStatement(
-                        "update synchronizationmr_patient_receipt set confirmed_sequence = ? where origin_node_uuid = ?")) {
+                        "update synchronizationmr_patient_receipt set confirmed_sequence = ? where origin_server_id = ?")) {
                     update.setLong(1, event.sequence); update.setString(2, event.origin); update.executeUpdate();
                 }
             }

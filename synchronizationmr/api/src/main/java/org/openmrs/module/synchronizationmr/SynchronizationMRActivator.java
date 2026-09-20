@@ -24,10 +24,18 @@ public class SynchronizationMRActivator extends BaseModuleActivator {
 	
 	private final PatientSyncScheduler patientScheduler = new PatientSyncScheduler();
 	
+	private final org.openmrs.module.synchronizationmr.sync.PatientPreparationScheduler preparationScheduler = new org.openmrs.module.synchronizationmr.sync.PatientPreparationScheduler();
+	
 	/**
 	 * @see #started()
 	 */
 	public void started() {
+		try {
+			preparationScheduler.start(System.getenv());
+		}
+		catch (RuntimeException invalid) {
+			log.error("No se pudo iniciar la preparación de pacientes; revise su configuración");
+		}
 		log.info("Módulo SynchronizationMR iniciado");
 		try {
 			patientScheduler.start(new PatientSyncScheduleConfig(System.getenv()));
@@ -41,12 +49,14 @@ public class SynchronizationMRActivator extends BaseModuleActivator {
 	 * @see #shutdown()
 	 */
 	public void shutdown() {
+		preparationScheduler.stop();
 		patientScheduler.stop();
 		log.info("Módulo SynchronizationMR detenido");
 	}
 	
 	@Override
 	public void willStop() {
+		preparationScheduler.stop();
 		// Detiene el trabajo antes de que OpenMRS retire los servicios del módulo.
 		patientScheduler.stop();
 	}

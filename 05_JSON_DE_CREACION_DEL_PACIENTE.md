@@ -1,5 +1,16 @@
 # Copia JSON de la creación del paciente
 
+> Ampliación posterior: [documento 15](15_REVISION_CONTRATO_PACIENTE.md).
+> Los nuevos eventos de pacientes usan esquema 4 con hora de nacimiento y atributos;
+> el receptor conserva compatibilidad con esquema 3. HTTP sigue en protocolo 2.
+
+
+> Actualización de identidad: [documento 14](14_IDENTIDAD_SERVER_ID_Y_ENTORNO.md).
+> `server.id` sustituye al UUID de nodo; pacientes usan esquema 3, encuentros esquema 2
+> y HTTP protocolo 2. Las referencias al UUID de origen y la configuración anterior
+> que siguen describen la implementación histórica de este incremento.
+
+
 > Paso posterior implementado: [consulta de registros faltantes por origen](06_CONSULTA_DE_REGISTROS_FALTANTES.md).
 > El total del proyecto pasó a 34 pruebas; las 29 indicadas abajo corresponden a este incremento del JSON.
 

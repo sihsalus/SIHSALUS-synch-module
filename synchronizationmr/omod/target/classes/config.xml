@@ -28,6 +28,11 @@
         <defaultValue>UNCONFIGURED</defaultValue>
         <description>Rol de esta instalación: MASTER o POSTA. Debe configurarse para habilitar la comunicación autenticada.</description>
     </globalProperty>
+    <globalProperty>
+        <property>server.id</property>
+        <defaultValue></defaultValue>
+        <description>Identificador único del establecimiento (por ejemplo testServer_1). Configurar el mismo valor que en el SDK; no se importa automáticamente de sus archivos. De 1 a 100 letras ASCII, números, puntos, guiones o guiones bajos, empezando por letra o número. Es la única identidad del nodo; configurar antes de registrar datos y no cambiarla después.</description>
+    </globalProperty>
 
     <advice>
         <point>org.openmrs.api.PatientService</point>
@@ -49,11 +54,6 @@
         <name>View Synchronization Records</name>
         <description>Consultar identidades de sincronización y eventos pendientes sin datos personales del paciente.</description>
     </privilege>
-    <globalProperty>
-        <property>synchronizationmr.nodeLabel</property>
-        <defaultValue>NODO-LOCAL</defaultValue>
-        <description>Nombre visible del nodo, por ejemplo POSTA-01 o MAESTRO-MICRORRED. Su identidad estable es el UUID del nodo.</description>
-    </globalProperty>
 	
 	<aware_of_modules>
 		<aware_of_module>org.openmrs.module.legacyui</aware_of_module>

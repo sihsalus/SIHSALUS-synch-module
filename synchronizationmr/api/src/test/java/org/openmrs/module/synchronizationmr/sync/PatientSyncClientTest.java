@@ -15,9 +15,9 @@ import static org.mockito.Mockito.*;
 /** Pruebas del ciclo y de su reanudación, con servicios y red simulados. */
 public class PatientSyncClientTest {
 	
-	private static final String LOCAL = "10000000-0000-0000-0000-000000000000";
+	private static final String LOCAL = "testServer_1";
 	
-	private static final String MASTER = "20000000-0000-0000-0000-000000000000";
+	private static final String MASTER = "testServer_2";
 	
 	private final ObjectMapper mapper = new ObjectMapper();
 	
@@ -32,19 +32,54 @@ public class PatientSyncClientTest {
 	private final PatientSyncClient client = new PatientSyncClient(node, records, receiver, remote, MASTER);
 	
 	private ObjectNode envelope(String origin) {
-		return mapper.createObjectNode().put("originNodeUuid", origin).put("entityType", "PATIENT");
+		return mapper.createObjectNode().put("originServerId", origin).put("entityType", "PATIENT");
 	}
 	
 	private void prepare(long highest, long confirmed) throws Exception {
-		when(node.getOrCreateNodeUuid()).thenReturn(LOCAL);
+		when(node.getLocalServerId()).thenReturn(LOCAL);
 		when(remote.get("resource=node")).thenReturn(
-		    mapper.createObjectNode().put("nodeUuid", MASTER).put("role", "MASTER").put("protocolVersion", 1));
+		    mapper.createObjectNode().put("serverId", MASTER).put("role", "MASTER").put("protocolVersion", 2));
 		when(remote.get("resource=status&origin=" + LOCAL)).thenReturn(envelope(LOCAL).put("confirmedSequence", confirmed));
 		when(records.getHighestPatientSequence(LOCAL)).thenReturn(highest);
 		ObjectNode origins = mapper.createObjectNode();
 		origins.putArray("origins").add(LOCAL).add(MASTER);
 		when(remote.get("resource=origins&limit=100")).thenReturn(origins);
 		when(remote.get(events(0))).thenReturn(emptyPage());
+	}
+	
+	@Test
+	public void rejectsUnconfiguredLocalIdentityBeforeNetwork() {
+		when(node.getLocalServerId()).thenThrow(new org.openmrs.api.APIException("Falta server.id"));
+		assertThrows(org.openmrs.api.APIException.class, client::synchronizeOnce);
+		verifyNoInteractions(remote, records, receiver);
+	}
+	
+	@Test
+	public void rejectsMasterWithSameServerIdBeforeExchangingPatients() throws Exception {
+		prepare(1, 0);
+		when(remote.get("resource=node")).thenReturn(mapper.createObjectNode().put("serverId", MASTER)
+		        .put("role", "MASTER").put("protocolVersion", 2).put("serverId", LOCAL));
+		assertThrows(IOException.class, client::synchronizeOnce);
+		verify(remote, never()).receive(anyString());
+		verifyNoInteractions(records, receiver);
+	}
+	
+	@Test
+	public void acceptsDistinctConfiguredServerId() throws Exception {
+		prepare(0, 0);
+		when(remote.get("resource=node")).thenReturn(
+		    mapper.createObjectNode().put("serverId", MASTER).put("role", "MASTER").put("protocolVersion", 2)
+		            .put("serverId", MASTER));
+		assertArrayEquals(new int[] { 0, 0 }, client.synchronizeOnce());
+	}
+	
+	@Test
+	public void rejectsOldProtocolEvenIfServerNameMatches() throws Exception {
+		prepare(1, 0);
+		when(remote.get("resource=node")).thenReturn(mapper.createObjectNode().put("serverId", MASTER)
+		        .put("role", "MASTER").put("protocolVersion", 1));
+		assertThrows(IOException.class, client::synchronizeOnce);
+		verifyNoInteractions(records, receiver);
 	}
 	
 	private String events(long after) {
@@ -120,7 +155,7 @@ public class PatientSyncClientTest {
 	
 	@Test public void rejectsWrongMasterBeforeSendingClinicalData() throws Exception {
         prepare(1, 0);
-        when(remote.get("resource=node")).thenReturn(mapper.createObjectNode().put("nodeUuid", LOCAL).put("role", "MASTER"));
+        when(remote.get("resource=node")).thenReturn(mapper.createObjectNode().put("serverId", LOCAL).put("role", "MASTER"));
         assertThrows(IOException.class, client::synchronizeOnce);
         verify(remote, never()).receive(anyString());
     }

@@ -13,7 +13,6 @@ import org.openmrs.api.impl.BaseOpenmrsService;
 import org.openmrs.module.synchronizationmr.api.LocalNodeService;
 import org.openmrs.module.synchronizationmr.api.dao.LocalNodeDao;
 
-/** Servicio común para obtener la identidad estable de esta instalación. */
 public class LocalNodeServiceImpl extends BaseOpenmrsService implements LocalNodeService {
 	
 	private LocalNodeDao dao;
@@ -23,7 +22,7 @@ public class LocalNodeServiceImpl extends BaseOpenmrsService implements LocalNod
 	}
 	
 	@Override
-	public String getOrCreateNodeUuid() {
-		return dao.getOrCreateNodeUuid();
+	public String getLocalServerId() {
+		return dao.getLocalServerId();
 	}
 }

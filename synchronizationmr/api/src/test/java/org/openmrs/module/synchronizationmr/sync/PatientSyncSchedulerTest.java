@@ -86,7 +86,7 @@ public class PatientSyncSchedulerTest {
 	private Map<String, String> configured() {
         Map<String, String> values = new HashMap<>();
         values.put("SYNCMR_ENABLED", "true");
-        for (String key : new String[] {"MASTER_ENDPOINT", "MASTER_UUID", "LOCAL_USERNAME", "LOCAL_PASSWORD", "REMOTE_USERNAME", "REMOTE_PASSWORD"}) {
+        for (String key : new String[] {"MASTER_ENDPOINT", "MASTER_SERVER_ID", "LOCAL_USERNAME", "LOCAL_PASSWORD", "REMOTE_USERNAME", "REMOTE_PASSWORD"}) {
             values.put("SYNCMR_" + key, "valor-de-prueba");
         }
         return values;

@@ -1,5 +1,11 @@
 # Recepción local de pacientes y confirmación consecutiva
 
+> Actualización de identidad: [documento 14](14_IDENTIDAD_SERVER_ID_Y_ENTORNO.md).
+> `server.id` sustituye al UUID de nodo; pacientes usan esquema 3, encuentros esquema 2
+> y HTTP protocolo 2. Las referencias al UUID de origen y la configuración anterior
+> que siguen describen la implementación histórica de este incremento.
+
+
 Este paso reconstruye un paciente a partir del JSON y lo guarda mediante los servicios de OpenMRS.
 Todavía no hay solicitudes HTTP, tareas periódicas ni dos servidores conectados. La misma operación
 local podrá utilizarse en el maestro o en una posta cuando implementemos el transporte.

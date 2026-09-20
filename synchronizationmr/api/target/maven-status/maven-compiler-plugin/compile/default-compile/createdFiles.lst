@@ -19,6 +19,7 @@ org\openmrs\module\synchronizationmr\sync\PatientSyncClient.class
 org\openmrs\module\synchronizationmr\api\impl\LocalNodeServiceImpl.class
 org\openmrs\module\synchronizationmr\api\dao\LocalNodeDao.class
 org\openmrs\module\synchronizationmr\api\dao\SynchronizationMRDao.class
+org\openmrs\module\synchronizationmr\sync\ServerId.class
 org\openmrs\module\synchronizationmr\SynchronizationMRConfig.class
 org\openmrs\module\synchronizationmr\sync\PatientSyncRecord.class
 org\openmrs\module\synchronizationmr\SynchronizationMR.class

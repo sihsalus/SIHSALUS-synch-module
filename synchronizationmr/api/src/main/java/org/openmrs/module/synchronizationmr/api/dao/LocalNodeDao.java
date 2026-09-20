@@ -12,46 +12,49 @@ package org.openmrs.module.synchronizationmr.api.dao;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.UUID;
 import org.hibernate.SessionFactory;
 import org.openmrs.api.APIException;
+import org.openmrs.api.context.Context;
+import org.openmrs.module.synchronizationmr.sync.ServerId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-/** Conserva una sola identidad local sin depender de ninguna entidad clínica. */
+/** Fija server.id bajo el mismo bloqueo que protege los contadores. No genera UUID. */
 @Repository("synchronizationmr.LocalNodeDao")
 public class LocalNodeDao {
 	
 	@Autowired
 	private SessionFactory sessionFactory;
 	
-	public String getOrCreateNodeUuid() {
+	public String getLocalServerId() {
         if (!TransactionSynchronizationManager.isActualTransactionActive()
                 || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
             throw new APIException("La identidad del nodo requiere una transacción de escritura activa");
         }
+        String configured = Context.getAdministrationService().getGlobalProperty(ServerId.PROPERTY);
+        if (!ServerId.isValid(configured)) {
+            throw new APIException("Configure la Global Property server.id antes de capturar o sincronizar registros");
+        }
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
-            // El bloqueo evita generar identidades diferentes ante dos primeras llamadas simultáneas.
-            // Se conserva hasta confirmar o deshacer la transacción del llamador.
-            String uuid;
+            String existing;
             try (PreparedStatement query = connection.prepareStatement(
-                    "select node_uuid from synchronizationmr_local_node where singleton_id = 1 for update");
+                    "select server_id from synchronizationmr_local_node where singleton_id = 1 for update");
                     ResultSet rows = query.executeQuery()) {
-                if (!rows.next()) {
-                    throw new SQLException("Falta la fila del nodo; revise las migraciones del módulo");
-                }
-                uuid = rows.getString(1);
+                if (!rows.next()) { throw new SQLException("Falta la fila del nodo; revise las migraciones del módulo"); }
+                existing = rows.getString(1);
             }
-            if (uuid == null) {
-                uuid = UUID.randomUUID().toString();
+            if (existing != null && !existing.equals(configured)) {
+                throw new APIException("server.id cambió después de fijar la identidad; restaure la configuración del establecimiento");
+            }
+            if (existing == null) {
                 try (PreparedStatement update = connection.prepareStatement(
-                        "update synchronizationmr_local_node set node_uuid = ? where singleton_id = 1")) {
-                    update.setString(1, uuid);
+                        "update synchronizationmr_local_node set server_id = ? where singleton_id = 1")) {
+                    update.setString(1, configured);
                     update.executeUpdate();
                 }
             }
-            return uuid;
+            return configured;
         });
     }
 }

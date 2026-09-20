@@ -47,14 +47,17 @@ public final class PatientIncomingEvent {
 		catch (Exception e) {
 			throw invalid();
 		}
-		fields(root, "schemaVersion,eventUuid,originNodeUuid,entityType,entitySequence,operation,occurredAt,payload");
+		fields(root, "schemaVersion,eventUuid,originServerId,entityType,entitySequence,operation,occurredAt,payload");
 		JsonNode version = root.get("schemaVersion");
 		if (version == null || !version.isIntegralNumber() || !version.canConvertToInt()
-		        || (version.intValue() != 1 && version.intValue() != 2) || !"PATIENT".equals(text(root, "entityType", true))
+		        || (version.intValue() != 3 && version.intValue() != 4) || !"PATIENT".equals(text(root, "entityType", true))
 		        || !"CREATE".equals(text(root, "operation", true))) {
 			throw invalid();
 		}
-		origin = uuid(text(root, "originNodeUuid", true));
+		origin = text(root, "originServerId", true);
+		if (!ServerId.isValid(origin)) {
+			throw invalid();
+		}
 		eventUuid = uuid(text(root, "eventUuid", true));
 		JsonNode seq = root.get("entitySequence");
 		if (seq == null || !seq.isIntegralNumber() || !seq.canConvertToLong() || seq.longValue() < 1) {
@@ -64,10 +67,15 @@ public final class PatientIncomingEvent {
 		occurredAt = instant(text(root, "occurredAt", true));
 		fields(
 		    root.get("payload"),
-		    "patientUuid,gender,birthdate,birthdateEstimated,dead,deathDate,deathdateEstimated,causeOfDeathUuid,causeOfDeathNonCoded,names,identifiers,addresses");
+		    "patientUuid,gender,birthdate,birthdateEstimated,dead,deathDate,deathdateEstimated,causeOfDeathUuid,causeOfDeathNonCoded,names,identifiers,addresses"
+		            + (version.intValue() == 4 ? ",birthtime,attributes" : ""));
 		patientUuid = reference(text(root.get("payload"), "patientUuid", true));
-		if (version.intValue() == 2) {
-			array(root.get("payload"), "addresses", false);
+		array(root.get("payload"), "addresses", false);
+		if (version.intValue() == 4) {
+			array(root.get("payload"), "attributes", false);
+			if (!root.get("payload").has("birthtime")) {
+				throw invalid();
+			}
 		}
 		this.json = json;
 	}
@@ -93,6 +101,27 @@ public final class PatientIncomingEvent {
         if (birthdate != null) {
             try { patient.setBirthdate(java.sql.Date.valueOf(LocalDate.parse(birthdate))); }
             catch (Exception e) { throw invalid(); }
+        }
+        if (root.get("schemaVersion").intValue() == 4) {
+            String time = text(data, "birthtime", false);
+            if (time != null) {
+                if (!time.matches("[0-9]{2}:[0-9]{2}:[0-9]{2}")) { throw invalid(); }
+                try { patient.setBirthtime(java.sql.Time.valueOf(LocalTime.parse(time))); }
+                catch (RuntimeException e) { throw invalid(); }
+            }
+            Set<String> attributeUuids = new HashSet<>();
+            for (JsonNode item : array(data, "attributes", false)) {
+                fields(item, "uuid,attributeTypeUuid,format,value,valueReferenceUuid");
+                String id = unique(item, attributeUuids);
+                String type = reference(text(item, "attributeTypeUuid", true));
+                if (Context.getPersonService().getPersonAttributeByUuid(id) != null) { throw conflict(); }
+                PersonAttribute attribute = PatientAttributeValues.receive(id, type,
+                    text(item, "format", true), text(item, "value", false),
+                    text(item, "valueReferenceUuid", false));
+                // addAttribute replaces another active value of the same type; a snapshot must preserve both.
+                attribute.setPerson(patient);
+                if (!patient.getAttributes().add(attribute)) { throw invalid(); }
+            }
         }
         patient.setBirthdateEstimated(flag(data, "birthdateEstimated"));
         patient.setDead(flag(data, "dead"));
@@ -120,7 +149,9 @@ public final class PatientIncomingEvent {
             name.setFamilyName2(text(item, "familyName2", false));
             name.setFamilyNameSuffix(text(item, "familyNameSuffix", false));
             name.setDegree(text(item, "degree", false));
+            int namesBefore = patient.getNames().size();
             patient.addName(name);
+            if (patient.getNames().size() != namesBefore + 1) { throw invalid(); }
         }
         seen.clear();
         for (JsonNode item : array(data, "identifiers", true)) {
@@ -140,7 +171,9 @@ public final class PatientIncomingEvent {
                 if (location == null || Boolean.TRUE.equals(location.getRetired())) { throw dependency("ubicación"); }
                 identifier.setLocation(location);
             }
+            int identifiersBefore = patient.getIdentifiers().size();
             patient.addIdentifier(identifier);
+            if (patient.getIdentifiers().size() != identifiersBefore + 1) { throw invalid(); }
         }
         seen.clear();
         if (data.has("addresses")) {
@@ -174,8 +207,9 @@ public final class PatientIncomingEvent {
                 address.setLongitude(text(item, "longitude", false));
                 address.setStartDate(instant(text(item, "startDate", false)));
                 address.setEndDate(instant(text(item, "endDate", false)));
+                int addressesBefore = patient.getAddresses().size();
                 patient.addAddress(address);
-                if (!patient.getAddresses().contains(address)) { throw invalid(); }
+                if (patient.getAddresses().size() != addressesBefore + 1) { throw invalid(); }
             }
         }
         return patient;
@@ -189,7 +223,7 @@ public final class PatientIncomingEvent {
 	}
 	
 	// Los UUID nativos son referencias opacas: algunos catálogos OpenMRS no usan formato RFC.
-	// Los identificadores propios de nodo y evento sí se validan con uuid().
+	// El identificador del evento se valida con uuid(); el origen usa ServerId.
 	private static String reference(String value) {
 		if (value == null || value.trim().isEmpty() || value.length() > 38) {
 			throw invalid();

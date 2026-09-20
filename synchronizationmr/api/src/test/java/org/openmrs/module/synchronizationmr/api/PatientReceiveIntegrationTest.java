@@ -39,6 +39,7 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
 	public void prepare() throws Exception {
 		new Liquibase("src/main/resources/liquibase.xml", new FileSystemResourceAccessor(), new JdbcConnection(
 		        getConnection())).update("");
+		Context.getAdministrationService().saveGlobalProperty(new org.openmrs.GlobalProperty("server.id", "testServer_1"));
 		advice = new PatientCreationAdvice();
 		Context.addAdvice(PatientService.class, advice);
 	}
@@ -80,6 +81,117 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
 		    new Date());
 	}
 	
+	private PersonAttributeType attributeType(String format) {
+		PersonAttributeType type = new PersonAttributeType();
+		type.setName("Sync test " + UUID.randomUUID());
+		type.setDescription("Fictitious attribute");
+		type.setFormat(format);
+		return Context.getPersonService().savePersonAttributeType(type);
+	}
+	
+	@Test
+	public void preservesBirthtimeAndAttributesIncludingReferenceAcrossDifferentLocalIds() throws Exception {
+		Patient source = sample();
+		source.setBirthtime(java.sql.Time.valueOf("08:23:47"));
+		PersonAttribute text = new PersonAttribute(attributeType("java.lang.String"), "Contacto ficticio");
+		source.addAttribute(text);
+		PersonAttribute additional = new PersonAttribute(text.getAttributeType(), "Otro contacto ficticio");
+		additional.setPerson(source);
+		source.getAttributes().add(additional);
+		PersonAttribute location = new PersonAttribute(attributeType("org.openmrs.Location"), "1");
+		source.addAttribute(location);
+		String origin = "posta_atributos";
+		ObjectNode json = (ObjectNode) mapper.readTree(event(source, origin, 1));
+		assertEquals(4, json.path("schemaVersion").asInt());
+		assertEquals("08:23:47", json.path("payload").path("birthtime").asText());
+		for (JsonNode item : json.path("payload").path("attributes")) {
+			if (item.path("format").asText().equals("org.openmrs.Location")) {
+				assertTrue(item.path("value").isNull());
+				assertEquals(Context.getLocationService().getLocation(1).getUuid(), item.path("valueReferenceUuid").asText());
+				// Simulate the catalog reference resolving to a different local row at the receiver.
+				((ObjectNode) item).put("valueReferenceUuid", Context.getLocationService().getLocation(2).getUuid());
+			}
+		}
+		assertEquals(1, receiver().receivePatient(json.toString()));
+		Context.flushSession();
+		Context.clearSession();
+		Patient saved = Context.getPatientService().getPatientByUuid(source.getUuid());
+		assertEquals("08:23:47", new java.text.SimpleDateFormat("HH:mm:ss").format(saved.getBirthtime()));
+		assertEquals(3, saved.getActiveAttributes().size());
+		assertEquals("Contacto ficticio", Context.getPersonService().getPersonAttributeByUuid(text.getUuid()).getValue());
+		assertEquals("Otro contacto ficticio", Context.getPersonService().getPersonAttributeByUuid(additional.getUuid())
+		        .getValue());
+		assertEquals("2", saved.getAttribute(location.getAttributeType().getName()).getValue());
+		assertEquals(1, receiver().receivePatient(json.toString()));
+		assertEquals(json.toString(), sync().getCreationPayload(saved.getUuid()));
+	}
+	
+	@Test
+	public void acceptsHistoricalSchemaThreeWithoutRewritingSnapshot() throws Exception {
+		Patient source = sample();
+		ObjectNode json = (ObjectNode) mapper.readTree(event(source, "posta_legacy", 1));
+		json.put("schemaVersion", 3);
+		((ObjectNode) json.get("payload")).remove(Arrays.asList("attributes", "birthtime"));
+		assertEquals(1, receiver().receivePatient(json.toString()));
+		assertEquals(json.toString(), sync().getCreationPayload(source.getUuid()));
+		assertEquals(1, receiver().receivePatient(json.toString()));
+	}
+	
+	@Test
+    public void rejectsMissingAttributeCatalogWithoutSavingOrConfirming() throws Exception {
+        Patient source = sample();
+        source.addAttribute(new PersonAttribute(attributeType("java.lang.String"), "Ejemplo"));
+        ObjectNode json = (ObjectNode) mapper.readTree(event(source, "posta_invalid_attribute", 1));
+        ((ObjectNode) json.path("payload").path("attributes").get(0)).put("attributeTypeUuid", UUID.randomUUID().toString());
+        assertThrows(APIException.class, () -> receiver().receivePatient(json.toString()));
+        assertNull(Context.getPatientService().getPatientByUuid(source.getUuid()));
+        assertEquals(0, receiver().getConfirmedPatientSequence("posta_invalid_attribute"));
+    }
+	
+	@Test
+    public void rejectsInvalidTimeAndMissingNewFields() throws Exception {
+        Patient source = sample();
+        ObjectNode json = (ObjectNode) mapper.readTree(event(source, "posta_invalid_time", 1));
+        ObjectNode payload = (ObjectNode) json.get("payload");
+        payload.put("birthtime", "25:00:00");
+        assertThrows(APIException.class, () -> receiver().receivePatient(json.toString()));
+        payload.putNull("birthtime");
+        payload.remove("attributes");
+        assertThrows(APIException.class, () -> receiver().receivePatient(json.toString()));
+        assertNull(Context.getPatientService().getPatientByUuid(source.getUuid()));
+        assertEquals(0, receiver().getConfirmedPatientSequence("posta_invalid_time"));
+    }
+	
+	@Test
+	public void rejectsEquivalentNamesRatherThanSilentlyDroppingOne() throws Exception {
+		rejectsEquivalentChild("names");
+	}
+	
+	@Test
+	public void rejectsEquivalentIdentifiersRatherThanSilentlyDroppingOne() throws Exception {
+		rejectsEquivalentChild("identifiers");
+	}
+	
+	@Test
+	public void rejectsEquivalentAddressesRatherThanSilentlyDroppingOne() throws Exception {
+		rejectsEquivalentChild("addresses");
+	}
+	
+	private void rejectsEquivalentChild(String collection) throws Exception {
+        Patient source = sample();
+        String origin = "posta_equivalent_" + collection;
+        ObjectNode json = (ObjectNode) mapper.readTree(event(source, origin, 1));
+        com.fasterxml.jackson.databind.node.ArrayNode children =
+            (com.fasterxml.jackson.databind.node.ArrayNode) json.path("payload").path(collection);
+        ObjectNode duplicate = ((ObjectNode) children.get(0)).deepCopy();
+        duplicate.put("uuid", UUID.randomUUID().toString());
+        children.add(duplicate);
+        assertThrows(APIException.class, () -> receiver().receivePatient(json.toString()));
+        assertNull(Context.getPatientService().getPatientByUuid(source.getUuid()));
+        assertNull(sync().getByPatientUuid(source.getUuid()));
+        assertEquals(0, receiver().getConfirmedPatientSequence(origin));
+    }
+	
 	private long localSequence() throws Exception {
         try (java.sql.Statement query = getConnection().createStatement();
                 java.sql.ResultSet rows = query.executeQuery("select patient_sequence from synchronizationmr_local_node where singleton_id = 1")) {
@@ -89,16 +201,16 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
 	
 	@Test
 	public void receivesPatientAndPreservesOriginForRedistribution() throws Exception {
-		String local = Context.getService(LocalNodeService.class).getOrCreateNodeUuid();
+		String local = Context.getService(LocalNodeService.class).getLocalServerId();
 		long before = localSequence();
-		String origin = UUID.randomUUID().toString();
+		String origin = "posta_" + UUID.randomUUID().toString();
 		Patient source = sample();
 		String json = event(source, origin, 1);
 		assertEquals(1, receiver().receivePatient(json));
 		Patient saved = Context.getPatientService().getPatientByUuid(source.getUuid());
 		assertNotNull(saved);
 		PatientSyncRecord reused = sync().ensurePatientSyncRecord(saved.getPatientId());
-		assertEquals(origin, reused.getOriginNodeUuid());
+		assertEquals(origin, reused.getOriginServerId());
 		assertEquals(1, reused.getSequence());
 		assertEquals(json, sync().getCreationPayload(saved.getUuid()));
 		assertEquals("María", saved.getGivenName());
@@ -107,7 +219,7 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
 		assertEquals("Calle ficticia 123", saved.getPersonAddress().getAddress1());
 		assertEquals(source.getPatientIdentifier().getUuid(), saved.getPatientIdentifier().getUuid());
 		assertEquals(source.getBirthdate(), saved.getBirthdate());
-		assertEquals(origin, sync().getByPatientUuid(saved.getUuid()).getOriginNodeUuid());
+		assertEquals(origin, sync().getByPatientUuid(saved.getUuid()).getOriginServerId());
 		assertEquals(json, sync().getPatientEventsAfter(origin, 0, 10).get(0).getPayloadJson());
 		assertEquals(before, localSequence());
 		assertNotEquals(local, origin);
@@ -116,9 +228,9 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
 		evidence.put("nota", "Recepción local de un paciente ficticio; no hay conexión entre servidores");
 		evidence.put("uuidPacienteEnviado", source.getUuid());
 		evidence.put("uuidPacienteRecibido", saved.getUuid());
-		evidence.put("uuidOrigenEnviado", origin);
-		evidence.put("uuidOrigenGuardado", sync().getByPatientUuid(saved.getUuid()).getOriginNodeUuid());
-		evidence.put("uuidNodoReceptor", local);
+		evidence.put("serverIdOrigenEnviado", origin);
+		evidence.put("serverIdOrigenGuardado", sync().getByPatientUuid(saved.getUuid()).getOriginServerId());
+		evidence.put("serverIdReceptor", local);
 		evidence.put("secuenciaConfirmada", receiver().getConfirmedPatientSequence(origin));
 		evidence.put("contadorLocalAntes", before);
 		evidence.put("contadorLocalDespues", localSequence());
@@ -131,7 +243,7 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
 	
 	@Test
 	public void duplicateDeliveryReturnsConfirmationWithoutRewritingPatient() {
-		String origin = UUID.randomUUID().toString();
+		String origin = "posta_" + UUID.randomUUID().toString();
 		Patient patient = sample();
 		String json = event(patient, origin, 1);
 		assertEquals(1, receiver().receivePatient(json));
@@ -143,7 +255,7 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
 	
 	@Test
     public void cannotConfirmThreeWhenTwoIsMissing() {
-        String origin = UUID.randomUUID().toString();
+        String origin = "posta_" + UUID.randomUUID().toString();
         receiver().receivePatient(event(sample(), origin, 1));
         Patient third = sample();
         assertThrows(APIException.class, () -> receiver().receivePatient(event(third, origin, 3)));
@@ -153,7 +265,7 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
 	
 	@Test
     public void missingCatalogDoesNotSavePatientOrAdvanceConfirmation() throws Exception {
-        String origin = UUID.randomUUID().toString();
+        String origin = "posta_" + UUID.randomUUID().toString();
         Patient patient = sample();
         ObjectNode json = (ObjectNode) mapper.readTree(event(patient, origin, 1));
         ((ObjectNode) json.get("payload").get("identifiers").get(0)).put("identifierTypeUuid", UUID.randomUUID().toString());
@@ -164,7 +276,7 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
 	
 	@Test
     public void differentContentForConfirmedSequenceIsRejected() throws Exception {
-        String origin = UUID.randomUUID().toString();
+        String origin = "posta_" + UUID.randomUUID().toString();
         String json = event(sample(), origin, 1);
         receiver().receivePatient(json);
         ObjectNode changed = (ObjectNode) mapper.readTree(json);
@@ -177,7 +289,7 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
     public void duplicateEventUuidRollsBackClinicalSaveAndConfirmationWithoutOuterTransaction() throws Exception {
         TestTransaction.flagForCommit(); TestTransaction.end();
         try {
-            String origin = UUID.randomUUID().toString();
+            String origin = "posta_" + UUID.randomUUID().toString();
             ObjectNode first = (ObjectNode) mapper.readTree(event(sample(), origin, 1));
             receiver().receivePatient(first.toString());
             Patient second = sample();
@@ -190,24 +302,24 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
             assertEquals(2, receiver().receivePatient(event(second, origin, 2)));
             // El guardado normal sigue capturándose después de un fallo de recepción.
             Patient normal = Context.getPatientService().savePatient(sample());
-            assertEquals(Context.getService(LocalNodeService.class).getOrCreateNodeUuid(),
-                    sync().getByPatientUuid(normal.getUuid()).getOriginNodeUuid());
+            assertEquals(Context.getService(LocalNodeService.class).getLocalServerId(),
+                    sync().getByPatientUuid(normal.getUuid()).getOriginServerId());
         } finally { TestTransaction.start(); }
     }
 	
 	@Test
     public void rejectsExistingPatientWithoutOverwritingOrConfirming() {
         Patient local = Context.getPatientService().savePatient(sample());
-        String origin = UUID.randomUUID().toString();
+        String origin = "posta_" + UUID.randomUUID().toString();
         assertThrows(APIException.class, () -> receiver().receivePatient(event(local, origin, 1)));
         assertEquals(0, receiver().getConfirmedPatientSequence(origin));
-        assertNotEquals(origin, sync().getByPatientUuid(local.getUuid()).getOriginNodeUuid());
+        assertNotEquals(origin, sync().getByPatientUuid(local.getUuid()).getOriginServerId());
     }
 	
 	@Test
     public void simultaneousDuplicateDeliveryCreatesSingleRecord() throws Exception {
         Credentials credentials = getCredentials();
-        String origin = UUID.randomUUID().toString();
+        String origin = "posta_" + UUID.randomUUID().toString();
         String json = event(sample(), origin, 1);
         TestTransaction.flagForCommit(); TestTransaction.end();
         ExecutorService pool = Executors.newFixedThreadPool(2);
@@ -233,31 +345,32 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
 	public void rejectsMalformedUnsupportedAndUnknownFields() throws Exception {
         assertThrows(APIException.class, () -> receiver().receivePatient("{}"));
         ObjectNode json = (ObjectNode) mapper.readTree(event(sample(), UUID.randomUUID().toString(), 1));
-        json.put("schemaVersion", 3);
+        json.put("schemaVersion", 99);
         assertThrows(APIException.class, () -> receiver().receivePatient(json.toString()));
-        json.put("schemaVersion", 2); json.put("extra", "no admitido");
+        json.put("schemaVersion", 4); json.put("extra", "no admitido");
         assertThrows(APIException.class, () -> receiver().receivePatient(json.toString()));
         json.remove("extra"); ((ObjectNode) json.get("payload")).remove("addresses");
         assertThrows(APIException.class, () -> receiver().receivePatient(json.toString()));
 	}
 	
 	@Test
-	public void acceptsVersionOneWithoutInventingAddresses() throws Exception {
-		String origin = UUID.randomUUID().toString();
+	public void rejectsOldNodeUuidSchemaWithoutSavingPatient() throws Exception {
+		String origin = "posta_" + UUID.randomUUID().toString();
 		Patient source = sample();
 		source.setUuid("paciente-" + UUID.randomUUID().toString().substring(0, 20));
 		ObjectNode json = (ObjectNode) mapper.readTree(event(source, origin, 1));
 		json.put("schemaVersion", 1);
 		((ObjectNode) json.get("payload")).remove("addresses");
-		assertEquals(1, receiver().receivePatient(json.toString()));
-		assertTrue(Context.getPatientService().getPatientByUuid(source.getUuid()).getAddresses().isEmpty());
-		assertEquals(json.toString(), sync().getCreationPayload(source.getUuid()));
+		json.remove("originServerId");
+		json.put("originNodeUuid", UUID.randomUUID().toString());
+		assertThrows(APIException.class, () -> receiver().receivePatient(json.toString()));
+		assertNull(Context.getPatientService().getPatientByUuid(source.getUuid()));
 	}
 	
 	@Test
     public void unauthenticatedCallerCannotImportPatient() {
         Credentials credentials = getCredentials();
-        String origin = UUID.randomUUID().toString();
+        String origin = "posta_" + UUID.randomUUID().toString();
         Patient source = sample();
         String json = event(source, origin, 1);
         PatientReceiveService service = receiver();

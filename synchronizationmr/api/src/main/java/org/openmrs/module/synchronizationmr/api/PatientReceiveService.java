@@ -25,5 +25,5 @@ public interface PatientReceiveService extends OpenmrsService {
 	
 	@Authorized("View Synchronization Records")
 	@Transactional(readOnly = true)
-	long getConfirmedPatientSequence(String originNodeUuid);
+	long getConfirmedPatientSequence(String originServerId);
 }

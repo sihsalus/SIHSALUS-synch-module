@@ -1,5 +1,16 @@
 # 11. Preparar un paciente que ya existía
 
+> Incremento posterior implementado: [preparación inicial por lotes](16_PREPARACION_INICIAL_POR_LOTES.md).
+> La tarea local es reanudable, se activa de forma independiente del transporte y
+> reutiliza la preparación individual descrita en estos documentos.
+
+
+> Actualización de identidad: [documento 14](14_IDENTIDAD_SERVER_ID_Y_ENTORNO.md).
+> `server.id` sustituye al UUID de nodo; pacientes usan esquema 3, encuentros esquema 2
+> y HTTP protocolo 2. Las referencias al UUID de origen y la configuración anterior
+> que siguen describen la implementación histórica de este incremento.
+
+
 ## Qué se implementó
 
 Se añadió `PatientSyncService.ensurePatientSyncRecord(localPatientId)`. Prepara un paciente
@@ -7,18 +18,18 @@ existente para que pueda enviarse mediante el mismo circuito de JSON, consulta, 
 confirmación que ya construimos.
 
 No recorre todos los pacientes al instalar el módulo. Tampoco se ejecuta al consultar un
-paciente con un `get`. Es una operación explícita que conectaremos con la futura preparación
-de encuentros y órdenes.
+paciente con un `get`. Es una operación explícita que reutilizaremos en la preparación inicial por lotes
+de pacientes existentes. No se invoca desde la captura de encuentros.
 
 ## Ejemplo del flujo
 
 Ana ya existe en la posta, pero todavía no tiene registro de sincronización.
 
-1. El futuro código de encuentros solicita preparar a Ana usando su identificador interno local.
+1. La futura función de preparación inicial solicita preparar a Ana usando su identificador interno local.
 2. El servicio carga al paciente real de la posta; rechaza identificadores inexistentes o pacientes anulados.
 3. Dentro de una transacción, reutiliza el bloqueo del contador que ya emplea la captura de altas.
 4. Si no tiene registro, asigna la siguiente secuencia de pacientes del nodo y guarda su identidad
-   y un evento `CREATE` con los datos actuales en JSON versión 2.
+   y un evento `CREATE` con los datos actuales en JSON versión 3.
 5. Si ya tiene registro y JSON, devuelve la identidad existente sin consumir otra secuencia ni
    regenerar el contenido. También conserva el origen si el paciente fue recibido de otro nodo.
 6. El evento queda disponible para el cliente periódico. Prepararlo no significa que ya se haya enviado.
@@ -94,6 +105,7 @@ mvn package
 
 ## Siguiente paso
 
-Implementar la captura de encuentros y hacer que su preparación invoque esta operación para
-el paciente. Después habrá que asegurar el orden de entrega: el destino debe tener al paciente
-antes de recibir el encuentro. Esa dependencia de entrega todavía no está implementada.
+Completar el contrato JSON del paciente y después implementar la preparación inicial por lotes,
+reanudable y sin duplicar identidades o eventos. La captura de encuentros ya existe y no invoca
+esta operación. Su futura entrega deberá asegurar que el paciente exista en el destino.
+La preparación inicial no concilia registros independientes de una misma persona entre postas.

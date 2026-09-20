@@ -31,16 +31,17 @@ public class PatientSyncHttpIntegrationTest extends BaseModuleContextSensitiveTe
 	
 	private final PatientSyncHttpServlet servlet = new PatientSyncHttpServlet();
 	
-	private String peerUuid;
+	private String peerServerId;
 	
 	@BeforeEach
 	public void preparePeer() throws Exception {
 		new Liquibase("../api/src/main/resources/liquibase.xml", new FileSystemResourceAccessor(), new JdbcConnection(
 		        getConnection())).update("");
 		Context.getAdministrationService().saveGlobalProperty(new GlobalProperty("synchronizationmr.nodeRole", "MASTER"));
-		peerUuid = UUID.randomUUID().toString();
+		Context.getAdministrationService().saveGlobalProperty(new GlobalProperty("server.id", "testServer_1"));
+		peerServerId = "testServer_2";
 		User user = Context.getAuthenticatedUser();
-		user.setUserProperty("synchronizationmr.peerNodeUuid", peerUuid);
+		user.setUserProperty("synchronizationmr.peerServerId", peerServerId);
 		user.setUserProperty("synchronizationmr.peerRole", "POSTA");
 		Context.getUserService().saveUser(user);
 	}
@@ -116,7 +117,7 @@ public class PatientSyncHttpIntegrationTest extends BaseModuleContextSensitiveTe
 	@Test
 	public void respondsWithConfirmationAfterRealCommitAndAllowsRetry() throws Exception {
 		Patient patient = new Patient();
-		String json = event(peerUuid, patient);
+		String json = event(peerServerId, patient);
 		MockHttpServletRequest request = request("POST", "receive");
 		request.setContentType("application/json");
 		request.setContent(json.getBytes(StandardCharsets.UTF_8));
@@ -129,7 +130,7 @@ public class PatientSyncHttpIntegrationTest extends BaseModuleContextSensitiveTe
 			assertSame(previous, Context.getUserContext());
 			assertEquals(1, new ObjectMapper().readTree(response.getContentAsString()).get("confirmedSequence").asLong());
 			assertNotNull(Context.getPatientService().getPatientByUuid(patient.getUuid()));
-			assertEquals(1, Context.getService(PatientReceiveService.class).getConfirmedPatientSequence(peerUuid));
+			assertEquals(1, Context.getService(PatientReceiveService.class).getConfirmedPatientSequence(peerServerId));
 			MockHttpServletRequest repeat = request("POST", "receive");
 			repeat.setContentType("application/json");
 			repeat.setContent(json.getBytes(StandardCharsets.UTF_8));

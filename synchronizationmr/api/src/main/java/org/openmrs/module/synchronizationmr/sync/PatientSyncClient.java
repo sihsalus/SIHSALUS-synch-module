@@ -20,29 +20,29 @@ public class PatientSyncClient {
 	
 	private final PatientRemoteTransport remote;
 	
-	private final String masterUuid;
+	private final String masterServerId;
 	
 	/**
 	 * Construye el cliente con los servicios transaccionales de OpenMRS. Las credenciales remotas
 	 * se proporcionan en memoria, sin escribirlas en propiedades globales.
 	 */
-	public static PatientSyncClient forLocalPosta(String endpoint, String masterUuid, String username, String password)
+	public static PatientSyncClient forLocalPosta(String endpoint, String masterServerId, String username, String password)
 	        throws IOException {
 		if (!"POSTA".equals(Context.getAdministrationService().getGlobalProperty("synchronizationmr.nodeRole"))) {
 			throw new IllegalStateException("El cliente debe ejecutarse en una instalación configurada como POSTA");
 		}
 		return new PatientSyncClient(Context.getService(LocalNodeService.class),
 		        Context.getService(PatientSyncService.class), Context.getService(PatientReceiveService.class),
-		        new PatientHttpsTransport(endpoint, username, password), masterUuid);
+		        new PatientHttpsTransport(endpoint, username, password), masterServerId);
 	}
 	
 	public PatientSyncClient(LocalNodeService node, PatientSyncService records, PatientReceiveService receiver,
-	    PatientRemoteTransport remote, String masterUuid) {
+	    PatientRemoteTransport remote, String masterServerId) {
 		this.node = node;
 		this.records = records;
 		this.receiver = receiver;
 		this.remote = remote;
-		this.masterUuid = uuid(masterUuid);
+		this.masterServerId = ServerId.requireValid(masterServerId);
 	}
 	
 	/** Devuelve envíos y recepciones confirmados en este ciclo; no crea un temporizador. */
@@ -51,11 +51,11 @@ public class PatientSyncClient {
 		if (TransactionSynchronizationManager.isActualTransactionActive()) {
 			throw new IllegalStateException("El ciclo no debe envolver la red en una transacción de base de datos");
 		}
-		String local = uuid(node.getOrCreateNodeUuid());
+		String local = ServerId.requireValid(node.getLocalServerId());
 		JsonNode identity = remote.get("resource=node");
 		require(
-		    masterUuid.equals(identity.path("nodeUuid").asText()) && !masterUuid.equals(local)
-		            && "MASTER".equals(identity.path("role").asText()) && identity.path("protocolVersion").asInt() == 1,
+		    masterServerId.equals(identity.path("serverId").asText()) && !masterServerId.equals(local)
+		            && "MASTER".equals(identity.path("role").asText()) && identity.path("protocolVersion").asInt() == 2,
 		    "Identidad del maestro inesperada");
 		JsonNode status = remote.get("resource=status&origin=" + local);
 		checkOrigin(status, local);
@@ -85,7 +85,7 @@ public class PatientSyncClient {
 				checkInterrupted();
 				String origin;
 				try {
-					origin = uuid(entry.asText());
+					origin = ServerId.requireValid(entry.asText());
 				}
 				catch (IllegalArgumentException invalid) {
 					throw new IOException("Origen remoto inválido");
@@ -123,14 +123,6 @@ public class PatientSyncClient {
 		return new int[] { sent, received };
 	}
 	
-	private static String uuid(String value) {
-		
-		if (value == null || !value.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) {
-			throw new IllegalArgumentException("UUID de nodo inválido");
-		}
-		return value;
-	}
-	
 	private static void checkInterrupted() throws IOException {
 		if (Thread.currentThread().isInterrupted()) {
 			throw new IOException("Ciclo interrumpido por parada");
@@ -138,7 +130,7 @@ public class PatientSyncClient {
 	}
 	
 	private static void checkOrigin(JsonNode value, String origin) throws IOException {
-		require(origin.equals(value.path("originNodeUuid").asText()) && "PATIENT".equals(value.path("entityType").asText()),
+		require(origin.equals(value.path("originServerId").asText()) && "PATIENT".equals(value.path("entityType").asText()),
 		    "Origen o entidad inesperados");
 	}
 	

@@ -1,5 +1,11 @@
 # 08. Consulta y recepción de pacientes por HTTP
 
+> Actualización de identidad: [documento 14](14_IDENTIDAD_SERVER_ID_Y_ENTORNO.md).
+> `server.id` sustituye al UUID de nodo; pacientes usan esquema 3, encuentros esquema 2
+> y HTTP protocolo 2. Las referencias al UUID de origen y la configuración anterior
+> que siguen describen la implementación histórica de este incremento.
+
+
 Este incremento permite acceder desde una petición HTTP a los servicios que ya teníamos:
 consultar registros y recibir el JSON de creación de un paciente. Todavía no hay un cliente
 que haga esas peticiones periódicamente ni una prueba entre dos servidores desplegados.

@@ -44,7 +44,7 @@ public class PatientSyncScheduler {
 		Context.openSession();
 		try {
 			Context.authenticate(new UsernamePasswordCredentials(config.localUser, config.localPassword));
-			int[] result = PatientSyncClient.forLocalPosta(config.endpoint, config.masterUuid, config.remoteUser,
+			int[] result = PatientSyncClient.forLocalPosta(config.endpoint, config.masterServerId, config.remoteUser,
 			    config.remotePassword).synchronizeOnce();
 			log.info("Ciclo de pacientes completado: envíos confirmados=" + result[0] + ", recepciones confirmadas="
 			        + result[1]);

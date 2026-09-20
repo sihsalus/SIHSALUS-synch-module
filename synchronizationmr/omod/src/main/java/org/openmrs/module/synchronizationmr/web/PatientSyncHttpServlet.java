@@ -68,6 +68,8 @@ public class PatientSyncHttpServlet extends HttpServlet {
         }
         try (PatientSyncPeerSession authenticated = peer) {
             authenticated.authorize();
+            // Ninguna operación remota elude la configuración de identidad local.
+            String serverId = node().getLocalServerId();
             String resource = request.getParameter("resource");
             ObjectNode result;
             if ("POST".equals(request.getMethod())) {
@@ -86,10 +88,10 @@ public class PatientSyncHttpServlet extends HttpServlet {
                 authenticated.authorizeReceive(incoming.origin);
                 long confirmed = receiver().receivePatient(json);
                 result = mapper.createObjectNode();
-                result.put("originNodeUuid", incoming.origin); result.put("entityType", "PATIENT");
+                result.put("originServerId", incoming.origin); result.put("entityType", "PATIENT");
                 result.put("confirmedSequence", confirmed);
             } else {
-                result = get(request, authenticated);
+                result = get(request, authenticated, serverId);
                 if (result == null) { error(response, 404, "RESOURCE_NOT_FOUND"); return; }
             }
             response.setStatus(200);
@@ -101,14 +103,14 @@ public class PatientSyncHttpServlet extends HttpServlet {
         catch (RuntimeException failure) { error(response, 500, "INTERNAL_ERROR"); }
     }
 	
-	private ObjectNode get(HttpServletRequest request, PatientSyncPeerSession peer) throws IOException {
+	private ObjectNode get(HttpServletRequest request, PatientSyncPeerSession peer, String serverId) throws IOException {
 		String resource = request.getParameter("resource");
 		ObjectNode result = mapper.createObjectNode();
 		result.put("entityType", "PATIENT");
 		if ("node".equals(resource)) {
-			result.put("nodeUuid", node().getOrCreateNodeUuid());
+			result.put("serverId", serverId);
 			result.put("role", peer.getLocalRole());
-			result.put("protocolVersion", 1);
+			result.put("protocolVersion", 2);
 		} else if ("origins".equals(resource)) {
 			String after = request.getParameter("afterOrigin");
 			if (after != null) {
@@ -122,7 +124,7 @@ public class PatientSyncHttpServlet extends HttpServlet {
 			result.put("limit", limit);
 		} else if ("status".equals(resource) || "events".equals(resource)) {
 			String origin = origin(request.getParameter("origin"));
-			result.put("originNodeUuid", origin);
+			result.put("originServerId", origin);
 			if ("status".equals(resource)) {
 				result.put("highestSequence", sync().getHighestPatientSequence(origin));
 				result.put("confirmedSequence", receiver().getConfirmedPatientSequence(origin));
@@ -163,10 +165,7 @@ public class PatientSyncHttpServlet extends HttpServlet {
 	}
 	
 	private String origin(String value) {
-		if (value == null || !value.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) {
-			throw new IllegalArgumentException();
-		}
-		return value;
+		return ServerId.requireValid(value);
 	}
 	
 	private String readBody(HttpServletRequest request) throws IOException {

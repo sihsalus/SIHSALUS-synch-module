@@ -9,7 +9,7 @@ public final class PatientSyncScheduleConfig {
 	
 	final long intervalSeconds;
 	
-	final String endpoint, masterUuid, localUser, localPassword, remoteUser, remotePassword;
+	final String endpoint, masterServerId, localUser, localPassword, remoteUser, remotePassword;
 	
 	public PatientSyncScheduleConfig(Map<String, String> environment) {
 		String flag = environment.getOrDefault("SYNCMR_ENABLED", "false");
@@ -19,7 +19,7 @@ public final class PatientSyncScheduleConfig {
 		enabled = Boolean.parseBoolean(flag);
 		if (!enabled) {
 			intervalSeconds = 60;
-			endpoint = masterUuid = localUser = localPassword = remoteUser = remotePassword = null;
+			endpoint = masterServerId = localUser = localPassword = remoteUser = remotePassword = null;
 			return;
 		}
 		try {
@@ -32,7 +32,7 @@ public final class PatientSyncScheduleConfig {
 			throw new IllegalArgumentException("El intervalo debe estar entre 10 y 86400 segundos");
 		}
 		endpoint = required(environment, "SYNCMR_MASTER_ENDPOINT");
-		masterUuid = required(environment, "SYNCMR_MASTER_UUID");
+		masterServerId = ServerId.requireValid(required(environment, "SYNCMR_MASTER_SERVER_ID"));
 		localUser = required(environment, "SYNCMR_LOCAL_USERNAME");
 		localPassword = required(environment, "SYNCMR_LOCAL_PASSWORD");
 		remoteUser = required(environment, "SYNCMR_REMOTE_USERNAME");

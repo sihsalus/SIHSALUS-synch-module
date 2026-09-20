@@ -56,11 +56,11 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
 		assertEquals(count, Context.getPatientService().getAllPatients().size());
 		com.fasterxml.jackson.databind.JsonNode json = new com.fasterxml.jackson.databind.ObjectMapper().readTree(sync()
 		        .getCreationPayload(uuid));
-		assertEquals(prepared.getOriginNodeUuid(), json.path("originNodeUuid").asText());
+		assertEquals(prepared.getOriginServerId(), json.path("originServerId").asText());
 		assertEquals(prepared.getSequence(), json.path("entitySequence").asLong());
 		assertEquals(uuid, json.path("payload").path("patientUuid").asText());
 		assertEquals(prepared.getEventUuid(),
-		    sync().getPatientEventsAfter(prepared.getOriginNodeUuid(), prepared.getSequence() - 1, 1).get(0).getEventUuid());
+		    sync().getPatientEventsAfter(prepared.getOriginServerId(), prepared.getSequence() - 1, 1).get(0).getEventUuid());
 		System.out.println("PACIENTE PREEXISTENTE VERIFICADO: misma entidad local, identidad y JSON disponibles para envío");
 	}
 	
@@ -74,9 +74,9 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
 		PatientSyncRecord second = sync().ensurePatientSyncRecord(2);
 		assertEquals(first.getEventUuid(), second.getEventUuid());
 		assertEquals(first.getSequence(), second.getSequence());
-		assertEquals(first.getOriginNodeUuid(), second.getOriginNodeUuid());
+		assertEquals(first.getOriginServerId(), second.getOriginServerId());
 		assertEquals(json, sync().getCreationPayload(patient.getUuid()));
-		assertEquals(first.getSequence(), sync().getHighestPatientSequence(first.getOriginNodeUuid()));
+		assertEquals(first.getSequence(), sync().getHighestPatientSequence(first.getOriginServerId()));
 	}
 	
 	@Test
@@ -110,7 +110,7 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
 		Patient b = Context.getPatientService().savePatient(newPatient());
 		Patient c = Context.getPatientService().savePatient(newPatient());
 		PatientSyncRecord first = sync().getByPatientUuid(a.getUuid());
-		String origin = first.getOriginNodeUuid();
+		String origin = first.getOriginServerId();
 		java.util.List<org.openmrs.module.synchronizationmr.sync.PatientSyncEvent> page = sync().getPatientEventsAfter(
 		    origin, first.getSequence() - 1, 2);
 		assertEquals(2, page.size());
@@ -142,7 +142,7 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
             query.executeUpdate();
         }
         assertThrows(org.openmrs.api.APIException.class, () -> sync().getPatientEventsAfter(
-                first.getOriginNodeUuid(), first.getSequence() - 1, 3));
+                first.getOriginServerId(), first.getSequence() - 1, 3));
     }
 	
 	@Test
@@ -154,9 +154,9 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
             query.setInt(1, patient.getPatientId());
             query.executeUpdate();
         }
-        assertEquals(record.getSequence(), sync().getHighestPatientSequence(record.getOriginNodeUuid()));
+        assertEquals(record.getSequence(), sync().getHighestPatientSequence(record.getOriginServerId()));
         assertThrows(org.openmrs.api.APIException.class, () -> sync().getPatientEventsAfter(
-                record.getOriginNodeUuid(), record.getSequence() - 1, 1));
+                record.getOriginServerId(), record.getSequence() - 1, 1));
     }
 	
 	@Test
@@ -170,9 +170,9 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
             query.setInt(2, patient.getPatientId());
             query.executeUpdate();
         }
-        assertEquals(record.getSequence() + 1, sync().getHighestPatientSequence(record.getOriginNodeUuid()));
+        assertEquals(record.getSequence() + 1, sync().getHighestPatientSequence(record.getOriginServerId()));
         assertThrows(org.openmrs.api.APIException.class, () -> sync().getPatientEventsAfter(
-                record.getOriginNodeUuid(), record.getSequence() - 1, 2));
+                record.getOriginServerId(), record.getSequence() - 1, 2));
     }
 	
 	@Test
@@ -181,10 +181,10 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
         Patient b = Context.getPatientService().savePatient(newPatient());
         PatientSyncRecord local = sync().getByPatientUuid(a.getUuid());
         PatientSyncRecord foreign = sync().getByPatientUuid(b.getUuid());
-        String otherOrigin = UUID.randomUUID().toString();
+        String otherOrigin = "testServer_2";
         // Simula un registro ya importado; todavía no implementa la recepción por red.
         try (java.sql.PreparedStatement query = getConnection().prepareStatement(
-                "update synchronizationmr_patient_identity set origin_node_uuid = ?, entity_sequence = 1 where patient_id = ?")) {
+                "update synchronizationmr_patient_identity set origin_server_id = ?, entity_sequence = 1 where patient_id = ?")) {
             query.setString(1, otherOrigin);
             query.setInt(2, b.getPatientId());
             query.executeUpdate();
@@ -197,26 +197,27 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
             query.setInt(2, b.getPatientId());
             query.executeUpdate();
         }
-        assertEquals(local.getSequence(), sync().getHighestPatientSequence(local.getOriginNodeUuid()));
+        assertEquals(local.getSequence(), sync().getHighestPatientSequence(local.getOriginServerId()));
         assertEquals(1, sync().getHighestPatientSequence(otherOrigin));
         java.util.List<String> origins = sync().getPatientOrigins(null, 100);
         assertTrue(origins.contains(otherOrigin));
-        assertTrue(origins.contains(local.getOriginNodeUuid()));
+        assertTrue(origins.contains(local.getOriginServerId()));
         java.util.List<String> sortedOrigins = new java.util.ArrayList<>(origins);
         java.util.Collections.sort(sortedOrigins);
         assertEquals(sortedOrigins, origins);
         assertEquals(origins.get(0), sync().getPatientOrigins(null, 1).get(0));
         assertEquals(origins.get(1), sync().getPatientOrigins(origins.get(0), 1).get(0));
         assertEquals(b.getUuid(), sync().getPatientEventsAfter(otherOrigin, 0, 10).get(0).getPatientUuid());
-        assertEquals(1, sync().getPatientEventsAfter(local.getOriginNodeUuid(), local.getSequence() - 1, 10).size());
-        String unknown = UUID.randomUUID().toString();
+        assertEquals(1, sync().getPatientEventsAfter(local.getOriginServerId(), local.getSequence() - 1, 10).size());
+        String unknown = "testServer_desconocido";
         assertEquals(0, sync().getHighestPatientSequence(unknown));
         assertTrue(sync().getPatientEventsAfter(unknown, 0, 1).isEmpty());
         assertTrue(sync().getPatientEventsAfter(otherOrigin, Long.MAX_VALUE, 1).isEmpty());
         assertThrows(org.openmrs.api.APIException.class, () -> sync().getPatientEventsAfter(otherOrigin, -1, 1));
         assertThrows(org.openmrs.api.APIException.class, () -> sync().getPatientEventsAfter(otherOrigin, 0, 0));
         assertThrows(org.openmrs.api.APIException.class, () -> sync().getPatientEventsAfter(otherOrigin, 0, 101));
-        assertThrows(org.openmrs.api.APIException.class, () -> sync().getHighestPatientSequence("POSTA-01"));
+        assertEquals(0, sync().getHighestPatientSequence("POSTA-01"));
+        assertThrows(org.openmrs.api.APIException.class, () -> sync().getHighestPatientSequence("POSTA 01"));
     }
 	
 	@Autowired
@@ -239,9 +240,9 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
 		PatientSyncRecord record = sync().getByPatientUuid(patient.getUuid());
 		com.fasterxml.jackson.databind.JsonNode json = new com.fasterxml.jackson.databind.ObjectMapper().readTree(sync()
 		        .getCreationPayload(patient.getUuid()));
-		assertEquals(2, json.get("schemaVersion").asInt());
+		assertEquals(4, json.get("schemaVersion").asInt());
 		assertEquals(record.getEventUuid(), json.get("eventUuid").asText());
-		assertEquals(record.getOriginNodeUuid(), json.get("originNodeUuid").asText());
+		assertEquals(record.getOriginServerId(), json.get("originServerId").asText());
 		assertEquals(record.getSequence(), json.get("entitySequence").asLong());
 		assertEquals("PATIENT", json.get("entityType").asText());
 		assertEquals("CREATE", json.get("operation").asText());
@@ -270,8 +271,8 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
 		
 		// Evidencia exportada únicamente por esta prueba, que crea un paciente ficticio.
 		// El JSON procede de la consulta al evento guardado, no de reconstruir al paciente.
-		String nodeUuid = Context.getService(LocalNodeService.class).getOrCreateNodeUuid();
-		assertEquals(nodeUuid, json.get("originNodeUuid").asText());
+		String serverId = Context.getService(LocalNodeService.class).getLocalServerId();
+		assertEquals(serverId, json.get("originServerId").asText());
 		java.nio.file.Path directory = java.nio.file.Paths.get("target", "demo-sincronizacion");
 		java.nio.file.Files.createDirectories(directory);
 		com.fasterxml.jackson.databind.ObjectMapper evidenceMapper = new com.fasterxml.jackson.databind.ObjectMapper();
@@ -282,8 +283,8 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
 		comparison.put("patientIdLocal", patient.getPatientId());
 		comparison.put("uuidPacienteOpenMRS", patient.getUuid());
 		comparison.put("uuidPacienteEnJson", data.get("patientUuid").asText());
-		comparison.put("uuidNodoLocal", nodeUuid);
-		comparison.put("uuidOrigenEnJson", json.get("originNodeUuid").asText());
+		comparison.put("serverIdLocal", serverId);
+		comparison.put("serverIdOrigenEnJson", json.get("originServerId").asText());
 		comparison.put("uuidEventoGuardado", record.getEventUuid());
 		comparison.put("uuidEventoEnJson", json.get("eventUuid").asText());
 		comparison.put("identificadorVisible", record.getDisplayIdentifier());
@@ -350,10 +351,10 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
     }
 	
 	@Test
-	public void patientUsesPreviouslyInitializedNodeUuid() {
-		String uuid = Context.getService(LocalNodeService.class).getOrCreateNodeUuid();
+	public void patientUsesPreviouslyInitializedServerId() {
+		String uuid = Context.getService(LocalNodeService.class).getLocalServerId();
 		Patient patient = Context.getPatientService().savePatient(newPatient());
-		assertEquals(uuid, sync().getByPatientUuid(patient.getUuid()).getOriginNodeUuid());
+		assertEquals(uuid, sync().getByPatientUuid(patient.getUuid()).getOriginServerId());
 	}
 	
 	@Test
@@ -366,7 +367,7 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
 			PatientSyncRecord record = sync().getByPatientUuid(patient.getUuid());
 			assertNotNull(record);
 			System.out.println("CAPTURA CONFIRMADA: " + record.getDisplayIdentifier() + " | origen="
-			        + record.getOriginNodeUuid() + " | estado="
+			        + record.getOriginServerId() + " | estado="
 			        + ("PENDING".equals(record.getState()) ? "PENDIENTE" : record.getState()));
 		}
 		finally {
@@ -417,7 +418,7 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
             start.countDown();
             PatientSyncRecord a = first.get(20, TimeUnit.SECONDS);
             PatientSyncRecord b = second.get(20, TimeUnit.SECONDS);
-            assertEquals(a.getOriginNodeUuid(), b.getOriginNodeUuid());
+            assertEquals(a.getOriginServerId(), b.getOriginServerId());
             assertEquals(1L, Math.abs(a.getSequence() - b.getSequence()));
             assertNotEquals(a.getEventUuid(), b.getEventUuid());
         }
@@ -462,7 +463,8 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
 		Connection connection = getConnection();
 		new Liquibase("src/main/resources/liquibase.xml", new FileSystemResourceAccessor(), new JdbcConnection(connection))
 		        .update("");
-		Context.getAdministrationService().saveGlobalProperty(new GlobalProperty("synchronizationmr.nodeLabel", "POSTA-01"));
+		Context.getAdministrationService().saveGlobalProperty(new GlobalProperty("server.id", "testServer_1"));
+		// Cada prueba usa el identificador configurado del establecimiento.
 		advice = new PatientCreationAdvice();
 		Context.addAdvice(PatientService.class, advice);
 	}
@@ -486,12 +488,39 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
 	}
 	
 	@Test
+	public void missingServerIdRollsBackClinicalCreationInsteadOfInventingOrigin() {
+		Context.getAdministrationService().saveGlobalProperty(new GlobalProperty("server.id", ""));
+		Patient patient = newPatient();
+		assertThrows(org.openmrs.api.APIException.class, () -> Context.getPatientService().savePatient(patient));
+		TestTransaction.flagForRollback();
+		TestTransaction.end();
+		TestTransaction.start();
+		assertNull(Context.getPatientService().getPatientByUuid(patient.getUuid()));
+		assertNull(sync().getByPatientUuid(patient.getUuid()));
+	}
+	
+	@Test
+	public void configuringServerIdPreservesExistingPatientEvent() {
+		Patient patient = Context.getPatientService().savePatient(newPatient());
+		PatientSyncRecord before = sync().getByPatientUuid(patient.getUuid());
+		String originalJson = sync().getCreationPayload(patient.getUuid());
+		Context.getAdministrationService().saveGlobalProperty(new GlobalProperty("server.id", "testServer_1"));
+		assertEquals("testServer_1", Context.getService(LocalNodeService.class).getLocalServerId());
+		PatientSyncRecord after = sync().getByPatientUuid(patient.getUuid());
+		assertEquals(before.getOriginServerId(), after.getOriginServerId());
+		assertEquals(before.getSequence(), after.getSequence());
+		assertEquals(before.getEventUuid(), after.getEventUuid());
+		assertEquals(originalJson, sync().getCreationPayload(patient.getUuid()));
+		assertEquals("testServer_1 / PACIENTE / " + before.getSequence(), after.getDisplayIdentifier());
+	}
+	
+	@Test
 	public void clinicalSaveCreatesPendingIdentityAndRepeatedSaveDoesNotDuplicate() {
 		Patient patient = Context.getPatientService().savePatient(newPatient());
 		PatientSyncRecord first = sync().getByPatientUuid(patient.getUuid());
 		assertNotNull(first);
 		assertEquals("PENDING", first.getState());
-		assertEquals("POSTA-01 / PACIENTE / " + first.getSequence(), first.getDisplayIdentifier());
+		assertEquals("testServer_1 / PACIENTE / " + first.getSequence(), first.getDisplayIdentifier());
 		Context.getPatientService().savePatient(patient);
 		PatientSyncRecord repeated = sync().getByPatientUuid(patient.getUuid());
 		assertEquals(first.getSequence(), repeated.getSequence());
@@ -506,20 +535,20 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
 		Patient second = Context.getPatientService().savePatient(newPatient());
 		PatientSyncRecord a = sync().getByPatientUuid(first.getUuid());
 		PatientSyncRecord b = sync().getByPatientUuid(second.getUuid());
-		assertEquals(a.getOriginNodeUuid(), b.getOriginNodeUuid());
+		assertEquals(a.getOriginServerId(), b.getOriginServerId());
 		assertEquals(a.getSequence() + 1, b.getSequence());
 	}
 	
 	@Test
-	public void changingVisibleLabelDoesNotChangeIdentity() {
+	public void changingObsoleteLabelDoesNotChangeServerIdentity() {
 		Patient patient = Context.getPatientService().savePatient(newPatient());
 		PatientSyncRecord before = sync().getByPatientUuid(patient.getUuid());
 		Context.getAdministrationService().saveGlobalProperty(
 		    new GlobalProperty("synchronizationmr.nodeLabel", "POSTA-NAPO"));
 		PatientSyncRecord after = sync().getByPatientUuid(patient.getUuid());
-		assertEquals(before.getOriginNodeUuid(), after.getOriginNodeUuid());
+		assertEquals(before.getOriginServerId(), after.getOriginServerId());
 		assertEquals(before.getSequence(), after.getSequence());
-		assertEquals("POSTA-NAPO", after.getNodeLabel());
+		assertEquals("testServer_1", after.getOriginServerId());
 	}
 	
 	@Test

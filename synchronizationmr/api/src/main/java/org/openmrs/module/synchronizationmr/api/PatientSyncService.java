@@ -18,6 +18,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 public interface PatientSyncService extends OpenmrsService {
 	
+	/** Prepara hasta 100 pacientes activos pendientes, en una única transacción local. */
+	@Authorized(value = { "Prepare Synchronization Records", "Get Patients" }, requireAll = true)
+	@Transactional
+	int prepareExistingPatients(int limit);
+	
+	/** Incluye identidades incompletas que requieren revisión, no solo pacientes sin identidad. */
+	@Authorized(value = { "View Synchronization Records", "Get Patients" }, requireAll = true)
+	@Transactional(readOnly = true)
+	long countPatientsPendingPreparation();
+	
 	/**
 	 * Prepara un paciente local existente una sola vez, conservando la identidad y el JSON si ya
 	 * existen. El número recibido es el patient_id local; no se utiliza para comparar instancias.
@@ -29,12 +39,12 @@ public interface PatientSyncService extends OpenmrsService {
 	/** Orígenes conocidos, ordenados por UUID y paginados; null inicia la primera página. */
 	@Authorized("View Synchronization Records")
 	@Transactional(readOnly = true)
-	java.util.List<String> getPatientOrigins(String afterOriginUuid, int limit);
+	java.util.List<String> getPatientOrigins(String afterOriginServerId, int limit);
 	
 	/** Mayor secuencia registrada para este origen, o cero. No es una confirmación consecutiva. */
 	@Authorized("View Synchronization Records")
 	@Transactional(readOnly = true)
-	long getHighestPatientSequence(String originNodeUuid);
+	long getHighestPatientSequence(String originServerId);
 	
 	/**
 	 * Consulta exclusiva después de afterSequence, de 1 a 100 eventos, ordenados. Un hueco o evento
@@ -42,7 +52,7 @@ public interface PatientSyncService extends OpenmrsService {
 	 */
 	@Authorized(value = { "View Synchronization Records", "Get Patients" }, requireAll = true)
 	@Transactional(readOnly = true)
-	java.util.List<org.openmrs.module.synchronizationmr.sync.PatientSyncEvent> getPatientEventsAfter(String originNodeUuid,
+	java.util.List<org.openmrs.module.synchronizationmr.sync.PatientSyncEvent> getPatientEventsAfter(String originServerId,
 	        long afterSequence, int limit);
 	
 	/**

@@ -36,7 +36,7 @@ public class EncounterSyncDao {
 	public void capture(Encounter encounter) {
         sessionFactory.getCurrentSession().flush();
         sessionFactory.getCurrentSession().doWork(connection -> {
-            String origin = localNodeDao.getOrCreateNodeUuid();
+            String origin = localNodeDao.getLocalServerId();
             long previous;
             try (PreparedStatement statement = connection.prepareStatement(
                     "select encounter_sequence from synchronizationmr_local_node where singleton_id = 1 for update");
@@ -55,7 +55,7 @@ public class EncounterSyncDao {
             Timestamp created = new Timestamp(System.currentTimeMillis());
             String payload = serializer.serialize(encounter, origin, sequence, eventUuid, created);
             try (PreparedStatement statement = connection.prepareStatement(
-                    "insert into synchronizationmr_encounter_event (event_uuid, encounter_id, encounter_uuid, patient_id, patient_uuid, origin_node_uuid, entity_sequence, operation, state, date_created, payload_json) values (?, ?, ?, ?, ?, ?, ?, 'CREATE', 'PENDING', ?, ?)")) {
+                    "insert into synchronizationmr_encounter_event (event_uuid, encounter_id, encounter_uuid, patient_id, patient_uuid, origin_server_id, entity_sequence, operation, state, date_created, payload_json) values (?, ?, ?, ?, ?, ?, ?, 'CREATE', 'PENDING', ?, ?)")) {
                 statement.setString(1, eventUuid);
                 statement.setInt(2, encounter.getEncounterId());
                 statement.setString(3, encounter.getUuid());
