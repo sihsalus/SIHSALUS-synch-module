@@ -162,5 +162,48 @@
     <changeSet id="synchronizationmr-20260920-encounter-receipt-collation" author="sihsalus" dbms="mysql,mariadb">
         <sql>ALTER TABLE synchronizationmr_encounter_receipt MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
     </changeSet>
+    <changeSet id="synchronizationmr-20260920-order-capture" author="sihsalus">
+        <addColumn tableName="synchronizationmr_local_node">
+            <column name="order_sequence" type="bigint" defaultValueNumeric="0"><constraints nullable="false" /></column>
+        </addColumn>
+        <!-- ENCOUNTER está implícito en esta tabla. Todavía no almacena el JSON clínico. -->
+        <createTable tableName="synchronizationmr_order_event">
+            <column name="event_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="order_id" type="int"><constraints nullable="false" unique="true" /></column>
+            <column name="order_uuid" type="varchar(38)"><constraints nullable="false" unique="true" /></column>
+            <column name="patient_id" type="int"><constraints nullable="false" /></column>
+            <column name="patient_uuid" type="varchar(38)"><constraints nullable="false" /></column>
+            <column name="origin_server_id" type="varchar(100)"><constraints nullable="false" /></column>
+            <column name="entity_sequence" type="bigint"><constraints nullable="false" /></column>
+            <column name="operation" type="varchar(16)"><constraints nullable="false" /></column>
+            <column name="state" type="varchar(16)"><constraints nullable="false" /></column>
+            <column name="date_created" type="datetime"><constraints nullable="false" /></column>
+        </createTable>
+        <addUniqueConstraint tableName="synchronizationmr_order_event" columnNames="origin_server_id,entity_sequence" constraintName="syncmr_ord_origin_sequence_uq" />
+        <addForeignKeyConstraint baseTableName="synchronizationmr_order_event" baseColumnNames="order_id" referencedTableName="orders" referencedColumnNames="order_id" constraintName="syncmr_ord_event_enc_fk" />
+        <addForeignKeyConstraint baseTableName="synchronizationmr_order_event" baseColumnNames="patient_id" referencedTableName="patient" referencedColumnNames="patient_id" constraintName="syncmr_ord_event_patient_fk" />
+    </changeSet>
+    <changeSet id="synchronizationmr-20260920-order-payload" author="sihsalus">
+        <!-- Los eventos anteriores quedan sin JSON: no se reconstruye su historia automáticamente. -->
+        <addColumn tableName="synchronizationmr_order_event"><column name="payload_json" type="clob" /></addColumn>
+    </changeSet>
+    <changeSet id="synchronizationmr-20260920-order-receipt-links" author="sihsalus">
+        <createTable tableName="synchronizationmr_order_receipt">
+            <column name="origin_server_id" type="varchar(100)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="confirmed_sequence" type="bigint"><constraints nullable="false" /></column>
+        </createTable>
+        <createTable tableName="synchronizationmr_order_link">
+            <column name="link_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="order_uuid" type="varchar(38)"><constraints nullable="false" /></column>
+            <column name="encounter_uuid" type="varchar(38)"><constraints nullable="false" /></column>
+            <column name="patient_uuid" type="varchar(38)"><constraints nullable="false" /></column>
+            <column name="obs_uuid" type="varchar(38)" />
+        </createTable>
+        <createIndex tableName="synchronizationmr_order_link" indexName="syncmr_order_link_order_idx"><column name="order_uuid" /></createIndex>
+    </changeSet>
+    <changeSet id="synchronizationmr-20260920-order-collation" author="sihsalus" dbms="mysql,mariadb">
+        <sql>ALTER TABLE synchronizationmr_order_event MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
+        <sql>ALTER TABLE synchronizationmr_order_receipt MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
+    </changeSet>
 </databaseChangeLog>
  

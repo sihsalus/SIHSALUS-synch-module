@@ -11,6 +11,8 @@ public final class PatientSyncScheduleConfig {
 	
 	final String encounterEndpoint;
 	
+	final String orderEndpoint;
+
 	final String endpoint, masterServerId, localUser, localPassword, remoteUser, remotePassword;
 	
 	public PatientSyncScheduleConfig(Map<String, String> environment) {
@@ -19,9 +21,13 @@ public final class PatientSyncScheduleConfig {
 			throw new IllegalArgumentException("SYNCMR_ENABLED debe ser true o false");
 		}
 		enabled = Boolean.parseBoolean(flag);
+		orderEndpoint = enabled ? environment.get("SYNCMR_MASTER_ORDER_ENDPOINT") : null;
 		encounterEndpoint = enabled ? environment.get("SYNCMR_MASTER_ENCOUNTER_ENDPOINT") : null;
 		if (encounterEndpoint != null && encounterEndpoint.trim().isEmpty()) {
 			throw new IllegalArgumentException("Endpoint de encuentros vacío");
+		}
+		if (orderEndpoint != null && (orderEndpoint.trim().isEmpty() || encounterEndpoint == null)) {
+			throw new IllegalArgumentException("Orders require a nonempty endpoint and encounter synchronization");
 		}
 		if (!enabled) {
 			intervalSeconds = 60;

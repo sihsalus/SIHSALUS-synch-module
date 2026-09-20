@@ -1,8 +1,11 @@
 # 18. Recepción de encuentros y observaciones
 
+> Actualización: [órdenes y relación entre las tres entidades](20_FLUJO_DE_ORDENES.md). Las referencias a órdenes ya se reciben y se completan mediante vínculos persistentes; la restricción histórica de rechazar toda referencia a una orden queda superada.
+
+
 > Incremento posterior: [flujo de encuentros](19_FLUJO_DE_ENCUENTROS.md).
 > Ya se implementaron el cliente periódico opcional y la preparación por lotes.
-> Los límites de contenido y dependencias descritos aquí siguen vigentes.
+> Los demás límites de contenido y dependencias descritos aquí siguen vigentes.
 
 
 ## Acuerdo de la reunión y arquitectura

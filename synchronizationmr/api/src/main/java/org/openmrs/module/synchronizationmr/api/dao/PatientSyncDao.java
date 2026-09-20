@@ -125,13 +125,13 @@ public class PatientSyncDao {
         });
     }
 	
-	@Autowired
+	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessionFactory;
 	
-	@Autowired
+	@javax.annotation.Resource(name = "synchronizationmr.LocalNodeDao")
 	private LocalNodeDao localNodeDao;
 	
-	@Autowired
+	@javax.annotation.Resource(name = "synchronizationmr.PatientCreationPayloadSerializer")
 	private org.openmrs.module.synchronizationmr.sync.PatientCreationPayloadSerializer payloadSerializer;
 	
 	/** Consulta separada porque el JSON sí contiene datos personales. */

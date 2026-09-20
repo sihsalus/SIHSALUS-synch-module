@@ -23,10 +23,10 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Repository("synchronizationmr.PatientReceiveDao")
 public class PatientReceiveDao {
 	
-	@Autowired
+	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessionFactory;
 	
-	@Autowired
+	@javax.annotation.Resource(name = "synchronizationmr.LocalNodeDao")
 	private LocalNodeDao localNodeDao;
 	
 	public long confirmed(String origin) {

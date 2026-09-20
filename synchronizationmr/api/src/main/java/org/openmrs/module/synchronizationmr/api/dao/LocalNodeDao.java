@@ -24,7 +24,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Repository("synchronizationmr.LocalNodeDao")
 public class LocalNodeDao {
 	
-	@Autowired
+	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessionFactory;
 	
 	public String getLocalServerId() {

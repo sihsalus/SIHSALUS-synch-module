@@ -50,6 +50,7 @@ public class NodeIdentityMigrationTest {
         try (Statement s = c.createStatement()) {
             s.execute("create table patient (patient_id int primary key)");
             s.execute("create table encounter (encounter_id int primary key)");
+            s.execute("create table orders (order_id int primary key)");
             s.execute("insert into patient values (42)");
             s.execute("insert into encounter values (7)");
         }

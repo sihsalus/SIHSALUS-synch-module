@@ -55,6 +55,12 @@ public class PatientSyncScheduler {
 				        + ", recepciones confirmadas=" + encounters[1]);
 			}
 			
+			if (config.orderEndpoint != null) {
+				int[] orders = OrderSyncClient.forLocalPosta(config.orderEndpoint, config.masterServerId, config.remoteUser,
+				    config.remotePassword).synchronizeOnce();
+				log.info("Orders confirmed: sent=" + orders[0] + ", received=" + orders[1]);
+			}
+
 		}
 		catch (Exception failure) {
 			if (Thread.currentThread().isInterrupted()) {

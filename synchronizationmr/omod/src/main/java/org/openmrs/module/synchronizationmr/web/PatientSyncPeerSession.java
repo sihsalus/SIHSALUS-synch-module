@@ -83,6 +83,13 @@ public class PatientSyncPeerSession implements AutoCloseable {
 		authorizeOrigin(origin);
 	}
 	
+	public void authorizeOrderReceive(String origin) {
+		if (!Context.hasPrivilege("Receive Synchronization Records") || !Context.hasPrivilege("Add Orders")) {
+			throw new APIAuthenticationException("Faltan permisos para recibir órdenes");
+		}
+		authorizeOrigin(origin);
+	}
+
 	private void authorizeOrigin(String origin) {
 		if ("MASTER".equals(localRole) && !peerServerId.equals(origin)) {
 			throw new APIAuthenticationException("Una posta solo puede enviar eventos de su propio origen");

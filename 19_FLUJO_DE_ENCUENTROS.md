@@ -1,5 +1,8 @@
 # 19. Preparación y transporte de encuentros
 
+> Actualización: [órdenes y relación entre las tres entidades](20_FLUJO_DE_ORDENES.md). Las referencias a órdenes ya se reciben y se completan mediante vínculos persistentes; la restricción histórica de rechazar toda referencia a una orden queda superada.
+
+
 ## Identidades y referencias
 
 `server.id` identifica al establecimiento. Cada entidad usa una secuencia independiente:

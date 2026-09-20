@@ -137,6 +137,9 @@ public class PatientSyncHttpServlet extends HttpServlet {
         catch (RuntimeException failure) { error(response, 500, "INTERNAL_ERROR"); }
     }
 	
+	protected void enrichStatus(ObjectNode result) {
+	}
+
 	private ObjectNode get(HttpServletRequest request, PatientSyncPeerSession peer, String serverId) throws IOException {
 		String resource = request.getParameter("resource");
 		ObjectNode result = mapper.createObjectNode();
@@ -161,6 +164,7 @@ public class PatientSyncHttpServlet extends HttpServlet {
 			result.put("originServerId", origin);
 			if ("status".equals(resource)) {
 				result.put("highestSequence", highest(origin));
+				enrichStatus(result);
 				result.put("confirmedSequence", confirmed(origin));
 			} else {
 				long after = number(request, "after", 0);

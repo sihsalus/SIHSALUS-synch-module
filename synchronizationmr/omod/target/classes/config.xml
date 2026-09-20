@@ -27,6 +27,14 @@
         <servlet-name>encounterSync</servlet-name>
         <servlet-class>org.openmrs.module.synchronizationmr.web.EncounterSyncHttpServlet</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>orderSync</servlet-name>
+        <servlet-class>org.openmrs.module.synchronizationmr.web.OrderSyncHttpServlet</servlet-class>
+    </servlet>
+    <advice>
+        <point>org.openmrs.api.OrderService</point>
+        <class>org.openmrs.module.synchronizationmr.advice.OrderCreationAdvice</class>
+    </advice>
     <globalProperty>
         <property>synchronizationmr.nodeRole</property>
         <defaultValue>UNCONFIGURED</defaultValue>
