@@ -1,5 +1,8 @@
 # 18. Recepción de encuentros y observaciones
 
+> Incremento posterior: [historial de observaciones](22_ENCUENTROS_HISTORIAL_DE_OBSERVACIONES.md). Ya se admiten versiones anteriores incluidas en el mensaje o disponibles en destino; las restricciones históricas sobre ese caso se actualizan allí.
+
+
 > Actualización: [órdenes y relación entre las tres entidades](20_FLUJO_DE_ORDENES.md). Las referencias a órdenes ya se reciben y se completan mediante vínculos persistentes; la restricción histórica de rechazar toda referencia a una orden queda superada.
 
 

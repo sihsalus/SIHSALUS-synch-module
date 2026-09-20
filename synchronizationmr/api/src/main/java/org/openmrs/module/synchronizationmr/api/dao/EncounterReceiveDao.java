@@ -55,8 +55,10 @@ public class EncounterReceiveDao {
             if (confirmed == Long.MAX_VALUE || event.sequence != confirmed + 1) { throw new APIException("Falta una secuencia anterior de encuentros"); }
             if (Context.getEncounterService().getEncounterByUuid(event.encounterUuid) != null) { throw new APIException("El encuentro ya existe sin esta recepción confirmada"); }
             Encounter incoming = event.toEncounter();
+            EncounterObservationVersions versions = new EncounterObservationVersions(event);
             Encounter saved = IncomingEncounterSave.save(incoming, () -> Context.getEncounterService().saveEncounter(incoming));
             sessionFactory.getCurrentSession().flush();
+            versions.apply(sessionFactory.getCurrentSession(), connection);
             orderLinks.record(event);
             try (PreparedStatement insert = connection.prepareStatement(
                     "insert into synchronizationmr_encounter_event (event_uuid, encounter_id, encounter_uuid, patient_id, patient_uuid, origin_server_id, entity_sequence, operation, state, date_created, payload_json) values (?, ?, ?, ?, ?, ?, ?, 'CREATE', 'PENDING', ?, ?)")) {

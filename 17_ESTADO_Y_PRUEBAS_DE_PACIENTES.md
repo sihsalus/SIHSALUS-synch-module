@@ -1,5 +1,8 @@
 # 17. Estado del flujo de pacientes y pruebas entre instancias
 
+> Revisión de cierre posterior: [matriz de pacientes y pruebas adicionales](21_REVISION_DE_CIERRE_PACIENTES.md). RF-01 y RF-07 requieren sincronizar modificaciones; esa parte sigue pendiente.
+
+
 El flujo implementado cubre eventos CREATE de pacientes nuevos y preparación de
 pacientes activos existentes. No equivale a replicar toda la historia de cambios
 de un paciente ni todas sus entidades relacionadas.

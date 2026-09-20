@@ -26,4 +26,18 @@ public final class IncomingEncounterSave {
             else { CURRENT.set(previous); }
         }
     }
+    /** Preserve the imported visit association while retaining local registration behavior. */
+    public static org.openmrs.api.handler.EncounterVisitHandler protectVisitAssignment(
+            org.openmrs.api.handler.EncounterVisitHandler handler) {
+        final Encounter incoming = CURRENT.get();
+        if (incoming == null || handler == null) return handler;
+        return new org.openmrs.api.handler.EncounterVisitHandler() {
+            public String getDisplayName() { return handler.getDisplayName(); }
+            public String getDisplayName(java.util.Locale locale) { return handler.getDisplayName(locale); }
+            public void beforeCreateEncounter(Encounter encounter) {
+                if (encounter != incoming) handler.beforeCreateEncounter(encounter);
+            }
+        };
+    }
+
 }

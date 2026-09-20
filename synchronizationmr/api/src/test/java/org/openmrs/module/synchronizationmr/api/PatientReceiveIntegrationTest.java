@@ -382,4 +382,62 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
         assertNull(Context.getPatientService().getPatientByUuid(source.getUuid()));
         assertEquals(0, receiver().getConfirmedPatientSequence(origin));
     }
+
+	@Test
+    public void preservesAllAddressFieldsAndMultipleNamesAfterDatabaseReload() throws Exception {
+        Patient source = sample();
+        PersonName alternative = new PersonName("María Elena", "Ejemplo", "Prueba alternativa");
+        alternative.setPreferred(false);
+        alternative.setFamilyName2("Segundo apellido");
+        source.addName(alternative);
+        PersonAddress address = source.getPersonAddress();
+        org.springframework.beans.BeanWrapper fields = new org.springframework.beans.BeanWrapperImpl(address);
+        for (int i = 1; i <= 15; i++) fields.setPropertyValue("address" + i, "Campo ficticio " + i);
+        address.setCountry("Perú"); address.setStateProvince("Región ficticia");
+        address.setCountyDistrict("Distrito ficticio"); address.setCityVillage("Villa ficticia");
+        address.setPostalCode("15001"); address.setLatitude("-12.0464"); address.setLongitude("-77.0428");
+        address.setStartDate(Date.from(java.time.Instant.parse("2020-01-02T12:30:00Z")));
+        address.setEndDate(Date.from(java.time.Instant.parse("2025-01-02T12:30:00Z")));
+        PersonAddress second = new PersonAddress(); second.setAddress1("Otra dirección ficticia");
+        second.setPreferred(false); source.addAddress(second);
+        String origin = "posta_" + UUID.randomUUID();
+        String json = event(source, origin, 1);
+        receiver().receivePatient(json); Context.flushSession(); Context.clearSession();
+        Patient saved = Context.getPatientService().getPatientByUuid(source.getUuid());
+        JsonNode expected = mapper.readTree(json).get("payload");
+        JsonNode actual = mapper.readTree(event(saved, origin, 1)).get("payload");
+        for (String collection : Arrays.asList("names", "addresses", "identifiers")) {
+            Map<String, JsonNode> before = new TreeMap<>(), after = new TreeMap<>();
+            for (JsonNode value : expected.get(collection)) before.put(value.get("uuid").asText(), value);
+            for (JsonNode value : actual.get(collection)) after.put(value.get("uuid").asText(), value);
+            assertEquals(before, after, collection + " must survive native persistence without losing fields");
+        }
+        assertEquals(2, saved.getNames().size()); assertEquals(2, saved.getAddresses().size());
+        assertEquals("2000-02-29", actual.get("birthdate").asText());
+        assertEquals(json, sync().getCreationPayload(source.getUuid()));
+    }
+
+	@Test
+	public void retryDoesNotOverwriteLocalCorrectionOrReplaceOriginalSnapshot() throws Exception {
+		Patient source = sample();
+		String origin = "posta_" + UUID.randomUUID();
+		String json = event(source, origin, 1);
+		receiver().receivePatient(json);
+		Patient local = Context.getPatientService().getPatientByUuid(source.getUuid());
+		Integer localId = local.getPatientId();
+		local.getPersonAddress().setAddress1("Dirección corregida localmente");
+		Context.getPatientService().savePatient(local);
+		Context.flushSession();
+		Context.clearSession();
+		long before = localSequence();
+		assertEquals(1, receiver().receivePatient(json));
+		Context.clearSession();
+		Patient reloaded = Context.getPatientService().getPatientByUuid(source.getUuid());
+		assertEquals(localId, reloaded.getPatientId());
+		assertEquals("Dirección corregida localmente", reloaded.getPersonAddress().getAddress1());
+		assertEquals(json, sync().getCreationPayload(source.getUuid()));
+		assertEquals(before, localSequence());
+		assertEquals(1, sync().getPatientEventsAfter(origin, 0, 100).size());
+	}
+
 }

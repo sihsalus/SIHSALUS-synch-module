@@ -114,9 +114,6 @@ public final class EncounterIncomingEvent {
         if (text(item, "valueComplex", false) != null || flag(item, "complexDataIncluded")) {
             throw new APIException("No se admiten observaciones complejas sin transportar sus archivos");
         }
-        if (text(item, "previousVersionUuid", false) != null) {
-            throw new APIException("La observación requiere órdenes o versiones anteriores aún no admitidas");
-        }
         if (text(item, "orderUuid", false) != null) reference(text(item, "orderUuid", false));
         Obs obs = new Obs();
         obs.setUuid(id);

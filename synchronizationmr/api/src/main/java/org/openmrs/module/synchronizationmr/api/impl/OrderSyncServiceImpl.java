@@ -13,19 +13,31 @@ public class OrderSyncServiceImpl extends BaseOpenmrsService implements OrderSyn
 	public int prepareExistingOrders(int batchSize) {
 		requireTransaction();
 		limit(batchSize);
-		java.util.List<Integer> ids = dao.lockAndFindPending(batchSize);
-		for (Integer id : ids) {
-			if (Thread.currentThread().isInterrupted()) {
-				throw new APIException("Preparación interrumpida");
+
+		int prepared = 0;
+		while (prepared < batchSize) {
+			if (Thread.currentThread().isInterrupted())
+				throw new APIException("Preparacion interrumpida");
+			java.util.List<Integer> ids = dao.lockAndFindPending(batchSize - prepared);
+			if (ids.isEmpty()) {
+				if (prepared == 0 && dao.countPending() > 0) {
+					throw new APIException(
+					        "Quedan ordenes pendientes: su orden anterior no esta preparada; revise referencias, anulaciones o ciclos");
+				}
+				break;
 			}
-			Order order = org.openmrs.api.context.Context.getOrderService().getOrder(id);
-			if (order == null || Boolean.TRUE.equals(order.getVoided())) {
-				throw new APIException("Orden inexistente o anulado");
+			for (Integer id : ids) {
+				if (Thread.currentThread().isInterrupted())
+					throw new APIException("Preparacion interrumpida");
+				Order order = org.openmrs.api.context.Context.getOrderService().getOrder(id);
+				if (order == null || Boolean.TRUE.equals(order.getVoided()))
+					throw new APIException("Orden inexistente o anulada");
+				dao.capture(order);
+				dao.requirePayload(id);
+				prepared++;
 			}
-			dao.capture(order);
-			dao.requirePayload(id);
 		}
-		return ids.size();
+		return prepared;
 	}
 	
 	@Override

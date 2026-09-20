@@ -1,5 +1,11 @@
 # 20. Primera versión del flujo de órdenes y relación entre las tres entidades
 
+> Ajuste posterior: [preparación de órdenes y dependencias](24_ORDENES_PREPARACION_Y_DEPENDENCIAS.md). La carga inicial prepara la orden anterior antes de su dependiente y señala bloqueos sin dar la carga por terminada.
+
+
+> Incremento posterior: [historial de observaciones](22_ENCUENTROS_HISTORIAL_DE_OBSERVACIONES.md). Ya se admiten versiones anteriores incluidas en el mensaje o disponibles en destino; las restricciones históricas sobre ese caso se actualizan allí.
+
+
 Estado: implementado y comprobado con pruebas automatizadas; pendiente validación entre las tres instancias reales.
 Este documento actualiza los documentos 18 y 19 respecto a órdenes y referencias desde observaciones.
 

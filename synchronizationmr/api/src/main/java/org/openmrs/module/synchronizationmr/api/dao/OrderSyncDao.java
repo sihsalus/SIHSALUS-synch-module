@@ -22,7 +22,10 @@ public class OrderSyncDao {
         localNodeDao.getLocalServerId();
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             java.util.List<Integer> ids = new java.util.ArrayList<>();
-            try (PreparedStatement query = connection.prepareStatement("select c.order_id" + PENDING + " order by c.order_id")) {
+            try (PreparedStatement query = connection.prepareStatement("select c.order_id" + PENDING
+                    + " and (c.previous_order_id is null or exists (select 1 from synchronizationmr_order_event predecessor"
+                    + " where predecessor.order_id = c.previous_order_id and predecessor.payload_json is not null"
+                    + " and trim(predecessor.payload_json) <> '')) order by c.order_id")) {
                 query.setMaxRows(limit);
                 try (ResultSet rows = query.executeQuery()) { while (rows.next()) { ids.add(rows.getInt(1)); } }
             }

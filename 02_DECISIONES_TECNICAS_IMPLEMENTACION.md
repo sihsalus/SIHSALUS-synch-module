@@ -1,5 +1,8 @@
 # Decisiones técnicas de implementación
 
+> Aclaración tras releer la reunión anterior: Iván prioriza encuentros y órdenes y deja las ediciones de datos personales para después. Las menciones de “last-in-wins” y SQLite en este documento no constituyen reglas obligatorias confirmadas para la implementación actual: la primera es una decisión técnica documentada y la segunda una sugerencia del relato. Véase [revisión 21](21_REVISION_DE_CIERRE_PACIENTES.md). No se ha cambiado el código por esta aclaración.
+
+
 > Resumen de decisiones técnicas surgidas en reuniones con el equipo de Fase 1 del
 > proyecto SIH.SALUS, relevantes para programar el componente. Se separan
 > explícitamente las decisiones **confirmadas** de las que siguen **pendientes de

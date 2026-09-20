@@ -28,6 +28,7 @@ C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\mai
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\SynchronizationMRService.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterCreationPayloadSerializer.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterIncomingEvent.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterObservationVersions.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterSyncClient.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterSyncEvent.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EventJson.java

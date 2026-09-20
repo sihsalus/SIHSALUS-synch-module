@@ -83,4 +83,58 @@ public class OrderPreparationIntegrationTest extends BaseModuleContextSensitiveT
         assertThrows(APIException.class, () -> sync().prepareExistingOrders(1));
         assertEquals(1, sync().getHighestOrderSequence("testServer_1"));
     }
+
+	@Test public void preparesPredecessorBeforeDependentEvenWhenItsLocalIdIsHigher() throws Exception {
+        try (Statement s = getConnection().createStatement()) {
+            s.executeUpdate("update orders set previous_order_id = null, order_action = 'NEW' where order_id = 111");
+            s.executeUpdate("update orders set previous_order_id = 111, order_action = 'REVISE' where order_id = 1");
+        }
+        Context.clearSession();
+        long pending = sync().countOrdersPendingPreparation();
+        long before = number("select count(*) from orders");
+        for (int i = 0; i < 100 && sync().countOrdersPendingPreparation() > 0; i++) sync().prepareExistingOrders(2);
+        assertEquals(0, sync().countOrdersPendingPreparation());
+        assertEquals(pending, sync().getHighestOrderSequence("testServer_1"));
+        long predecessor = number("select entity_sequence from synchronizationmr_order_event where order_id = 111");
+        long dependent = number("select entity_sequence from synchronizationmr_order_event where order_id = 1");
+        assertTrue(predecessor < dependent);
+        assertEquals(before, number("select count(*) from orders"));
+        assertEquals(111, number("select previous_order_id from orders where order_id = 1"));
+        assertEquals(0, sync().prepareExistingOrders(2));
+    }
+
+	@Test public void dependencyCycleRemainsPendingAndIsNotReportedAsCompleted() throws Exception {
+        try (Statement s = getConnection().createStatement()) {
+            s.executeUpdate("update orders set previous_order_id = 111 where order_id = 1");
+        }
+        Context.clearSession();
+        // Native fixture already has 111 -> 1; unrelated eligible orders can still be prepared.
+        boolean blocked = false;
+        for (int i = 0; i < 100; i++) {
+            try {
+                int prepared = sync().prepareExistingOrders(3);
+                assertTrue(prepared > 0, "A blocked queue must not return a successful empty batch");
+            } catch (APIException expected) { blocked = true; break; }
+        }
+        assertTrue(blocked); assertTrue(sync().countOrdersPendingPreparation() >= 2);
+        assertEquals(0, number("select count(*) from synchronizationmr_order_event where order_id in (1,111)"));
+        long sequence = sync().getHighestOrderSequence("testServer_1");
+        assertThrows(APIException.class, () -> sync().prepareExistingOrders(1));
+        assertEquals(sequence, sync().getHighestOrderSequence("testServer_1"));
+    }
+
+	@Test public void voidedUnpreparedPredecessorDoesNotAllowDependentToJumpAhead() throws Exception {
+        try (Statement s = getConnection().createStatement()) {
+            s.executeUpdate("update orders set voided = true where order_id = 1");
+        }
+        Context.clearSession();
+        boolean blocked = false;
+        for (int i = 0; i < 100; i++) {
+            try { assertTrue(sync().prepareExistingOrders(3) > 0); }
+            catch (APIException expected) { blocked = true; break; }
+        }
+        assertTrue(blocked);
+        assertEquals(0, number("select count(*) from synchronizationmr_order_event where order_id = 111"));
+        assertTrue(sync().countOrdersPendingPreparation() > 0);
+    }
 }

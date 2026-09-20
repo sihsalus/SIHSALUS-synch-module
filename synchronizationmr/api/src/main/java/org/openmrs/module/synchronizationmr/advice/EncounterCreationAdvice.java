@@ -40,6 +40,12 @@ public class EncounterCreationAdvice implements MethodInterceptor {
 	
 	@Override
 	public Object invoke(MethodInvocation invocation) throws Throwable {
+
+        if ("getActiveEncounterVisitHandler".equals(invocation.getMethod().getName())
+                && invocation.getArguments().length == 0) {
+            return org.openmrs.module.synchronizationmr.sync.IncomingEncounterSave.protectVisitAssignment(
+                (org.openmrs.api.handler.EncounterVisitHandler) invocation.proceed());
+        }
 		if (!"saveEncounter".equals(invocation.getMethod().getName()) || invocation.getArguments().length != 1
 		        || !(invocation.getArguments()[0] instanceof Encounter)) {
 			return invocation.proceed();
