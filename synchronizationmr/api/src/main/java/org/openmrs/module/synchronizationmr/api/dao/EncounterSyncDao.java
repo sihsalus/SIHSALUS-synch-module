@@ -14,6 +14,105 @@ import org.springframework.stereotype.Repository;
 @Repository("synchronizationmr.EncounterSyncDao")
 public class EncounterSyncDao {
 	
+	private static final String PENDING = " from encounter c left join synchronizationmr_encounter_event e on e.encounter_id = c.encounter_id"
+	        + " where c.voided = false and (e.event_uuid is null or e.payload_json is null or trim(e.payload_json) = '')";
+	
+	public java.util.List<Integer> lockAndFindPending(int limit) {
+        sessionFactory.getCurrentSession().flush();
+        localNodeDao.getLocalServerId();
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> {
+            java.util.List<Integer> ids = new java.util.ArrayList<>();
+            try (PreparedStatement query = connection.prepareStatement("select c.encounter_id" + PENDING + " order by c.encounter_id")) {
+                query.setMaxRows(limit);
+                try (ResultSet rows = query.executeQuery()) { while (rows.next()) { ids.add(rows.getInt(1)); } }
+            }
+            return ids;
+        });
+    }
+	
+	public long countPending() {
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> {
+            try (PreparedStatement query = connection.prepareStatement("select count(*)" + PENDING); ResultSet rows = query.executeQuery()) {
+                rows.next(); return rows.getLong(1);
+            }
+        });
+    }
+	
+	public void requirePayload(int id) {
+        sessionFactory.getCurrentSession().doWork(connection -> {
+            try (PreparedStatement query = connection.prepareStatement("select payload_json from synchronizationmr_encounter_event where encounter_id = ?")) {
+                query.setInt(1, id);
+                try (ResultSet rows = query.executeQuery()) {
+                    if (!rows.next() || rows.getString(1) == null || rows.getString(1).trim().isEmpty()) {
+                        throw new APIException("Evento histórico sin JSON; requiere revisión y no se reconstruye automáticamente");
+                    }
+                }
+            }
+        });
+    }
+	
+	public java.util.List<String> findEncounterOrigins(String afterOrigin, int limit) {
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> {
+            java.util.List<String> origins = new java.util.ArrayList<>();
+            try (PreparedStatement query = connection.prepareStatement(
+                    "select distinct origin_server_id from synchronizationmr_encounter_event where origin_server_id > ? order by origin_server_id")) {
+                query.setString(1, afterOrigin); query.setMaxRows(limit);
+                try (ResultSet rows = query.executeQuery()) {
+                    while (rows.next()) { origins.add(rows.getString(1)); }
+                }
+            }
+            return java.util.Collections.unmodifiableList(origins);
+        });
+    }
+	
+	public long findHighestEncounterSequence(String origin) {
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> {
+            try (PreparedStatement query = connection.prepareStatement(
+                    "select coalesce(max(entity_sequence), 0) from synchronizationmr_encounter_event where origin_server_id = ?")) {
+                query.setString(1, origin);
+                try (ResultSet rows = query.executeQuery()) {
+                    rows.next();
+                    return rows.getLong(1);
+                }
+            }
+        });
+    }
+	
+	public java.util.List<org.openmrs.module.synchronizationmr.sync.EncounterSyncEvent> findEncounterEventsAfter(
+            String origin, long afterSequence, int limit) {
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> {
+            java.util.List<org.openmrs.module.synchronizationmr.sync.EncounterSyncEvent> events = new java.util.ArrayList<>();
+            // No filtramos por estado global: otro destino podría necesitar un evento ya entregado.
+            try (PreparedStatement query = connection.prepareStatement(
+                    "select i.entity_sequence, i.encounter_uuid, i.event_uuid, i.payload_json"
+                    + " from synchronizationmr_encounter_event i"
+                    + " where i.origin_server_id = ? and i.entity_sequence > ?"
+                    + " order by i.entity_sequence asc")) {
+                query.setString(1, origin);
+                query.setLong(2, afterSequence);
+                query.setMaxRows(limit);
+                long previous = afterSequence;
+                try (ResultSet rows = query.executeQuery()) {
+                    while (rows.next()) {
+                        long sequence = rows.getLong(1);
+                        if (previous == Long.MAX_VALUE || sequence != previous + 1) {
+                            throw new org.openmrs.api.APIException("No se puede entregar la página: falta la secuencia " + (previous + 1));
+                        }
+                        String eventUuid = rows.getString(3);
+                        String payload = rows.getString(4);
+                        if (eventUuid == null || payload == null || payload.trim().isEmpty()) {
+                            throw new org.openmrs.api.APIException("No se puede entregar la página: falta el evento o su JSON en la secuencia " + sequence);
+                        }
+                        events.add(new org.openmrs.module.synchronizationmr.sync.EncounterSyncEvent(
+                                origin, sequence, eventUuid, rows.getString(2), payload));
+                        previous = sequence;
+                    }
+                }
+            }
+            return java.util.Collections.unmodifiableList(events);
+        });
+    }
+	
 	@Autowired
 	private SessionFactory sessionFactory;
 	

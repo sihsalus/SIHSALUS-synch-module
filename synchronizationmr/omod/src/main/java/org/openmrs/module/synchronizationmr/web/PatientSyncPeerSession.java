@@ -72,6 +72,18 @@ public class PatientSyncPeerSession implements AutoCloseable {
 		if (!Context.hasPrivilege("Receive Synchronization Records") || !Context.hasPrivilege("Add Patients")) {
 			throw new APIAuthenticationException("Faltan permisos de recepción");
 		}
+		authorizeOrigin(origin);
+	}
+	
+	public void authorizeEncounterReceive(String origin) {
+		if (!Context.hasPrivilege("Receive Synchronization Records") || !Context.hasPrivilege("Add Encounters")
+		        || !Context.hasPrivilege("Add Observations")) {
+			throw new APIAuthenticationException("Faltan permisos para recibir encuentros y observaciones");
+		}
+		authorizeOrigin(origin);
+	}
+	
+	private void authorizeOrigin(String origin) {
 		if ("MASTER".equals(localRole) && !peerServerId.equals(origin)) {
 			throw new APIAuthenticationException("Una posta solo puede enviar eventos de su propio origen");
 		}

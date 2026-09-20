@@ -1,5 +1,10 @@
 # 16. Preparación inicial de pacientes por lotes
 
+> Extensión posterior: [documento 19](19_FLUJO_DE_ENCUENTROS.md).
+> La misma tarea puede preparar encuentros después de pacientes al habilitar
+> `SYNCMR_PREPARE_ENCOUNTERS_ENABLED=true`.
+
+
 Este incremento incorpora pacientes que ya existían antes de instalar el OMOD.
 Prepara sus eventos locales; no significa que otro establecimiento ya los recibió.
 No depende de crear encuentros y puede ejecutarse sin Internet, tanto en MASTER

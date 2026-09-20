@@ -27,6 +27,13 @@ public final class PatientPreparationScheduler {
 		try {
 			Context.authenticate(new UsernamePasswordCredentials(config.user, config.password));
 			int prepared = Context.getService(PatientSyncService.class).prepareExistingPatients(config.batchSize);
+			if (config.encounters && prepared == 0) {
+				int encounterCount = Context.getService(org.openmrs.module.synchronizationmr.api.EncounterSyncService.class)
+				        .prepareExistingEncounters(config.batchSize);
+				if (encounterCount > 0) {
+					log.info("Encuentros preparados en el lote: " + encounterCount);
+				}
+			}
 			if (prepared > 0) {
 				log.info("Pacientes preparados en el lote: " + prepared);
 			}
@@ -45,6 +52,8 @@ public final class PatientPreparationScheduler {
 		
 		final boolean enabled;
 		
+		final boolean encounters;
+		
 		final int batchSize;
 		
 		final long intervalSeconds;
@@ -57,6 +66,14 @@ public final class PatientPreparationScheduler {
 				throw new IllegalArgumentException("Activación de preparación inválida");
 			}
 			enabled = Boolean.parseBoolean(flag);
+			String encounterFlag = environment.getOrDefault("SYNCMR_PREPARE_ENCOUNTERS_ENABLED", "false");
+			if (!"true".equals(encounterFlag) && !"false".equals(encounterFlag)) {
+				throw new IllegalArgumentException("Activación de encuentros inválida");
+			}
+			encounters = Boolean.parseBoolean(encounterFlag);
+			if (encounters && !enabled) {
+				throw new IllegalArgumentException("Habilite la preparación inicial de pacientes antes de encuentros");
+			}
 			if (!enabled) {
 				batchSize = 25;
 				intervalSeconds = 60;

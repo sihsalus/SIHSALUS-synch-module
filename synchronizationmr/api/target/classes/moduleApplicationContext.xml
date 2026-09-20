@@ -113,6 +113,25 @@
             </list>
         </property>
     </bean>
+    <bean id="synchronizationmr.EncounterReceiveService"
+          class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+        <property name="transactionManager" ref="transactionManager" />
+        <property name="target">
+            <bean class="org.openmrs.module.synchronizationmr.api.impl.EncounterReceiveServiceImpl">
+                <property name="dao" ref="synchronizationmr.EncounterReceiveDao" />
+            </bean>
+        </property>
+        <property name="preInterceptors" ref="serviceInterceptors" />
+        <property name="transactionAttributeSource" ref="transactionAttributeSource" />
+    </bean>
+    <bean parent="serviceContext">
+        <property name="moduleService">
+            <list>
+                <value>org.openmrs.module.synchronizationmr.api.EncounterReceiveService</value>
+                <ref bean="synchronizationmr.EncounterReceiveService" />
+            </list>
+        </property>
+    </bean>
     <bean id="synchronizationmr.EncounterSyncService" class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
         <property name="transactionManager" ref="transactionManager" />
         <property name="target"><bean class="org.openmrs.module.synchronizationmr.api.impl.EncounterSyncServiceImpl">

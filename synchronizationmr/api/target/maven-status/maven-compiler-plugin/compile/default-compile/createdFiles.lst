@@ -1,12 +1,10 @@
 org\openmrs\module\synchronizationmr\sync\PatientHttpsTransport.class
 org\openmrs\module\synchronizationmr\sync\PatientSyncEvent.class
-org\openmrs\module\synchronizationmr\sync\PatientSyncScheduleConfig.class
 org\openmrs\module\synchronizationmr\api\impl\PatientSyncServiceImpl.class
 org\openmrs\module\synchronizationmr\sync\IncomingPatientSave.class
 org\openmrs\module\synchronizationmr\api\PatientSyncService.class
 org\openmrs\module\synchronizationmr\api\SynchronizationMRService.class
 org\openmrs\module\synchronizationmr\api\LocalNodeService.class
-org\openmrs\module\synchronizationmr\api\impl\EncounterSyncServiceImpl.class
 org\openmrs\module\synchronizationmr\advice\PatientCreationAdvice.class
 org\openmrs\module\synchronizationmr\sync\PatientIncomingEvent.class
 org\openmrs\module\synchronizationmr\SynchronizationMRActivator.class

@@ -71,6 +71,9 @@ public class EncounterCreationAdvice implements MethodInterceptor {
 			throw new APIException("El interceptor de encuentros requiere una transacción de escritura de OpenMRS");
 		}
 		Encounter encounter = (Encounter) invocation.getArguments()[0];
+		if (org.openmrs.module.synchronizationmr.sync.IncomingEncounterSave.isReceiving(encounter)) {
+			return invocation.proceed();
+		}
 		boolean creation = !service().encounterExists(encounter.getEncounterId());
 		Object result = invocation.proceed();
 		if (creation) {

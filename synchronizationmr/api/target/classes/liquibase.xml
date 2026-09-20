@@ -153,5 +153,14 @@
         <sql>ALTER TABLE synchronizationmr_encounter_event MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
         <sql>ALTER TABLE synchronizationmr_patient_receipt MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
     </changeSet>
+    <changeSet id="synchronizationmr-20260920-encounter-receipt" author="sihsalus">
+        <createTable tableName="synchronizationmr_encounter_receipt">
+            <column name="origin_server_id" type="varchar(100)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="confirmed_sequence" type="bigint"><constraints nullable="false" /></column>
+        </createTable>
+    </changeSet>
+    <changeSet id="synchronizationmr-20260920-encounter-receipt-collation" author="sihsalus" dbms="mysql,mariadb">
+        <sql>ALTER TABLE synchronizationmr_encounter_receipt MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
+    </changeSet>
 </databaseChangeLog>
  

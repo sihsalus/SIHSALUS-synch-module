@@ -45,6 +45,40 @@ public class PatientSyncHttpServlet extends HttpServlet {
 		return Context.getService(LocalNodeService.class);
 	}
 	
+	protected void authorizeReceive(PatientSyncPeerSession peer, String origin) {
+		peer.authorizeReceive(origin);
+	}
+	
+	protected String entityType() {
+		return "PATIENT";
+	}
+	
+	protected String incomingOrigin(String json) {
+		return new PatientIncomingEvent(json).origin;
+	}
+	
+	protected long receiveEvent(String json) {
+		return receiver().receivePatient(json);
+	}
+	
+	protected java.util.List<String> origins(String after, int limit) {
+		return sync().getPatientOrigins(after, limit);
+	}
+	
+	protected long highest(String origin) {
+		return sync().getHighestPatientSequence(origin);
+	}
+	
+	protected long confirmed(String origin) {
+		return receiver().getConfirmedPatientSequence(origin);
+	}
+	
+	protected java.util.List<String> payloads(String origin, long after, int limit) {
+        java.util.List<String> result = new java.util.ArrayList<>();
+        for (PatientSyncEvent event : sync().getPatientEventsAfter(origin, after, limit)) { result.add(event.getPayloadJson()); }
+        return result;
+    }
+	
 	@Override
     protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException {
         response.setContentType("application/json"); response.setCharacterEncoding("UTF-8");
@@ -82,13 +116,13 @@ public class PatientSyncHttpServlet extends HttpServlet {
                     error(response, 503, "OUTER_TRANSACTION_NOT_SUPPORTED"); return;
                 }
                 String json = readBody(request);
-                PatientIncomingEvent incoming;
-                try { incoming = new PatientIncomingEvent(json); }
+                String incomingOrigin;
+                try { incomingOrigin = incomingOrigin(json); }
                 catch (APIException invalid) { error(response, 400, "INVALID_EVENT"); return; }
-                authenticated.authorizeReceive(incoming.origin);
-                long confirmed = receiver().receivePatient(json);
+                authorizeReceive(authenticated, incomingOrigin);
+                long confirmed = receiveEvent(json);
                 result = mapper.createObjectNode();
-                result.put("originServerId", incoming.origin); result.put("entityType", "PATIENT");
+                result.put("originServerId", incomingOrigin); result.put("entityType", entityType());
                 result.put("confirmedSequence", confirmed);
             } else {
                 result = get(request, authenticated, serverId);
@@ -106,7 +140,7 @@ public class PatientSyncHttpServlet extends HttpServlet {
 	private ObjectNode get(HttpServletRequest request, PatientSyncPeerSession peer, String serverId) throws IOException {
 		String resource = request.getParameter("resource");
 		ObjectNode result = mapper.createObjectNode();
-		result.put("entityType", "PATIENT");
+		result.put("entityType", entityType());
 		if ("node".equals(resource)) {
 			result.put("serverId", serverId);
 			result.put("role", peer.getLocalRole());
@@ -118,7 +152,7 @@ public class PatientSyncHttpServlet extends HttpServlet {
 			}
 			int limit = limit(request);
 			ArrayNode origins = result.putArray("origins");
-			for (String uuid : sync().getPatientOrigins(after, limit)) {
+			for (String uuid : origins(after, limit)) {
 				origins.add(uuid);
 			}
 			result.put("limit", limit);
@@ -126,16 +160,17 @@ public class PatientSyncHttpServlet extends HttpServlet {
 			String origin = origin(request.getParameter("origin"));
 			result.put("originServerId", origin);
 			if ("status".equals(resource)) {
-				result.put("highestSequence", sync().getHighestPatientSequence(origin));
-				result.put("confirmedSequence", receiver().getConfirmedPatientSequence(origin));
+				result.put("highestSequence", highest(origin));
+				result.put("confirmedSequence", confirmed(origin));
 			} else {
 				long after = number(request, "after", 0);
 				int limit = limit(request);
 				ArrayNode events = result.putArray("events");
 				long last = after;
-				for (PatientSyncEvent event : sync().getPatientEventsAfter(origin, after, limit)) {
-					events.add(mapper.readTree(event.getPayloadJson()));
-					last = event.getSequence();
+				for (String payload : payloads(origin, after, limit)) {
+					JsonNode event = mapper.readTree(payload);
+					events.add(event);
+					last = event.path("entitySequence").asLong();
 				}
 				result.put("afterSequence", after);
 				result.put("lastReturnedSequence", last);

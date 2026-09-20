@@ -1,5 +1,10 @@
 # 13. JSON del encuentro y sus observaciones
 
+> Incremento posterior: [recepción y endpoint de encuentros](18_RECEPCION_DE_ENCUENTROS.md).
+> La captura no prepara al paciente; su preparación por lotes es independiente.
+> La recepción exige que el paciente exista en destino.
+
+
 > Actualización de identidad: [documento 14](14_IDENTIDAD_SERVER_ID_Y_ENTORNO.md).
 > `server.id` sustituye al UUID de nodo; pacientes usan esquema 3, encuentros esquema 2
 > y HTTP protocolo 2. Las referencias al UUID de origen y la configuración anterior
@@ -11,7 +16,7 @@
 En este incremento se prepara **el contenido** del evento del encuentro. Las observaciones
 son parte de ese contenido: no son un paso alternativo al JSON.
 
-Después conectaremos la preparación del paciente y ampliaremos el transporte para garantizar
+La preparación del paciente se ejecuta por separado. La entrega debe garantizar
 que el destino tenga al paciente antes de aplicar el encuentro. El cliente periódico y el
 servlet actuales siguen intercambiando únicamente eventos de pacientes.
 

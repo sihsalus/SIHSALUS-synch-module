@@ -48,12 +48,19 @@ public class PatientSyncScheduler {
 			    config.remotePassword).synchronizeOnce();
 			log.info("Ciclo de pacientes completado: envíos confirmados=" + result[0] + ", recepciones confirmadas="
 			        + result[1]);
+			if (config.encounterEndpoint != null) {
+				int[] encounters = EncounterSyncClient.forLocalPosta(config.encounterEndpoint, config.masterServerId,
+				    config.remoteUser, config.remotePassword).synchronizeOnce();
+				log.info("Ciclo de encuentros completado: envíos confirmados=" + encounters[0]
+				        + ", recepciones confirmadas=" + encounters[1]);
+			}
+			
 		}
 		catch (Exception failure) {
 			if (Thread.currentThread().isInterrupted()) {
 				log.info("Ciclo de sincronización interrumpido por parada del módulo");
 			} else {
-				log.warn("No se completó el ciclo de pacientes; se reintentará en el siguiente intervalo");
+				log.warn("No se completó el ciclo de sincronización; se reintentará en el siguiente intervalo");
 			}
 		}
 		finally {

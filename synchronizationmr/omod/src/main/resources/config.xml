@@ -23,6 +23,10 @@
         <servlet-name>patientSync</servlet-name>
         <servlet-class>org.openmrs.module.synchronizationmr.web.PatientSyncHttpServlet</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>encounterSync</servlet-name>
+        <servlet-class>org.openmrs.module.synchronizationmr.web.EncounterSyncHttpServlet</servlet-class>
+    </servlet>
     <globalProperty>
         <property>synchronizationmr.nodeRole</property>
         <defaultValue>UNCONFIGURED</defaultValue>
@@ -44,7 +48,7 @@
     </advice>
     <privilege>
         <name>Receive Synchronization Records</name>
-        <description>Recibir eventos de sincronización y registrar pacientes de otros nodos.</description>
+        <description>Recibir eventos de sincronización de pacientes y encuentros de otros nodos.</description>
     </privilege>
     <privilege>
         <name>Prepare Synchronization Records</name>
