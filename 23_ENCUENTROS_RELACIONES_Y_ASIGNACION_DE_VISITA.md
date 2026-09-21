@@ -1,5 +1,9 @@
 # 23. Encuentros: relaciones necesarias y asignación automática de visitas
 
+> Incremento posterior: [25. Visita asociada al encuentro de la SPA](25_ENCUENTROS_CON_VISITA_SPA.md).
+> El esquema 3 incorpora la visita básica como dependencia del encuentro. La
+> descripción siguiente conserva el alcance histórico del guard de visitas.
+
 ## Alcance acordado
 
 Se mantienen los tres flujos: pacientes, encuentros y órdenes. Las observaciones se transportan dentro del encuentro. Esta revisión no añade sincronización independiente ni creación remota de visitas, diagnósticos o condiciones.

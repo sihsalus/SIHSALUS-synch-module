@@ -31,6 +31,7 @@ C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\mai
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterObservationVersions.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterSyncClient.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterSyncEvent.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterVisitSnapshot.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EventJson.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\IncomingEncounterSave.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\IncomingOrderSave.java

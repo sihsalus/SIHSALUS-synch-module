@@ -143,12 +143,34 @@ la conciliación de una misma persona registrada independientemente en dos nodos
 
 ### Configuración para probar encuentros
 
+Incidencia del primer formulario legacy: rechazó `09/21/2026 10:00 AM`.
+Se reprodujo con la biblioteca instalada y Java 21: el patrón inglés contiene
+U+202F antes de AM/PM; tanto el espacio normal como omitirlo fallan. El formato
+español `dd/MM/yyyy HH:mm` aceptó `21/09/2026 10:00` en la comprobación local.
+Se propone cambiar el idioma del formulario a español para continuar; esto no
+constituye una corrección del parser. El usuario confirmó después el guardado
+usando el formulario en español.
+
+Primera prueba real de encuentros completada el 21/09/2026: A creó un encuentro
+`Consultation`, fecha `2026-09-21 10:00:00`, paciente `PacienteExistenteA`, ubicación
+`Outpatient Clinic`, profesional `Unknown Provider`, rol `Clinician`, sin visita.
+Se comprobó su llegada al maestro y, en el siguiente ciclo observado, a B.
+Cada base contiene un encuentro y un evento. Coinciden el UUID del encuentro
+`bfd0ac5e-700b-4b7e-8b66-83565fc351f0`, el UUID del paciente, fecha, ubicación,
+tipo, UUID de la relación con el profesional y sus referencias de profesional y rol.
+El evento `5f687a92-f3d0-4434-986b-c2e5bfaf393d` conserva origen `posta_a`,
+secuencia `1` y SHA-256
+`11e6153cc8642a8427d24c37da4924cad1a6d7dae5e9749de94901fd346b4b0b`
+en las tres bases. Maestro y B confirman `posta_a=1` en el recibo de encuentros.
+Esto valida un CREATE sencillo A → maestro → B; no valida todavía observaciones,
+visitas, diagnósticos, condiciones, carga histórica ni modificaciones de encuentros.
+
 El script admite `-SincronizarEncuentros` junto con `-SincronizarPacientes`.
 Configura el endpoint HTTPS `encounterSync`; no activa órdenes ni preparación
 histórica de encuentros. Se verificó la sintaxis PowerShell. La ejecución de la
 comprobación de parámetros quedó bloqueada por la política de scripts de la
 terminal del agente; no se cambió esa política. La entrega real de encuentros
-sigue pendiente.
+ya se comprobó para el caso sencillo descrito arriba; los demás casos siguen pendientes.
 
 Antes del reinicio de las postas, añadir mediante Administración de OpenMRS al
 rol `Sincronizacion Microrred` de las tres instancias: `Get Encounters`,
@@ -173,6 +195,59 @@ Después de guardar permisos y detener cada posta desde su terminal:
 No requieren reconstruir el OMOD. Para esta prueba la preparación histórica
 queda desactivada; los pacientes ya preparados conservan sus identidades y eventos.
 El maestro recibe peticiones; no necesita ejecutar este script.
+
+### Siguiente prueba: encuentro de la SPA con visita
+
+La SPA exigió una consulta/visita activa antes de registrar signos vitales. Se
+preparó el cambio descrito en [documento 25](../../25_ENCUENTROS_CON_VISITA_SPA.md):
+JSON de encuentro esquema 3 con una visita básica asociada, conservando recepción
+de esquema 2. Este cambio de código **sí requiere actualizar el OMOD en las tres
+instancias antes de crear encuentros nuevos**. No cambia Liquibase.
+
+Primero añadir `Add Visits`, `Get Visit Types` y `Get Visit Attribute Types` al
+rol técnico en las tres instancias, conservando `Get Visits`. Luego detener las
+instancias desde sus terminales y actualizar sus OMOD. Los permisos se verificaron
+y el 21/09/2026 se reemplazaron los tres OMOD con las instancias apagadas, tras
+respaldarlos en `.local-sync-https/omod-before-visit-20260921-173649/` y comprobar
+que las tres copias coinciden por SHA-256. Quedan pendientes el arranque de esta
+versión y la prueba real de la SPA. No se sustituyeron módulos en ejecución.
+
+Incidencia posterior al arranque: los tres OMOD instalados cambiaron a SHA-256
+`FFF632C101767B289E93B428B9196E72A3323D2B2884DFCE4BE2DDCB186CD05A`.
+El API cargado en el maestro no contiene `EncounterVisitSnapshot`, por lo que
+copiar el archivo manualmente no bastó: el arranque del SDK lo sustituyó.
+Se intentó `mvn -o install -DskipTests` para actualizar el repositorio Maven local,
+pero la solicitud de permiso fue rechazada y el comando no se ejecutó.
+Antes de volver a probar se debe instalar la versión nueva en Maven y reiniciar
+las instancias; comprobar las clases del API cargado además del archivo OMOD.
+
+El usuario ejecutó después `mvn install -DskipTests`. Se verificó que el paquete
+instalado en Maven (`synchronizationmr-omod-1.0.0-SNAPSHOT.jar`, contenedor OMOD)
+coincide con el `.omod` generado, SHA-256
+`6B3AEE61A20E5993D1CB2B71877F7FEFF148F9FE22C9E94A5365A9AD70AC1B36`.
+También coincide su API interno y las cuatro clases modificadas del API instalado
+con la compilación nueva. Queda pendiente comprobarlas de nuevo tras el arranque.
+
+Tras el siguiente arranque se comprobaron en las cachés de las tres instancias
+las clases `EncounterVisitSnapshot`, `EncounterIncomingEvent`,
+`EncounterCreationPayloadSerializer` y `EncounterReceiveDao`: todas coinciden
+por SHA-256 con la compilación nueva. Los módulos están iniciados, los tres
+puertos escuchan y cada base conserva ocho pacientes, un encuentro y su evento,
+sin visitas todavía. Ya puede continuar la prueba de la SPA.
+
+Prueba SPA iniciada: visita `608ecd07-40b1-4909-bb1f-537522d35492`, tipo
+`Facility Visit`, sin atributos. La SPA guardó un encuentro `Vitals`
+`92e68b5e-3002-40f2-81bd-0cdfc7285412` con diez observaciones, evento
+`b7768317-438c-4a78-9ec6-837b8467df81`, origen `posta_a`, secuencia 2, esquema 3.
+Su SHA-256 es `64c824c61bd2af40060b7044e5620ce609652bb1fa64f7adfe2d1255cfc23bea`.
+El maestro devolvió 403 y no dejó visitas ni observaciones parciales. Se diagnosticó
+mediante el depurador de la instancia de pruebas: el validador
+`bedmanagement.VisitWithBedPatientAssignmentValidator` consulta
+`getBedPatientAssignmentByVisit`, que exige **Get Admission Locations**. Falta
+conceder este permiso al rol técnico en las tres instancias y verificar el reintento.
+Esto no introduce sincronización de camas; es una dependencia de autorización de
+un módulo instalado en la distribución. Una prueba aislada añadida con el rol
+técnico pasa en OpenMRS 2.4.2 sin Bed Management; no sustituye la prueba real pendiente.
 
 Referencias: [RemoteIpValve de Tomcat](https://tomcat.apache.org/tomcat-9.0-doc/config/valve.html#Remote_IP_Valve),
 [HTTPS en Nginx](https://nginx.org/en/docs/http/configuring_https_servers.html).

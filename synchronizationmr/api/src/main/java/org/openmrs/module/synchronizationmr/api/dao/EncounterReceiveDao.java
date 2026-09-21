@@ -56,6 +56,9 @@ public class EncounterReceiveDao {
             if (Context.getEncounterService().getEncounterByUuid(event.encounterUuid) != null) { throw new APIException("El encuentro ya existe sin esta recepción confirmada"); }
             Encounter incoming = event.toEncounter();
             EncounterObservationVersions versions = new EncounterObservationVersions(event);
+            if (incoming.getVisit() != null && incoming.getVisit().getVisitId() == null) {
+                incoming.setVisit(Context.getVisitService().saveVisit(incoming.getVisit()));
+            }
             Encounter saved = IncomingEncounterSave.save(incoming, () -> Context.getEncounterService().saveEncounter(incoming));
             sessionFactory.getCurrentSession().flush();
             versions.apply(sessionFactory.getCurrentSession(), connection);

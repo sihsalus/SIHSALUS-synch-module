@@ -257,6 +257,145 @@ public class EncounterReceiveIntegrationTest extends BaseModuleContextSensitiveT
 		            .getName()));
 	}
 	
+	@Test
+	public void receivesVisitAndVitalsWithTechnicalRole() throws Exception {
+		Encounter source = sample();
+		sourceVisit(source);
+		Obs weight = obs(source, 5089);
+		weight.setValueNumeric(62.5);
+		source.addObs(weight);
+		String json = event(source, "posta_" + UUID.randomUUID(), 1);
+		Role role = new Role("Encounter receiver test");
+		for (String name : Arrays.asList("Receive Synchronization Records", "View Synchronization Records", "Get Patients",
+		    "Get People", "Get Encounters", "Add Encounters", "Get Observations", "Add Observations", "Get Concepts",
+		    "Get Locations", "Get Global Properties", "Get Encounter Types", "Get Encounter Roles", "Get Providers",
+		    "Get Forms", "Get Visits", "Add Visits", "Get Visit Types", "Get Visit Attribute Types",
+		    "Get Patient Identifiers", "Get Identifier Types", "Get Person Attribute Types", "Add Patients",
+		    "Prepare Synchronization Records")) {
+			Privilege privilege = Context.getUserService().getPrivilege(name);
+			if (privilege == null)
+				privilege = Context.getUserService().savePrivilege(new Privilege(name, "Test"));
+			role.addPrivilege(privilege);
+		}
+		role = Context.getUserService().saveRole(role);
+		User user = new User();
+		user.setPerson(Context.getPersonService().getPerson(2));
+		user.setUsername("encounter_receiver_test");
+		user.addRole(role);
+		Context.getUserService().createUser(user, "Test-Visit123!");
+		org.openmrs.api.context.Credentials admin = getCredentials();
+		EncounterReceiveService service = receiver();
+		Context.logout();
+		try {
+			Context.authenticate(new org.openmrs.api.context.UsernamePasswordCredentials("encounter_receiver_test",
+			        "Test-Visit123!"));
+			assertEquals(1, service.receiveEncounter(json));
+		}
+		finally {
+			Context.logout();
+			Context.authenticate(admin);
+		}
+	}
+	
+	private Visit sourceVisit(Encounter encounter) {
+		Visit visit = new Visit();
+		visit.setPatient(encounter.getPatient());
+		visit.setVisitType(Context.getVisitService().getVisitType(1));
+		visit.setLocation(encounter.getLocation());
+		visit.setStartDatetime(new Date(encounter.getEncounterDatetime().getTime() - 60000));
+		encounter.setVisit(visit);
+		return visit;
+	}
+	
+	@Test
+	public void createsVisitWithObservationAndReusesItForRetryAndNextEncounter() throws Exception {
+		enableAutomaticVisit();
+		Encounter first = sample();
+		Visit visit = sourceVisit(first);
+		Obs weight = obs(first, 5089);
+		weight.setValueNumeric(62.5);
+		first.addObs(weight);
+		String origin = "posta_" + UUID.randomUUID(), json = event(first, origin, 1);
+		long before = visitCount();
+		assertEquals(1, receiver().receiveEncounter(json));
+		Context.flushSession();
+		Context.clearSession();
+		Visit saved = Context.getVisitService().getVisitByUuid(visit.getUuid());
+		assertNotNull(saved);
+		assertEquals(visit.getStartDatetime().getTime() / 1000, saved.getStartDatetime().getTime() / 1000);
+		assertEquals(first.getPatient().getUuid(), saved.getPatient().getUuid());
+		assertEquals(visit.getUuid(), Context.getEncounterService().getEncounterByUuid(first.getUuid()).getVisit().getUuid());
+		assertEquals(62.5, Context.getObsService().getObsByUuid(weight.getUuid()).getValueNumeric());
+		assertEquals(1, receiver().receiveEncounter(json));
+		Encounter second = sample();
+		second.setVisit(visit);
+		assertEquals(2, receiver().receiveEncounter(event(second, origin, 2)));
+		Context.flushSession();
+		assertEquals(before + 1, visitCount());
+		assertEquals(saved.getVisitId(), Context.getEncounterService().getEncounterByUuid(second.getUuid()).getVisit()
+		        .getVisitId());
+	}
+	
+	@Test
+	public void preservesClosedVisitSnapshot() throws Exception {
+		Encounter source = sample();
+		Visit visit = sourceVisit(source);
+		visit.setStopDatetime(source.getEncounterDatetime());
+		receiver().receiveEncounter(event(source, "posta_" + UUID.randomUUID(), 1));
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(visit.getStopDatetime().getTime() / 1000, Context.getVisitService().getVisitByUuid(visit.getUuid())
+		        .getStopDatetime().getTime() / 1000);
+	}
+	
+	@Test public void rejectsVisitConflictsMissingMetadataAndUnsupportedAttributes() throws Exception {
+        Encounter source = sample(); Visit visit = sourceVisit(source);
+        String origin = "posta_" + UUID.randomUUID();
+        ObjectNode original = (ObjectNode) mapper.readTree(event(source, origin, 1));
+        for (String field : Arrays.asList("patientUuid", "uuid", "visitTypeUuid")) {
+            ObjectNode bad = original.deepCopy();
+            ((ObjectNode) bad.path("payload").path("visit")).put(field, UUID.randomUUID().toString());
+            assertThrows(APIException.class, () -> receiver().receiveEncounter(bad.toString()));
+        }
+        ObjectNode unsupported = original.deepCopy();
+        ((ObjectNode) unsupported.path("payload").path("visit")).put("unsupportedAttributes", true);
+        assertThrows(APIException.class, () -> receiver().receiveEncounter(unsupported.toString()));
+        assertNull(Context.getVisitService().getVisitByUuid(visit.getUuid()));
+        assertEquals(0, receiver().getConfirmedEncounterSequence(origin));
+        receiver().receiveEncounter(original.toString());
+        Encounter next = sample(); next.setVisit(visit);
+        visit.setStopDatetime(new Date(next.getEncounterDatetime().getTime() + 60000));
+        assertThrows(APIException.class, () -> receiver().receiveEncounter(event(next, origin, 2)));
+        assertNull(Context.getEncounterService().getEncounterByUuid(next.getUuid()));
+        assertNull(Context.getVisitService().getVisitByUuid(visit.getUuid()).getStopDatetime());
+        assertEquals(1, receiver().getConfirmedEncounterSequence(origin));
+    }
+	
+	@Test public void failedEventInsertRollsBackNewVisitToo() throws Exception {
+        TestTransaction.flagForCommit(); TestTransaction.end();
+        try {
+            String origin = "posta_" + UUID.randomUUID();
+            ObjectNode first = (ObjectNode) mapper.readTree(event(sample(), origin, 1));
+            receiver().receiveEncounter(first.toString());
+            Encounter second = sample(); Visit visit = sourceVisit(second);
+            ObjectNode duplicate = (ObjectNode) mapper.readTree(event(second, origin, 2));
+            duplicate.put("eventUuid", first.path("eventUuid").asText());
+            assertThrows(RuntimeException.class, () -> receiver().receiveEncounter(duplicate.toString()));
+            assertNull(Context.getVisitService().getVisitByUuid(visit.getUuid()));
+            assertNull(Context.getEncounterService().getEncounterByUuid(second.getUuid()));
+            assertEquals(1, receiver().getConfirmedEncounterSequence(origin));
+            assertEquals(2, receiver().receiveEncounter(event(second, origin, 2)));
+        } finally { TestTransaction.start(); }
+    }
+	
+	@Test
+	public void stillAcceptsVersionTwoWithoutVisit() throws Exception {
+		ObjectNode old = (ObjectNode) mapper.readTree(event(sample(), "posta_" + UUID.randomUUID(), 1));
+		old.put("schemaVersion", 2);
+		((ObjectNode) old.path("payload")).remove("visit");
+		assertEquals(1, receiver().receiveEncounter(old.toString()));
+	}
+	
 	private long visitCount() throws Exception {
         try (java.sql.Statement s = getConnection().createStatement();
              java.sql.ResultSet r = s.executeQuery("select count(*) from visit")) {

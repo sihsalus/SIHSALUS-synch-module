@@ -18,7 +18,7 @@ public class EncounterCreationPayloadSerializer {
 	
 	public String serialize(Encounter encounter, String origin, long sequence, String eventUuid, Date created) {
         ObjectNode event = mapper.createObjectNode();
-        event.put("schemaVersion", 2);
+        event.put("schemaVersion", 3);
         event.put("entityType", "ENCOUNTER");
         event.put("operation", "CREATE");
         event.put("originServerId", ServerId.requireValid(origin));
@@ -33,6 +33,7 @@ public class EncounterCreationPayloadSerializer {
         data.put("locationUuid", reference(encounter.getLocation()));
         data.put("formUuid", reference(encounter.getForm()));
         data.put("visitUuid", reference(encounter.getVisit()));
+        data.set("visit", EncounterVisitSnapshot.serialize(encounter.getVisit()));
         data.put("voided", Boolean.TRUE.equals(encounter.getVoided()));
         data.put("voidReason", encounter.getVoidReason());
         ArrayNode providers = data.putArray("encounterProviders");

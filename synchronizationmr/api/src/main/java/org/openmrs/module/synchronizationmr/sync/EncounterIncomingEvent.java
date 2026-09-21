@@ -35,7 +35,8 @@ public final class EncounterIncomingEvent {
 		}
 		fields(root, "schemaVersion,eventUuid,originServerId,entityType,entitySequence,operation,occurredAt,payload");
 		JsonNode version = root.get("schemaVersion"), number = root.get("entitySequence");
-		if (version == null || !version.isIntegralNumber() || !version.canConvertToInt() || version.intValue() != 2
+		if (version == null || !version.isIntegralNumber() || !version.canConvertToInt()
+		        || (version.intValue() != 2 && version.intValue() != 3)
 		        || !"ENCOUNTER".equals(text(root, "entityType", true)) || !"CREATE".equals(text(root, "operation", true))
 		        || number == null || !number.isIntegralNumber() || !number.canConvertToLong() || number.longValue() < 1) {
 			throw invalid();
@@ -50,7 +51,8 @@ public final class EncounterIncomingEvent {
 		JsonNode data = root.get("payload");
 		fields(
 		    data,
-		    "encounterUuid,patientUuid,encounterDatetime,encounterTypeUuid,locationUuid,formUuid,visitUuid,voided,voidReason,encounterProviders,obs,orderUuids,unsupportedContent");
+		    "encounterUuid,patientUuid,encounterDatetime,encounterTypeUuid,locationUuid,formUuid,visitUuid,voided,voidReason,encounterProviders,obs,orderUuids,unsupportedContent"
+		            + (version.intValue() == 3 ? ",visit" : ""));
 		encounterUuid = reference(text(data, "encounterUuid", true));
 		patientUuid = reference(text(data, "patientUuid", true));
 		this.json = json;
@@ -82,10 +84,16 @@ public final class EncounterIncomingEvent {
         encounter.setUuid(encounterUuid);
         encounter.setPatient(patient);
         encounter.setEncounterDatetime(instant(text(data, "encounterDatetime", true)));
+        if (root.path("schemaVersion").intValue() == 3) {
+            // Match native datetime precision before validating visit boundaries.
+            encounter.setEncounterDatetime(new Date(Math.floorDiv(encounter.getEncounterDatetime().getTime(), 1000L) * 1000L));
+        }
         encounter.setEncounterType(resolve(data, "encounterTypeUuid", true, Context.getEncounterService()::getEncounterTypeByUuid));
         encounter.setLocation(resolve(data, "locationUuid", false, Context.getLocationService()::getLocationByUuid));
         encounter.setForm(resolve(data, "formUuid", false, Context.getFormService()::getFormByUuid));
-        Visit visit = resolve(data, "visitUuid", false, Context.getVisitService()::getVisitByUuid);
+        Visit visit = root.path("schemaVersion").intValue() == 3
+            ? EncounterVisitSnapshot.resolve(data, patient, encounter.getEncounterDatetime())
+            : resolve(data, "visitUuid", false, Context.getVisitService()::getVisitByUuid);
         if (visit != null && (Boolean.TRUE.equals(visit.getVoided()) || !patientUuid.equals(visit.getPatient().getUuid()))) { throw invalid(); }
         encounter.setVisit(visit);
         encounter.setVoided(flag(data, "voided"));
