@@ -150,7 +150,7 @@ public class EncounterReceiveIntegrationTest extends BaseModuleContextSensitiveT
             assertEquals(2, receiver().receiveEncounter(event(second, origin, 2)));
         } finally { TestTransaction.start(); }
     }
-
+	
 	@Test
 	public void preservesHistoricalObservationVersionsInsideSnapshotAndOnRetry() throws Exception {
 		Encounter source = sample();
@@ -178,7 +178,7 @@ public class EncounterReceiveIntegrationTest extends BaseModuleContextSensitiveT
 		Context.clearSession();
 		assertEquals(id, Context.getObsService().getObsByUuid(corrected.getUuid()).getObsId());
 	}
-
+	
 	@Test
 	public void resolvesHistoricalVersionFromEarlierEncounterOfSamePatient() throws Exception {
 		Encounter first = sample();
@@ -199,7 +199,7 @@ public class EncounterReceiveIntegrationTest extends BaseModuleContextSensitiveT
 		Context.clearSession();
 		assertEquals(old.getUuid(), Context.getObsService().getObsByUuid(corrected.getUuid()).getPreviousVersion().getUuid());
 	}
-
+	
 	@Test public void rejectsMissingHistoricalVersionAndCyclesWithoutConfirming() throws Exception {
         Encounter source = sample(); Obs observation = obs(source, 5089); observation.setValueNumeric(10.0); source.addObs(observation);
         String origin = "posta_" + UUID.randomUUID();
@@ -213,7 +213,7 @@ public class EncounterReceiveIntegrationTest extends BaseModuleContextSensitiveT
         assertNull(Context.getObsService().getObsByUuid(observation.getUuid()));
         assertEquals(0, receiver().getConfirmedEncounterSequence(origin));
     }
-
+	
 	@Test public void rejectsPreviousObservationFromAnotherPatient() throws Exception {
         Encounter first = sample(); first.setPatient(Context.getPatientService().getPatient(6));
         Obs old = obs(first, 5089); old.setValueNumeric(10.0); first.addObs(old);
@@ -224,7 +224,7 @@ public class EncounterReceiveIntegrationTest extends BaseModuleContextSensitiveT
         assertNull(Context.getEncounterService().getEncounterByUuid(next.getUuid()));
         assertEquals(1, receiver().getConfirmedEncounterSequence(origin));
     }
-
+	
 	@Test public void rejectsCycleBetweenTwoVersionsBeforeSaving() throws Exception {
         Encounter source = sample(); Obs first = obs(source, 5089), second = obs(source, 5089);
         first.setValueNumeric(10.0); second.setValueNumeric(12.0);
@@ -235,13 +235,13 @@ public class EncounterReceiveIntegrationTest extends BaseModuleContextSensitiveT
         assertNull(Context.getEncounterService().getEncounterByUuid(source.getUuid()));
         assertEquals(0, receiver().getConfirmedEncounterSequence(origin));
     }
-
+	
 	public static class AssignVisitHandler extends org.openmrs.api.handler.BaseEncounterVisitHandler {
-
+		
 		public String getDisplayName(java.util.Locale locale) {
 			return "Fictitious automatic visit";
 		}
-
+		
 		public void beforeCreateEncounter(Encounter encounter) {
 			Visit visit = new Visit();
 			visit.setPatient(encounter.getPatient());
@@ -250,20 +250,20 @@ public class EncounterReceiveIntegrationTest extends BaseModuleContextSensitiveT
 			encounter.setVisit(visit);
 		}
 	}
-
+	
 	private void enableAutomaticVisit() {
 		Context.getAdministrationService().saveGlobalProperty(
 		    new GlobalProperty(org.openmrs.util.OpenmrsConstants.GP_VISIT_ASSIGNMENT_HANDLER, AssignVisitHandler.class
 		            .getName()));
 	}
-
+	
 	private long visitCount() throws Exception {
         try (java.sql.Statement s = getConnection().createStatement();
              java.sql.ResultSet r = s.executeQuery("select count(*) from visit")) {
             r.next(); return r.getLong(1);
         }
     }
-
+	
 	@Test
 	public void importWithoutVisitDoesNotCreateOneButLocalRegistrationStillDoes() throws Exception {
 		enableAutomaticVisit();
@@ -281,7 +281,7 @@ public class EncounterReceiveIntegrationTest extends BaseModuleContextSensitiveT
 		assertNotNull(local.getVisit());
 		assertEquals(before + 1, visitCount());
 	}
-
+	
 	@Test
 	public void importKeepsExplicitVisitInsteadOfReplacingItWithLocalAutomaticVisit() throws Exception {
 		enableAutomaticVisit();
@@ -297,7 +297,7 @@ public class EncounterReceiveIntegrationTest extends BaseModuleContextSensitiveT
 		assertEquals(visitUuid, Context.getEncounterService().getEncounterByUuid(source.getUuid()).getVisit().getUuid());
 		assertEquals(before, visitCount());
 	}
-
+	
 	@Test public void missingVisitCannotBeReplacedByAnAutomaticallyCreatedVisit() throws Exception {
         enableAutomaticVisit(); Encounter source = sample(); String origin = "posta_" + UUID.randomUUID();
         ObjectNode json = (ObjectNode) mapper.readTree(event(source, origin, 1));

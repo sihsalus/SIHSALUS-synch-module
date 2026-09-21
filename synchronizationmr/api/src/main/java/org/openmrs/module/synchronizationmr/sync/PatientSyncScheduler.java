@@ -60,7 +60,7 @@ public class PatientSyncScheduler {
 				    config.remotePassword).synchronizeOnce();
 				log.info("Orders confirmed: sent=" + orders[0] + ", received=" + orders[1]);
 			}
-
+			
 		}
 		catch (Exception failure) {
 			if (Thread.currentThread().isInterrupted()) {

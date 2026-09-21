@@ -61,7 +61,7 @@ public final class PatientPreparationScheduler {
 		final boolean encounters;
 		
 		final boolean orders;
-
+		
 		final int batchSize;
 		
 		final long intervalSeconds;

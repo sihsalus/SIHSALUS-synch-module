@@ -91,7 +91,7 @@ public class PatientSyncSchedulerTest {
         }
         return values;
     }
-
+	
 	@Test public void orderTransportRequiresEncounterTransport() {
         Map<String,String> values=configured();values.put("SYNCMR_MASTER_ORDER_ENDPOINT","https://master/orderSync");
         assertThrows(IllegalArgumentException.class,()->new PatientSyncScheduleConfig(values));

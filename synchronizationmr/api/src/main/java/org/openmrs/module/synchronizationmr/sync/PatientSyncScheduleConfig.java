@@ -12,7 +12,7 @@ public final class PatientSyncScheduleConfig {
 	final String encounterEndpoint;
 	
 	final String orderEndpoint;
-
+	
 	final String endpoint, masterServerId, localUser, localPassword, remoteUser, remotePassword;
 	
 	public PatientSyncScheduleConfig(Map<String, String> environment) {

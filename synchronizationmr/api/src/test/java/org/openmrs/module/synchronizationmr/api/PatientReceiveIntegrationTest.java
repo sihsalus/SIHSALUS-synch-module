@@ -382,7 +382,7 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
         assertNull(Context.getPatientService().getPatientByUuid(source.getUuid()));
         assertEquals(0, receiver().getConfirmedPatientSequence(origin));
     }
-
+	
 	@Test
     public void preservesAllAddressFieldsAndMultipleNamesAfterDatabaseReload() throws Exception {
         Patient source = sample();
@@ -416,7 +416,7 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
         assertEquals("2000-02-29", actual.get("birthdate").asText());
         assertEquals(json, sync().getCreationPayload(source.getUuid()));
     }
-
+	
 	@Test
 	public void retryDoesNotOverwriteLocalCorrectionOrReplaceOriginalSnapshot() throws Exception {
 		Patient source = sample();
@@ -439,5 +439,5 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
 		assertEquals(before, localSequence());
 		assertEquals(1, sync().getPatientEventsAfter(origin, 0, 100).size());
 	}
-
+	
 }

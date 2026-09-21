@@ -83,7 +83,7 @@ public class OrderPreparationIntegrationTest extends BaseModuleContextSensitiveT
         assertThrows(APIException.class, () -> sync().prepareExistingOrders(1));
         assertEquals(1, sync().getHighestOrderSequence("testServer_1"));
     }
-
+	
 	@Test public void preparesPredecessorBeforeDependentEvenWhenItsLocalIdIsHigher() throws Exception {
         try (Statement s = getConnection().createStatement()) {
             s.executeUpdate("update orders set previous_order_id = null, order_action = 'NEW' where order_id = 111");
@@ -102,7 +102,7 @@ public class OrderPreparationIntegrationTest extends BaseModuleContextSensitiveT
         assertEquals(111, number("select previous_order_id from orders where order_id = 1"));
         assertEquals(0, sync().prepareExistingOrders(2));
     }
-
+	
 	@Test public void dependencyCycleRemainsPendingAndIsNotReportedAsCompleted() throws Exception {
         try (Statement s = getConnection().createStatement()) {
             s.executeUpdate("update orders set previous_order_id = 111 where order_id = 1");
@@ -122,7 +122,7 @@ public class OrderPreparationIntegrationTest extends BaseModuleContextSensitiveT
         assertThrows(APIException.class, () -> sync().prepareExistingOrders(1));
         assertEquals(sequence, sync().getHighestOrderSequence("testServer_1"));
     }
-
+	
 	@Test public void voidedUnpreparedPredecessorDoesNotAllowDependentToJumpAhead() throws Exception {
         try (Statement s = getConnection().createStatement()) {
             s.executeUpdate("update orders set voided = true where order_id = 1");

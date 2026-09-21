@@ -22,7 +22,7 @@ public class EncounterReceiveDao {
 	
 	@javax.annotation.Resource(name = "synchronizationmr.OrderLinkDao")
 	private OrderLinkDao orderLinks;
-
+	
 	public long confirmed(String origin) {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> confirmed(connection, origin));
     }

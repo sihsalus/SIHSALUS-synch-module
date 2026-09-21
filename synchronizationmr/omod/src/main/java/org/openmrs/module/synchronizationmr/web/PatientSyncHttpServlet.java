@@ -139,7 +139,7 @@ public class PatientSyncHttpServlet extends HttpServlet {
 	
 	protected void enrichStatus(ObjectNode result) {
 	}
-
+	
 	private ObjectNode get(HttpServletRequest request, PatientSyncPeerSession peer, String serverId) throws IOException {
 		String resource = request.getParameter("resource");
 		ObjectNode result = mapper.createObjectNode();

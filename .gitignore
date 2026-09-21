@@ -35,3 +35,6 @@ omod/.rubygems-provided
 
 # Bower resources #
 bower_components
+
+# Local HTTPS certificates, private keys and runtime files
+.local-sync-https/

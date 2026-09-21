@@ -13,7 +13,7 @@ public class OrderSyncServiceImpl extends BaseOpenmrsService implements OrderSyn
 	public int prepareExistingOrders(int batchSize) {
 		requireTransaction();
 		limit(batchSize);
-
+		
 		int prepared = 0;
 		while (prepared < batchSize) {
 			if (Thread.currentThread().isInterrupted())

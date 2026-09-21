@@ -89,7 +89,7 @@ public class PatientSyncPeerSession implements AutoCloseable {
 		}
 		authorizeOrigin(origin);
 	}
-
+	
 	private void authorizeOrigin(String origin) {
 		if ("MASTER".equals(localRole) && !peerServerId.equals(origin)) {
 			throw new APIAuthenticationException("Una posta solo puede enviar eventos de su propio origen");
