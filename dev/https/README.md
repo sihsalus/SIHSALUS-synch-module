@@ -47,6 +47,41 @@ Esta configuración es para pruebas locales en una sola PC, con proxy y backend 
 
 ## Primera prueba de pacientes
 
+### Configuración CSRF del receptor
+
+En la primera prueba real, el paciente y su evento CREATE se guardaron en A, pero el filtro CSRF del maestro bloqueó el POST antes de llegar al servlet. No había paciente ni confirmación en el maestro/B.
+Se creó `C:\Users\PC\openmrs\microrred_maestro\csrfguard.properties` copiando la configuración completa de `WEB-INF/csrfguard.properties` de esa instalación y agregando únicamente:
+
+```properties
+org.owasp.csrfguard.unprotected.SyncMRPatient = %servletContext%/moduleServlet/synchronizationmr/patientSync
+org.owasp.csrfguard.unprotected.SyncMREncounter = %servletContext%/moduleServlet/synchronizationmr/encounterSync
+org.owasp.csrfguard.unprotected.SyncMROrder = %servletContext%/moduleServlet/synchronizationmr/orderSync
+```
+
+`org.owasp.csrfguard.Enabled=true` permanece intacto. No se excluye toda la aplicación ni todos los servlets. Estos tres endpoints exigen HTTPS, credenciales explícitas en cada petición, autorización del par y contenido JSON para recepción; no usan la sesión del navegador como autenticación.
+OpenMRS carga este archivo desde su directorio de datos al iniciar. El 21/09/2026, después del reinicio del maestro, el evento pendiente llegó automáticamente al maestro y a B sin volver a registrar al paciente.
+No se necesita esta excepción en las postas para descargar eventos: el proceso receptor local llama a servicios Java, no hace POST a su propio servlet.
+Si se actualiza OpenMRS, revisar también los cambios del archivo CSRF base; la copia local sustituye al archivo empaquetado.
+
+Referencia: [carga de CSRF en OpenMRS](https://github.com/openmrs/openmrs-core/blob/master/web/src/main/java/org/openmrs/web/Listener.java).
+
+### Resultado observado el 21/09/2026
+
+- Un paciente ficticio creado mediante la SPA en posta A, un paciente en cada base después de la entrega.
+- Mismo UUID de paciente y mismo UUID de evento CREATE en las tres bases; identidad de sincronización con origen `posta_a` y secuencia `1`.
+- Maestro y B confirman `posta_a / confirmed_sequence=1` en `synchronizationmr_patient_receipt`.
+- Coinciden nombre, apellido, fecha de nacimiento, dirección e identificador clínico. La huella SHA-256 del JSON del evento coincide en las tres bases.
+- Los identificadores numéricos locales son A=4, maestro=5, B=4; no se usan para identificar al paciente entre servidores.
+- `state=PENDING` continúa en los eventos: la entrega se comprueba con los recibos por origen, no con ese campo.
+- Segunda prueba: un paciente ficticio distinto creado en B llegó al maestro y después a A en el siguiente ciclo. Las tres bases tienen dos pacientes; maestro y A confirman el origen `posta_b` hasta la secuencia `1`. Coinciden UUID, fecha de nacimiento, dirección y SHA-256 del JSON del segundo evento. El primero permanece sin duplicarse.
+- Antes de la tercera prueba se verificó que los tres generadores IDGen usaban la misma base inicial. El usuario configuró prefijos `1` (maestro), `2` (A) y `3` (B), con longitud mínima y máxima 8. Se comprobaron los valores en las bases y la conservación de los dos identificadores existentes. No se reiniciaron contadores. Esta configuración de laboratorio debe conservarse y revisarse al actualizar los archivos de Initializer.
+- Tercera prueba: paciente ficticio creado en el maestro, identificador `1100000W`, origen `microrred_maestro`, secuencia `1`. Ambas postas lo descargaron y confirmaron. Hay tres pacientes con tres UUID distintos en cada base; coinciden UUID, identificador, fecha de nacimiento, dirección y SHA-256 del JSON del tercer evento.
+- Cuarta prueba: segundo paciente local de A, identificador `2100002N` (prefijo 2, longitud 8), origen `posta_a`, secuencia `2`. Llegó al maestro y luego a B; ambos confirman `posta_a=2`. Se comprobaron cuatro pacientes con cuatro UUID distintos por base y coincidencia de UUID, fecha, dirección y huella del JSON del cuarto evento. La secuencia local de A avanzó de 1 a 2 sin contar los pacientes importados de otros orígenes.
+- Quinta prueba (desconexión controlada): se detuvo únicamente `sihsalus_https`, manteniendo OpenMRS y las bases activos. El usuario creó en A el paciente ficticio `Prueba SinConexionA`, identificador `2100003L`, origen `posta_a`, secuencia `3`. Con el proxy detenido se verificó A=5 pacientes, maestro=4 y B=4; ambos receptores seguían confirmando hasta `posta_a=2`.
+- Al reiniciar únicamente el proxy, los procesos periódicos entregaron el evento sin volver a guardar al paciente. Se verificaron cinco pacientes y cinco UUID distintos en cada base, recibos `posta_a=3` en maestro y B, y coincidencia de UUID del paciente, UUID del evento, identificador, nombre, fecha, dirección y SHA-256 del JSON. El proxy quedó en ejecución. Esto simula indisponibilidad del canal HTTPS compartido; no prueba aún pérdida de respuesta tras un commit remoto ni caída/reinicio de una posta.
+- Esto valida creaciones sencillas A → maestro → B, B → maestro → A y maestro → ambas postas, además de recuperación de eventos pendientes tras restablecer el canal HTTPS. No valida todavía carga histórica, cambios posteriores, encuentros ni órdenes.
+- Incidencia previa del formulario: `1990-01-01` a medianoche es una hora inexistente en America/Lima según Java; para este paciente ficticio se usó `1990-01-02`. Sigue pendiente corregir el tratamiento de fechas para registros reales.
+
 Detener cada posta antes de volver a ejecutar su comando. Mantener el maestro y los contenedores encendidos.
 Desde la raíz del repositorio, en terminales distintas:
 
@@ -66,6 +101,78 @@ URL inicial de pacientes:
 
 Para detener/reanudar solo el proxy: `docker stop sihsalus_https` / `docker start sihsalus_https`.
 Para revertir el ajuste del maestro, detenerlo y restaurar el WAR desde su respaldo antes de arrancar de nuevo.
+
+### Preparación de pacientes existentes (prueba completada)
+
+El 21/09/2026 se detuvo SynchronizationMR en A desde la interfaz. Después de la
+recarga del contexto, IDGen falló con `EntityManagerFactory is closed`; el intento
+no guardó al paciente. Reiniciar la instancia con `synchronizationmr.started=false`
+permitió registrar los tres pacientes ficticios `PacienteExistenteA`,
+`PacienteExistenteB` y `PacienteExistenteC`. Se verificaron ocho pacientes, cinco
+eventos y cero eventos para cada uno de esos tres pacientes. La causa raíz de la
+incidencia al detener el módulo en caliente sigue pendiente de diagnóstico.
+
+El script admite ahora `-PrepararPacientesExistentes` y
+`-TamanoLotePreparacion` (1–100; predeterminado 25). La preparación es independiente
+del transporte y requiere que el usuario local tenga `Prepare Synchronization Records`
+y `Get Patients`, y que el módulo esté iniciado. Encuentros y órdenes siguen
+deshabilitados. La configuración se aplica al iniciar el proceso, no a la instancia
+que ya está ejecutándose. No requiere recompilar el OMOD.
+
+Comando previsto para la prueba, **después de conceder el permiso, detener A y
+dejar habilitado el arranque del módulo**:
+
+```powershell
+.\dev\https\Start-Posta.ps1 -ServerId posta_a -SincronizarPacientes -PrepararPacientesExistentes -TamanoLotePreparacion 2
+```
+
+Esto prepara hasta dos pacientes por ciclo, con 60 segundos entre ciclos. No cambia
+el límite de envío del cliente HTTP.
+
+Resultado verificado el 21/09/2026: después de conceder el permiso al rol local y
+habilitar `synchronizationmr.started=true` con A apagada, se ejecutó el comando.
+El primer lote preparó dos eventos a las 13:35:31 y el segundo preparó el tercero
+a las 13:36:31. Se observó el estado intermedio de siete eventos y luego ocho.
+El maestro y B recibieron los tres pacientes y confirman `posta_a=6`. Las tres
+bases tienen ocho pacientes, ocho UUID distintos y ocho eventos, sin duplicados
+en esta prueba. Coinciden UUID del paciente y evento, apellido, fecha de nacimiento,
+identificador clínico, dirección y SHA-256 del JSON. Los identificadores de los
+tres pacientes son `2100004J`, `2100005G` y `2100006E`.
+La preparación y el transporte quedaron habilitados en A. Esta prueba no cubre
+la conciliación de una misma persona registrada independientemente en dos nodos.
+
+### Configuración para probar encuentros
+
+El script admite `-SincronizarEncuentros` junto con `-SincronizarPacientes`.
+Configura el endpoint HTTPS `encounterSync`; no activa órdenes ni preparación
+histórica de encuentros. Se verificó la sintaxis PowerShell. La ejecución de la
+comprobación de parámetros quedó bloqueada por la política de scripts de la
+terminal del agente; no se cambió esa política. La entrega real de encuentros
+sigue pendiente.
+
+Antes del reinicio de las postas, añadir mediante Administración de OpenMRS al
+rol `Sincronizacion Microrred` de las tres instancias: `Get Encounters`,
+`Add Encounters`, `Get Observations`, `Add Observations`, `Get Encounter Types`,
+`Get Encounter Roles`, `Get Providers`, `Get Forms` y `Get Visits`, conservando los
+permisos de pacientes. Se confirmó que esos privilegios existen y que las tres
+bases tienen cero encuentros y cero eventos de encuentro. El usuario guardó los
+permisos por interfaz y se verificaron en las tres bases: el rol conserva los
+permisos de pacientes, incluye los nueve de encuentros y también
+`Prepare Synchronization Records`. Se comprobó su asignación a `sync_posta_a`
+y `sync_posta_b` en el maestro, a `sync_local_a` en A y a `sync_local_b` en B.
+`Get Visits` solo permite consultar visitas;
+no implementa su sincronización.
+
+Después de guardar permisos y detener cada posta desde su terminal:
+
+```powershell
+.\dev\https\Start-Posta.ps1 -ServerId posta_a -SincronizarPacientes -SincronizarEncuentros
+.\dev\https\Start-Posta.ps1 -ServerId posta_b -SincronizarPacientes -SincronizarEncuentros
+```
+
+No requieren reconstruir el OMOD. Para esta prueba la preparación histórica
+queda desactivada; los pacientes ya preparados conservan sus identidades y eventos.
+El maestro recibe peticiones; no necesita ejecutar este script.
 
 Referencias: [RemoteIpValve de Tomcat](https://tomcat.apache.org/tomcat-9.0-doc/config/valve.html#Remote_IP_Valve),
 [HTTPS en Nginx](https://nginx.org/en/docs/http/configuring_https_servers.html).
