@@ -249,5 +249,156 @@ Esto no introduce sincronización de camas; es una dependencia de autorización 
 un módulo instalado en la distribución. Una prueba aislada añadida con el rol
 técnico pasa en OpenMRS 2.4.2 sin Bed Management; no sustituye la prueba real pendiente.
 
+Tras reiniciar las tres instancias, el reintento sigue devolviendo 403, ahora por
+`Get Beds`. Se comprobó la anotación del método `BedManagementService.getBedPatientAssignmentByVisit`
+en el API instalado de Bed Management 7.2.0: exige **Get Admission Locations y Get Beds**,
+con `requireAll=true`. Por tanto, ambos permisos de consulta son necesarios para
+este validador. Queda pendiente conceder `Get Beds` al rol técnico en las tres
+instancias y comprobar la recepción. A conserva el encuentro, la visita y diez
+observaciones; maestro y B todavía confirman encuentros de A hasta la secuencia 1.
+
+Resultado tras conceder ambos permisos y reiniciar las tres instancias: la prueba
+SPA A → maestro → B se completó. Se verificó en las tres bases el encuentro
+`92e68b5e-3002-40f2-81bd-0cdfc7285412`, asociado a la visita
+`608ecd07-40b1-4909-bb1f-537522d35492`, con diez observaciones. Coinciden los UUID
+de las observaciones, los conceptos, los valores numéricos y la nota de texto.
+Coincide también el SHA-256 del JSON indicado arriba; maestro y B confirman la
+secuencia 2 del origen `posta_a`. No fue necesario volver a registrar el encuentro.
+Esta evidencia valida este CREATE con visita básica y signos vitales; no valida
+modificaciones posteriores ni cierre de visitas. Falta la comprobación visual en
+la SPA de destino.
+
+El usuario confirmó también la visualización de los signos vitales en las tres SPA.
+
+### Preparación de la prueba SOAP en B
+
+El formulario `SOAP Note Template` falló antes de crear un encuentro con
+`Cannot read properties of null (reading 'uuid')`. La cuenta admin no tenía
+Provider asociado. En el motor instalado, la preparación del envío usa
+`currentProvider.uuid` cuando el formulario no especifica un profesional.
+Los cuatro conceptos del formulario y su tipo `Visit Note` existen en B.
+
+El usuario creó en B `PROF-PRUEBA-B`, UUID
+`b409a46b-1f9d-474e-9db4-425f72c24e63`, asociado a Super User, persona UUID
+`5f87c042-6814-11e8-923f-e9a88dcb533f`. Se creó la misma referencia mediante
+POST `/ws/rest/v1/provider` en maestro y A, conservando UUID, identificador y
+persona. Se verificaron los tres recursos por GET y las sesiones REST nuevas de
+admin devuelven ese UUID como `currentProvider`. Esta es una configuración del
+catálogo de laboratorio, no un flujo automático de sincronización de Providers.
+No se modificó el OMOD. Falta renovar la sesión del navegador de B, volver a abrir
+el formulario, guardarlo y verificar el encuentro resultante B → maestro → A.
+
+Resultado SOAP: tras renovar la sesión, el usuario guardó correctamente el
+formulario en B. Se verificó el encuentro `30dd0418-2b2c-4913-adcb-ee55d974fb62`,
+tipo `Visit Note`, fecha 21/09/2026 20:20:00, en B, maestro y A. Las tres copias
+referencian al paciente `40b7cd1a-7ce6-45f0-ad5e-9d92f3cb73c9` y la visita
+existente `608ecd07-40b1-4909-bb1f-537522d35492`. Coinciden los cuatro textos
+SOAP, sus UUID de observación, el profesional y su rol Clinician. Maestro y A
+confirman secuencia 1 de `posta_b`. SHA-256 del JSON igual en los tres nodos:
+`50d8394022c36bd2cc5fbda59c0c88237d4221ac783200fee12eeb2601b2a413`.
+La recepción en A ocurrió en el siguiente ciclo observado. Queda pendiente la
+comprobación visual del SOAP en las SPA de destino. Esto valida un nuevo CREATE
+en B asociado a una visita recibida previamente desde A; no prueba edición de notas.
+
+### Prueba Structured SOAP desde el maestro
+
+El usuario guardó `Structured SOAP note` en el maestro: encuentro
+`f65bc81f-dd47-42b0-964b-014377219c63`, tipo `Consultation`, fecha
+21/09/2026 20:31:35. Se verificó su recepción en A y B, con confirmación de
+`microrred_maestro=1`. Coinciden paciente, visita activa, profesional y rol.
+Hay seis filas de observaciones por copia: un grupo y sus tres miembros
+(Headache codificado, inicio 21/09/2026, duración 1 día), más dos textos.
+Se compararon UUID, relaciones padre-hijo y valores en las tres bases.
+SHA-256 del JSON común:
+`2501a8858c0f50f12469203ee912f5354ecf02b4e1b3a3b182c66bb48ebb98de`.
+B lo recibió en el siguiente ciclo observado. Falta la comprobación visual
+en las SPA de destino. No se registraron órdenes ni se probaron actualizaciones.
+
+### Prueba de encuentro con el canal HTTPS detenido
+
+El usuario detuvo `sihsalus_https` y creó en A una nueva nota SOAP a las
+20:38:09 del 21/09/2026. Se comprobó el proxy detenido y el encuentro
+`4ca24550-a3f5-4f60-b47f-1857772b4862` presente una sola vez en A, con cuatro
+observaciones de texto, y ausente en maestro y B. Evento
+`bc630e2e-3580-4e3a-903e-c6503af879e3`, origen `posta_a`, secuencia 3,
+operación CREATE, estado PENDING. SHA-256 del JSON:
+`2abfcc01866491d186be95385c207451e22e478706db7b686ee79359a336fa56`.
+Maestro y B todavía confirman `posta_a=2`; A tiene cinco encuentros y cada
+destino cuatro. Pendiente reactivar el proxy y verificar recuperación automática
+sin volver a guardar el formulario y sin duplicados.
+
+Resultado de recuperación: el usuario reactivó `sihsalus_https`. Se verificó
+el mismo encuentro una sola vez en cada base, con los cuatro UUID de observación
+y textos idénticos. Coinciden UUID del evento y SHA-256 del JSON; maestro y B
+avanzaron su confirmación a `posta_a=3`. No se volvió a guardar el formulario.
+Esto valida recuperación tras indisponibilidad del canal HTTPS; no prueba pérdida
+de respuesta después de un commit ni toda posible situación de reintento.
+
+### Preparación de encuentros existentes: prueba pendiente
+
+`Start-Posta.ps1` admite `-PrepararEncuentrosExistentes`, que requiere
+`-PrepararPacientesExistentes`. Activa la preparación de encuentros ya implementada
+en el OMOD, después de agotar pacientes pendientes; no habilita órdenes. El lote
+usa `-TamanoLotePreparacion` y el intervalo es de 60 segundos. Se validó la sintaxis
+con el parser PowerShell; la ejecución de validación fue bloqueada por la política
+de scripts del entorno del agente. No se arrancó ni detuvo ninguna instancia.
+
+Procedimiento previsto: detener A desde su terminal; con A apagada deshabilitar
+el arranque de SynchronizationMR, levantar A y crear encuentros de prueba con el
+módulo inactivo. Verificar registros nativos sin eventos. Detener A, restaurar
+el arranque del módulo y ejecutar desde la raíz del repositorio:
+
+```powershell
+.\dev\https\Start-Posta.ps1 -ServerId posta_a -SincronizarPacientes -SincronizarEncuentros -PrepararPacientesExistentes -PrepararEncuentrosExistentes -TamanoLotePreparacion 2
+```
+
+Comprobar preparación por lotes, recepción y ausencia de duplicados. Al terminar,
+volver al comando sin preparación histórica en el siguiente arranque. Este ensayo
+simula registros previos a activar el módulo; no es una instalación limpia del OMOD.
+Estado del ensayo: el usuario detuvo A y se verificó que el puerto 8081 no tenía
+listener. A conserva cinco encuentros y cinco eventos. Con A apagada se cambió
+únicamente `synchronizationmr.started` de `true` a `false` en su base y se verificó
+el valor. Próximo paso: arrancar A con `Start-Posta.ps1 -ServerId posta_a`, verificar
+el módulo inactivo y registrar tres encuentros. Restaurar `true` con A apagada
+antes de ejecutar el comando de preparación indicado arriba.
+
+Con A arrancada se confirmó por REST que el módulo estaba detenido. El usuario
+creó tres notas SOAP: `096d1627-be33-48dc-9a57-56ce8612be4c` (20:54:32),
+`e617eda1-6582-41c5-8a64-3b9c0a39793c` (20:55:06) y
+`a046466e-6172-464c-82bf-453b150e289c` (20:55:37), del 21/09/2026.
+Se verificaron ocho encuentros y cinco eventos en A: cada nota nueva tiene cuatro
+observaciones y ninguno de los tres encuentros tiene evento. Pendiente detener A,
+restaurar el arranque del módulo y comprobar la preparación en lotes de dos.
+
+Después de que el usuario detuviera A, se verificó de nuevo que no había listener
+en 8081 y se restauró `synchronizationmr.started=true` únicamente en su base.
+Se conservan ocho encuentros y cinco eventos; el rol técnico tiene
+`Prepare Synchronization Records`, `Get Encounters` y `Get Patients`.
+Pendiente arrancar con el comando de preparación de lote 2 y verificar resultados.
+La activación administrativa de esta preparación sin reiniciar la instancia queda
+pendiente para el despliegue; el usuario acordó continuar con el script en pruebas.
+
+Maestro, B y contenedores permanecen encendidos. No detener el módulo desde la UI,
+debido al fallo observado anteriormente al recargar el contexto en caliente.
+
+Resultado de encuentros existentes: se verificaron ocho encuentros y ocho eventos
+en cada instancia. A preparó los dos primeros a las 21:06:03 (secuencias 4 y 5)
+y el tercero a las 21:07:03 (secuencia 6): lote 2 y luego 1, separados por un minuto.
+Maestro y B confirman `posta_a=6`. Coinciden los UUID de las doce observaciones y
+sus textos, con cuatro observaciones por encuentro en cada base. Huellas SHA-256
+del JSON, iguales en las tres instancias, en orden de creación:
+
+- `ef428484764d8aef299f889a6cdfc932233091a9c20e30ca7fa679e46a4cd36a`
+- `e7f029b5e8ca0a83dded9f0f9b0ee84361dd1619148e453f2884703e09f8af44`
+- `1d72dd5d41f6f6b0ec2ed684ed2db6439750b56a7a8bda93b83ca493620034c9`
+
+El usuario confirmó que los veía sincronizados. La consulta inicial se realizó
+antes de observar la preparación; no fue necesario corregir el comando de arranque.
+Quedan comprobados los casos ensayados de CREATE, observaciones agrupadas,
+recuperación del canal y preparación histórica. Ediciones, cierre de visitas y
+activación administrativa sin reinicio siguen pendientes. Órdenes se probarán en
+la siguiente sesión. En el próximo arranque normal de A, omitir los parámetros de
+preparación histórica; no es necesario reiniciar ahora solo para retirarlos.
+
 Referencias: [RemoteIpValve de Tomcat](https://tomcat.apache.org/tomcat-9.0-doc/config/valve.html#Remote_IP_Valve),
 [HTTPS en Nginx](https://nginx.org/en/docs/http/configuring_https_servers.html).
