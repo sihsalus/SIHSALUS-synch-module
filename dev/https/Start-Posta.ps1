@@ -4,6 +4,7 @@ param(
     [string]$ServerId,
     [switch]$SincronizarPacientes,
     [switch]$SincronizarEncuentros,
+    [switch]$SincronizarOrdenes,
     [switch]$PrepararPacientesExistentes,
     [switch]$PrepararEncuentrosExistentes,
     [ValidateRange(1, 100)]
@@ -11,6 +12,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+if ($SincronizarOrdenes -and (-not $SincronizarPacientes -or -not $SincronizarEncuentros)) {
+    throw 'Use -SincronizarPacientes y -SincronizarEncuentros junto con -SincronizarOrdenes para resolver sus referencias.'
+}
 if ($SincronizarEncuentros -and -not $SincronizarPacientes) {
     throw 'Use -SincronizarPacientes junto con -SincronizarEncuentros para mantener disponibles los pacientes relacionados.'
 }
@@ -73,13 +77,17 @@ try {
         $env:SYNCMR_MASTER_ENCOUNTER_ENDPOINT = 'https://localhost:8443/openmrs/moduleServlet/synchronizationmr/encounterSync'
         Write-Host "Sincronizacion de encuentros habilitada para $ServerId."
     }
+    if ($SincronizarOrdenes) {
+        $env:SYNCMR_MASTER_ORDER_ENDPOINT = 'https://localhost:8443/openmrs/moduleServlet/synchronizationmr/orderSync'
+        Write-Host "Sincronizacion de ordenes habilitada para $ServerId."
+    }
     & mvn openmrs-sdk:run "-DserverId=$ServerId" "-DjvmArgs=$jvmArgs"
     if ($LASTEXITCODE -ne 0) { throw "El SDK terminó con código $LASTEXITCODE." }
 } finally {
     $env:SYNCMR_ENABLED = 'false'
     $env:SYNCMR_PREPARE_EXISTING_ENABLED = 'false'
     $env:SYNCMR_PREPARE_ENCOUNTERS_ENABLED = 'false'
-    Remove-Item Env:SYNCMR_MASTER_ENCOUNTER_ENDPOINT -ErrorAction SilentlyContinue
+    Remove-Item Env:SYNCMR_MASTER_ENCOUNTER_ENDPOINT, Env:SYNCMR_MASTER_ORDER_ENDPOINT -ErrorAction SilentlyContinue
     Remove-Item Env:SYNCMR_PREPARE_BATCH_SIZE, Env:SYNCMR_PREPARE_INTERVAL_SECONDS -ErrorAction SilentlyContinue
     Remove-Item Env:SYNCMR_LOCAL_PASSWORD, Env:SYNCMR_REMOTE_PASSWORD -ErrorAction SilentlyContinue
     Pop-Location

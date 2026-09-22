@@ -400,5 +400,130 @@ activación administrativa sin reinicio siguen pendientes. Órdenes se probarán
 la siguiente sesión. En el próximo arranque normal de A, omitir los parámetros de
 preparación histórica; no es necesario reiniciar ahora solo para retirarlos.
 
+### Arranque para las pruebas de órdenes (22/09/2026)
+
+El script admite `-SincronizarOrdenes` junto con `-SincronizarPacientes` y
+`-SincronizarEncuentros`. Configura el endpoint HTTPS `orderSync` ya previsto por
+el OMOD y lo elimina del entorno al terminar. Nginx y la excepción CSRF local del
+maestro ya incluyen ese endpoint. No requiere recompilar el OMOD. Se verificó la
+sintaxis mediante el parser PowerShell; la prueba de transporte de órdenes sigue
+pendiente. Arranque normal sin preparación histórica:
+
+```powershell
+.\dev\https\Start-Posta.ps1 -ServerId posta_a -SincronizarPacientes -SincronizarEncuentros -SincronizarOrdenes
+.\dev\https\Start-Posta.ps1 -ServerId posta_b -SincronizarPacientes -SincronizarEncuentros -SincronizarOrdenes
+```
+
+Antes de crear órdenes, verificar roles técnicos (`Add Orders`, `Get Orders`,
+`Get Order Types`, `Get Care Settings` y `Get Order Frequencies`), catálogos y estado de las instancias. Las cuentas clínicas necesitan
+Provider; la configuración del profesional de laboratorio del día anterior se
+conserva. La visita de prueba se dejó abierta. No hay resultados de órdenes reales
+validados todavía en este ensayo.
+
+Revisión tras el arranque del 22/09: las tres bases tienen cero órdenes y cero
+eventos de órdenes. La visita de prueba conserva su fecha de inicio y no tiene
+fecha de cierre; los módulos están configurados para arrancar y las identidades
+de nodos son correctas. Los UUID de los tipos Drug Order/Test Order y de los
+care settings coinciden. Faltan los cinco permisos anteriores en el rol técnico
+de las tres bases. Se contrastaron los permisos de consulta con las anotaciones
+del OrderService 2.8.10 instalado. Pendiente asignarlos y validar la primera orden.
+
+El usuario añadió los cinco permisos de órdenes a los tres roles técnicos. Se
+verificaron en las bases; antes del reinicio las consultas REST de care settings
+y frecuencias todavía devolvían 403 por esos mismos permisos. Tras reiniciar las
+tres instancias, se comprobaron HTTP 200 para `ordertype`, `caresetting` y
+`orderfrequency` con ambas cuentas remotas del maestro y las cuentas locales de
+A y B. No se ha identificado aún la causa exacta de la autorización desactualizada
+en memoria. Esta comprobación valida lectura de catálogos, no la recepción de una
+orden clínica, que sigue pendiente de la primera prueba desde la SPA de A.
+
+### Primera orden de laboratorio: A → maestro → B
+
+El 22/09/2026 el usuario registró desde la SPA de A `Complete blood count`,
+prioridad Routine, con instrucciones ficticias; confirmó con `Sign and close`.
+Se verificó la orden `80853021-1c31-4e33-9f64-cea63ce5f3dd` en las tres bases,
+activada a las 10:13:11, con las mismas instrucciones y paciente
+`40b7cd1a-7ce6-45f0-ad5e-9d92f3cb73c9`. El evento
+`4b219af9-2301-46b2-97f1-2da970f64aa8`, origen `posta_a`, secuencia 1, conserva
+el mismo JSON en las tres instancias (SHA-256
+`25f7fbd2e0b14e4720aa62e46358f110777e3e9ee279b1471070fd90a42c9d67`).
+Maestro y B confirman `posta_a=1` para órdenes.
+
+La SPA creó también el encuentro de tipo Order
+`b8a9796f-2aca-42d2-b684-26731890898f`, asociado a la visita ya abierta
+`608ecd07-40b1-4909-bb1f-537522d35492`; se verificó en los tres nodos y la orden
+lo referencia correctamente. Las tablas de vínculos pendientes están vacías.
+El número local resultó ORD-1 en los tres nodos en esta primera prueba; la
+identidad compartida se verificó por UUID. Falta comprobar su visualización en
+las SPA de destino; no hay resultados de laboratorio registrados en esta prueba.
+
+### Resultados de ORD-1: limitación comprobada
+
+El usuario guardó los doce valores del hemograma mediante `Orders → Add results`
+en A. La base conserva ORD-1 sin anular (`voided=0`), con
+`fulfiller_status=COMPLETED` y `date_stopped=2026-09-22 10:30:46`. Se añadieron
+trece observaciones (doce numéricas y un grupo) al encuentro ya existente
+`b8a9796f-2aca-42d2-b684-26731890898f`, todas vinculadas a ORD-1.
+No se creó un encuentro nuevo para estos resultados. La captura actual de
+EncounterCreationAdvice solo registra creaciones; por tanto, los resultados
+añadidos posteriormente no se capturaron ni llegaron al maestro/B.
+
+La SPA generó además una orden de acción DISCONTINUE,
+`c467d095-4774-4969-803f-820dba6491a7`, evento de origen A secuencia 2. Maestro y B
+confirman esa secuencia y muestran la fecha de detención de ORD-1, pero conservan
+`fulfiller_status=NULL` y no tienen las trece observaciones. El usuario observó
+que la orden dejó de aparecer en la lista de Orders de A. Se comprobó que no fue
+eliminada; la condición exacta del filtro visual no se ha inspeccionado.
+
+Esta prueba NO valida sincronización de resultados: evidencia dos pendientes,
+captura de observaciones añadidas a encuentros existentes y propagación del estado
+de cumplimiento de la orden. No repetir el guardado ni alterar el CREATE original
+como solución. Los datos de A se conservan para una futura prueba de actualizaciones.
+
+### Primera orden de medicamento: B → maestro → A
+
+El usuario guardó Paracetamol 500mg en B el 22/09/2026 a las 10:43:58:
+orden `72c349e6-edc5-44e8-9b63-3128231a7de2`, evento
+`8f2e4da0-1b82-4bd2-a5be-606723f59e01`, origen `posta_b`, secuencia 1.
+Dosis 1 Tablet, vía oral, frecuencia seleccionada UUID
+`136ebdb7-e989-47cf-8ec2-4e8b2ffe0ab3`, duración 2 Days, cantidad 2 Tablet,
+cero repeticiones. El formulario exigió Indication; se introdujo texto ficticio
+en `orderReasonNonCoded`. Se conservan también las instrucciones de prueba.
+La SPA creó el encuentro `f59ba50c-6d4f-4cfb-98b5-6659e9709f6c` en la visita activa.
+
+La primera consulta fue previa a la entrega. En una comprobación posterior,
+maestro y A tienen la orden y confirman `posta_b=1`. Se contrastaron dosis,
+cantidad, duración, instrucciones e indicación en sus tablas nativas y el JSON
+coincide con B: SHA-256
+`2a2ef1fa6cde774d48d981571a06547bca78ea3f4e3c773579aa2f7550567312`.
+Pendiente comprobación visual en las SPA de destino. No se probó dispensación ni
+modificación de esta orden.
+
+### Orden desde el maestro: Blood urea nitrogen
+
+El usuario creó la solicitud ficticia `Blood urea nitrogen` en el maestro.
+Se verificó la orden `f818e1e9-6559-4fad-8e05-477a5d61fa3b` (ORD-4 en estas
+bases), encuentro `52686588-75c3-4faf-8f12-3fc69a3bf1b1`, con las mismas
+instrucciones y accession_number NULL en maestro, A y B. Ambas postas confirman
+`microrred_maestro=1` para órdenes. El JSON coincide en los tres nodos: SHA-256
+`3481d7bfe0c364ff575f9f392108cf0959d2d89fa003919f743cef66c4ea7bbc`.
+La entrega se observó después de la consulta inicial. Se comprobó en el frontend
+instalado que `Reference number` se mapea a `accessionNumber`; no es el UUID ni
+el número de orden generado por OpenMRS. En este caso se dejó vacío; aún no se
+ha probado ese campo con valor. No se registraron resultados de esta solicitud.
+
+### Orden creada con HTTPS detenido: referencia de laboratorio
+
+El usuario detuvo `sihsalus_https` y registró otra solicitud de Blood urea nitrogen
+en A con referencia `PRUEBA-A-OFFLINE-001`. Se verificó el proxy detenido y la
+orden presente solo en A: UUID `e7c39d7b-cfad-47ab-8437-0b3c59202d17`, número
+local ORD-5, encuentro `2ee3390f-b46b-49b0-9175-7f877a6b5f31`, evento
+`b4242f7a-c1b1-4399-bc5d-baa10e73a584`, origen A secuencia 3. Referencia e
+instrucciones coinciden con los datos ingresados. SHA-256 del JSON:
+`9826dfa65bcaea926ce3a291eec571ccef42274ceb447d9ea72ca3e14a870082`.
+Maestro y B no tienen esa referencia y todavía confirman `posta_a=2` para órdenes.
+Pendiente reactivar HTTPS y comprobar recuperación, conservación de la referencia
+y ausencia de duplicados sin volver a guardar la solicitud.
+
 Referencias: [RemoteIpValve de Tomcat](https://tomcat.apache.org/tomcat-9.0-doc/config/valve.html#Remote_IP_Valve),
 [HTTPS en Nginx](https://nginx.org/en/docs/http/configuring_https_servers.html).
