@@ -102,6 +102,7 @@ public class EncounterCaptureIntegrationTest extends BaseModuleContextSensitiveT
 	@Test
 	public void capturesTwoCreationsAndDoesNotDuplicateOnEditOrRepeatedCapture() throws Exception {
 		long before = number("select encounter_sequence from synchronizationmr_local_node where singleton_id = 1");
+		long beforeCreations = number("select count(*) from synchronizationmr_encounter_event");
 		Encounter first = Context.getEncounterService().saveEncounter(sample());
 		Context.getEncounterService().saveEncounter(sample());
 		first.setEncounterDatetime(new Date());
@@ -109,7 +110,7 @@ public class EncounterCaptureIntegrationTest extends BaseModuleContextSensitiveT
 		Context.getService(EncounterSyncService.class).recordCreatedEncounter(first);
 		assertEquals(before + 2,
 		    number("select encounter_sequence from synchronizationmr_local_node where singleton_id = 1"));
-		assertEquals(before + 2, number("select count(*) from synchronizationmr_encounter_event"));
+		assertEquals(beforeCreations + 2, number("select count(*) from synchronizationmr_encounter_event"));
 	}
 	
 	@Test

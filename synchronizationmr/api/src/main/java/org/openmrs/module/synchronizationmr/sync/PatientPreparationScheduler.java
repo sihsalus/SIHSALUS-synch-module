@@ -35,6 +35,16 @@ public final class PatientPreparationScheduler {
 					        .prepareExistingOrders(config.batchSize);
 					if (orders > 0)
 						log.info("Orders prepared: " + orders);
+					if (orders == 0 && config.results && !config.resultsComplete) {
+						ObservationPreparationBatch batch = Context.getService(
+						    org.openmrs.module.synchronizationmr.api.EncounterSyncService.class)
+						        .prepareExistingObservations(config.resultCursor, config.batchSize);
+						// The service proxy has committed before moving the in-memory cursor.
+						config.resultCursor = batch.getLastEncounterId();
+						config.resultsComplete = batch.isComplete();
+						log.info("Historical observations: encounters scanned=" + batch.getScanned() + ", events published="
+						        + batch.getPublished() + ", complete=" + batch.isComplete());
+					}
 				}
 				if (encounterCount > 0) {
 					log.info("Encuentros preparados en el lote: " + encounterCount);
@@ -62,6 +72,12 @@ public final class PatientPreparationScheduler {
 		
 		final boolean orders;
 		
+		final boolean results;
+		
+		int resultCursor;
+		
+		boolean resultsComplete;
+		
 		final int batchSize;
 		
 		final long intervalSeconds;
@@ -83,6 +99,12 @@ public final class PatientPreparationScheduler {
 			if (!"true".equals(orderFlag) && !"false".equals(orderFlag))
 				throw new IllegalArgumentException("Invalid order preparation flag");
 			orders = Boolean.parseBoolean(orderFlag);
+			String resultFlag = environment.getOrDefault("SYNCMR_PREPARE_RESULTS_ENABLED", "false");
+			if (!"true".equals(resultFlag) && !"false".equals(resultFlag))
+				throw new IllegalArgumentException("Invalid result preparation flag");
+			results = Boolean.parseBoolean(resultFlag);
+			if (results && !orders)
+				throw new IllegalArgumentException("Prepare orders before results");
 			if (orders && !encounters)
 				throw new IllegalArgumentException("Prepare encounters before orders");
 			if (encounters && !enabled) {

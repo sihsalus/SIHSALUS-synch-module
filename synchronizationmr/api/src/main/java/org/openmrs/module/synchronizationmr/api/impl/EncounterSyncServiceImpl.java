@@ -10,6 +10,32 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 public class EncounterSyncServiceImpl extends BaseOpenmrsService implements EncounterSyncService {
 	
 	@Override
+	public org.openmrs.module.synchronizationmr.sync.ObservationPreparationBatch prepareExistingObservations(
+	        int afterEncounterId, int batchSize) {
+		requireTransaction();
+		limit(batchSize);
+		if (afterEncounterId < 0)
+			throw new APIException("El cursor no puede ser negativo");
+		java.util.List<Integer> ids = dao.findPublishedEncountersAfter(afterEncounterId, batchSize + 1);
+		int scanned = Math.min(ids.size(), batchSize), published = 0, last = afterEncounterId;
+		for (int i = 0; i < scanned; i++) {
+			if (Thread.currentThread().isInterrupted())
+				throw new APIException("Preparacion interrumpida");
+			int id = ids.get(i);
+			Encounter encounter = org.openmrs.api.context.Context.getEncounterService().getEncounter(id);
+			if (encounter == null || Boolean.TRUE.equals(encounter.getVoided())) {
+				throw new APIException("Encuentro inexistente o anulado durante la preparacion");
+			}
+			dao.requirePayload(id);
+			if (dao.captureAdditions(encounter, true))
+				published++;
+			last = id;
+		}
+		return new org.openmrs.module.synchronizationmr.sync.ObservationPreparationBatch(last, scanned, published,
+		        ids.size() <= batchSize);
+	}
+	
+	@Override
 	public int prepareExistingEncounters(int batchSize) {
 		requireTransaction();
 		limit(batchSize);
@@ -63,6 +89,13 @@ public class EncounterSyncServiceImpl extends BaseOpenmrsService implements Enco
 	}
 	
 	private EncounterSyncDao dao;
+	
+	@Override
+	public void recordAddedObservations(Encounter encounter) {
+		requireTransaction();
+		if (encounter != null && encounter.getEncounterId() != null)
+			dao.captureAdditions(encounter);
+	}
 	
 	public void setDao(EncounterSyncDao dao) {
 		this.dao = dao;

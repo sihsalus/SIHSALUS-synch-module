@@ -28,8 +28,12 @@ public class EncounterReceiveDao {
     }
 	
 	private long confirmed(Connection connection, String origin) throws SQLException {
+		return confirmed(connection, origin, false);
+	}
+	
+	private long confirmed(Connection connection, String origin, boolean lock) throws SQLException {
         try (PreparedStatement query = connection.prepareStatement(
-                "select confirmed_sequence from synchronizationmr_encounter_receipt where origin_server_id = ?")) {
+                "select confirmed_sequence from synchronizationmr_encounter_receipt where origin_server_id = ?" + (lock ? " for update" : ""))) {
             query.setString(1, origin);
             try (ResultSet rows = query.executeQuery()) { return rows.next() ? rows.getLong(1) : 0; }
         }
@@ -40,10 +44,10 @@ public class EncounterReceiveDao {
                 || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) { throw new APIException("La recepción requiere transacción de escritura"); }
         if (localNodeDao.getLocalServerId().equals(event.origin)) { throw new APIException("No se importa el propio origen"); }
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
-            long confirmed = confirmed(connection, event.origin);
+            long confirmed = confirmed(connection, event.origin, true);
             if (event.sequence <= confirmed) {
                 try (PreparedStatement query = connection.prepareStatement(
-                        "select encounter_uuid, event_uuid, payload_json from synchronizationmr_encounter_event where origin_server_id = ? and entity_sequence = ?")) {
+                        "select encounter_uuid, event_uuid, payload_json from " + EncounterEventStream.SQL + " e where origin_server_id = ? and entity_sequence = ?")) {
                     query.setString(1, event.origin); query.setLong(2, event.sequence);
                     try (ResultSet rows = query.executeQuery()) {
                         if (rows.next() && event.encounterUuid.equals(rows.getString(1)) && event.eventUuid.equals(rows.getString(2))
@@ -53,6 +57,18 @@ public class EncounterReceiveDao {
                 throw new APIException("El evento no coincide con la secuencia ya confirmada");
             }
             if (confirmed == Long.MAX_VALUE || event.sequence != confirmed + 1) { throw new APIException("Falta una secuencia anterior de encuentros"); }
+            for (String table : new String[]{"synchronizationmr_encounter_event", "synchronizationmr_encounter_addition"}) {
+            try (PreparedStatement query = connection.prepareStatement(
+                    "select event_uuid from " + table + " where event_uuid = ? for update")) {
+                query.setString(1, event.eventUuid);
+                try (ResultSet rows = query.executeQuery()) {
+                    if (rows.next()) throw new APIException("UUID de evento ya utilizado");
+                }
+            }
+            }
+            if (event.addition) {
+                receiveAddition(connection, event);
+            } else {
             if (Context.getEncounterService().getEncounterByUuid(event.encounterUuid) != null) { throw new APIException("El encuentro ya existe sin esta recepción confirmada"); }
             Encounter incoming = event.toEncounter();
             EncounterObservationVersions versions = new EncounterObservationVersions(event);
@@ -70,6 +86,7 @@ public class EncounterReceiveDao {
                 insert.setString(6, event.origin); insert.setLong(7, event.sequence); insert.setTimestamp(8, new Timestamp(event.occurredAt.getTime()));
                 insert.setString(9, event.json); insert.executeUpdate();
             }
+            }
             if (confirmed == 0) {
                 try (PreparedStatement insert = connection.prepareStatement("insert into synchronizationmr_encounter_receipt (origin_server_id, confirmed_sequence) values (?, ?)")) {
                     insert.setString(1, event.origin); insert.setLong(2, event.sequence); insert.executeUpdate();
@@ -81,5 +98,23 @@ public class EncounterReceiveDao {
             }
             return event.sequence;
         });
+    }
+	
+	private void receiveAddition(Connection connection, EncounterIncomingEvent event) throws SQLException {
+        Encounter encounter = Context.getEncounterService().getEncounterByUuid(event.encounterUuid);
+        if (encounter == null) throw new EncounterDependencyException("ENCOUNTER_NOT_AVAILABLE: falta el encuentro de los resultados");
+        java.util.List<org.openmrs.Obs> observations = event.addedObservations(encounter);
+        IncomingEncounterSave.save(encounter, () -> {
+            for (org.openmrs.Obs obs : observations) Context.getObsService().saveObs(obs, null);
+            return encounter;
+        });
+        sessionFactory.getCurrentSession().flush();
+        orderLinks.record(event);
+        try (PreparedStatement insert = connection.prepareStatement(
+                "insert into synchronizationmr_encounter_addition (event_uuid,encounter_id,encounter_uuid,origin_server_id,entity_sequence,date_created,payload_json) values (?,?,?,?,?,?,?)")) {
+            insert.setString(1,event.eventUuid); insert.setInt(2,encounter.getEncounterId()); insert.setString(3,event.encounterUuid);
+            insert.setString(4,event.origin); insert.setLong(5,event.sequence); insert.setTimestamp(6,new Timestamp(event.occurredAt.getTime()));
+            insert.setString(7,event.json); insert.executeUpdate();
+        }
     }
 }

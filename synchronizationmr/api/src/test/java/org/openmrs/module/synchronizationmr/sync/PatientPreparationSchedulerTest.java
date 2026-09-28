@@ -9,6 +9,27 @@ import static org.junit.jupiter.api.Assertions.*;
 public class PatientPreparationSchedulerTest {
 	
 	@Test
+    public void resultsAreExplicitAndRequirePreparationOfTheirDependencies() {
+        Map<String, String> values = new HashMap<>();
+        assertFalse(new PatientPreparationScheduler.Config(values).results);
+        values.put("SYNCMR_PREPARE_RESULTS_ENABLED", "yes");
+        assertThrows(IllegalArgumentException.class, () -> new PatientPreparationScheduler.Config(values));
+        values.put("SYNCMR_PREPARE_RESULTS_ENABLED", "true");
+        assertThrows(IllegalArgumentException.class, () -> new PatientPreparationScheduler.Config(values));
+        values.put("SYNCMR_PREPARE_ORDERS_ENABLED", "true");
+        assertThrows(IllegalArgumentException.class, () -> new PatientPreparationScheduler.Config(values));
+        values.put("SYNCMR_PREPARE_ENCOUNTERS_ENABLED", "true");
+        assertThrows(IllegalArgumentException.class, () -> new PatientPreparationScheduler.Config(values));
+        values.put("SYNCMR_PREPARE_EXISTING_ENABLED", "true");
+        values.put("SYNCMR_LOCAL_USERNAME", "test");
+        values.put("SYNCMR_LOCAL_PASSWORD", "test");
+        PatientPreparationScheduler.Config config = new PatientPreparationScheduler.Config(values);
+        assertTrue(config.results);
+        assertEquals(0, config.resultCursor);
+        assertFalse(config.resultsComplete);
+    }
+	
+	@Test
 	public void disabledPreparationDoesNotNeedConnectionOrCredentials() {
 		assertFalse(new PatientPreparationScheduler.Config(Collections.emptyMap()).enabled);
 		PatientPreparationScheduler scheduler = new PatientPreparationScheduler();

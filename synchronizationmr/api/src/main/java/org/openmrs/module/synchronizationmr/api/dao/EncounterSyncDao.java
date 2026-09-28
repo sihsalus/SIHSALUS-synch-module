@@ -9,6 +9,7 @@ import org.openmrs.Encounter;
 import org.openmrs.api.APIException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+import org.openmrs.module.synchronizationmr.sync.EncounterEventStream;
 
 /** Solo escribe en tablas del módulo. Comparte la transacción del encuentro clínico. */
 @Repository("synchronizationmr.EncounterSyncDao")
@@ -55,7 +56,7 @@ public class EncounterSyncDao {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             java.util.List<String> origins = new java.util.ArrayList<>();
             try (PreparedStatement query = connection.prepareStatement(
-                    "select distinct origin_server_id from synchronizationmr_encounter_event where origin_server_id > ? order by origin_server_id")) {
+                    "select distinct origin_server_id from " + EncounterEventStream.SQL + " e where origin_server_id > ? order by origin_server_id")) {
                 query.setString(1, afterOrigin); query.setMaxRows(limit);
                 try (ResultSet rows = query.executeQuery()) {
                     while (rows.next()) { origins.add(rows.getString(1)); }
@@ -68,7 +69,7 @@ public class EncounterSyncDao {
 	public long findHighestEncounterSequence(String origin) {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             try (PreparedStatement query = connection.prepareStatement(
-                    "select coalesce(max(entity_sequence), 0) from synchronizationmr_encounter_event where origin_server_id = ?")) {
+                    "select coalesce(max(entity_sequence), 0) from " + EncounterEventStream.SQL + " e where origin_server_id = ?")) {
                 query.setString(1, origin);
                 try (ResultSet rows = query.executeQuery()) {
                     rows.next();
@@ -85,7 +86,7 @@ public class EncounterSyncDao {
             // No filtramos por estado global: otro destino podría necesitar un evento ya entregado.
             try (PreparedStatement query = connection.prepareStatement(
                     "select i.entity_sequence, i.encounter_uuid, i.event_uuid, i.payload_json"
-                    + " from synchronizationmr_encounter_event i"
+                    + " from " + EncounterEventStream.SQL + " i"
                     + " where i.origin_server_id = ? and i.entity_sequence > ?"
                     + " order by i.entity_sequence asc")) {
                 query.setString(1, origin);
@@ -173,4 +174,108 @@ public class EncounterSyncDao {
             }
         });
     }
+	
+	public java.util.List<Integer> findPublishedEncountersAfter(int after, int limit) {
+        sessionFactory.getCurrentSession().flush();
+        localNodeDao.getLocalServerId();
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> {
+            java.util.List<Integer> ids = new java.util.ArrayList<>();
+            try (PreparedStatement query = connection.prepareStatement(
+                    "select c.encounter_id from encounter c join synchronizationmr_encounter_event e on e.encounter_id = c.encounter_id"
+                    + " where c.voided = false and c.encounter_id > ? order by c.encounter_id")) {
+                query.setInt(1, after); query.setMaxRows(limit);
+                try (ResultSet rows = query.executeQuery()) { while (rows.next()) ids.add(rows.getInt(1)); }
+            }
+            return ids;
+        });
+    }
+	
+	public void captureAdditions(Encounter encounter) {
+		captureAdditions(encounter, false);
+	}
+	
+	/** Only previously unpublished observations are added. Existing values are never overwritten. */
+	public boolean captureAdditions(Encounter encounter, boolean strict) {
+        sessionFactory.getCurrentSession().flush();
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> {
+            String origin = localNodeDao.getLocalServerId(); // serializes allocation and duplicate detection
+            java.util.Set<String> known = new java.util.HashSet<>();
+            boolean hasCreation = false;
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            // Current reads under the node lock also work with MariaDB REPEATABLE READ.
+            // A consistent read could otherwise miss a concurrently committed capture.
+            for (String table : new String[]{"synchronizationmr_encounter_event", "synchronizationmr_encounter_addition"}) {
+            try (PreparedStatement query = connection.prepareStatement(
+                    "select payload_json from " + table + " where encounter_id = ? for update")) {
+                query.setInt(1, encounter.getEncounterId());
+                try (ResultSet rows = query.executeQuery()) {
+                    while (rows.next()) {
+                        try {
+                            com.fasterxml.jackson.databind.JsonNode event = mapper.readTree(rows.getString(1));
+                            if (event == null) throw new APIException("Falta el JSON original del encuentro");
+                            hasCreation |= "CREATE".equals(event.path("operation").asText());
+                            collectObservationIds(event.path("payload").path("obs"), known);
+                        } catch (java.io.IOException failure) {
+                            throw new APIException("JSON original de encuentro invalido", failure);
+                        }
+                    }
+                }
+            }
+            }
+            if (!hasCreation) {
+                if (strict) throw new APIException("Falta el evento CREATE del encuentro");
+                return false; // historical encounters still require explicit preparation
+            }
+            java.util.List<org.openmrs.Obs> added = new java.util.ArrayList<>();
+            java.util.Set<String> newIds = new java.util.HashSet<>();
+            try (PreparedStatement query = connection.prepareStatement(
+                    "select obs_id, uuid from obs where encounter_id = ? and voided = false and previous_version is null order by obs_id")) {
+                query.setInt(1, encounter.getEncounterId());
+                try (ResultSet rows = query.executeQuery()) {
+                    while (rows.next()) {
+                        if (!known.contains(rows.getString(2))) {
+                            added.add(org.openmrs.api.context.Context.getObsService().getObs(rows.getInt(1)));
+                            newIds.add(rows.getString(2));
+                        }
+                    }
+                }
+            }
+            if (added.isEmpty()) return false;
+            // Do not export an orphan whose parent is an unpublished correction/voided group.
+            for (org.openmrs.Obs obs : added) {
+                if (obs.getObsGroup() != null && !known.contains(obs.getObsGroup().getUuid())
+                        && !newIds.contains(obs.getObsGroup().getUuid())) {
+                    if (strict) throw new APIException("Resultado con grupo no publicado; requiere revision antes de continuar");
+                    return false;
+                }
+            }
+            long sequence;
+            try (PreparedStatement query = connection.prepareStatement(
+                    "select encounter_sequence from synchronizationmr_local_node where singleton_id = 1");
+                    ResultSet rows = query.executeQuery()) {
+                rows.next(); sequence = Math.addExact(rows.getLong(1), 1L);
+            }
+            String eventUuid = UUID.randomUUID().toString();
+            Timestamp created = new Timestamp(System.currentTimeMillis());
+            String json = serializer.serializeAddition(encounter, added, newIds, origin, sequence, eventUuid, created);
+            try (PreparedStatement insert = connection.prepareStatement(
+                    "insert into synchronizationmr_encounter_addition (event_uuid,encounter_id,encounter_uuid,origin_server_id,entity_sequence,date_created,payload_json) values (?,?,?,?,?,?,?)")) {
+                insert.setString(1,eventUuid); insert.setInt(2,encounter.getEncounterId()); insert.setString(3,encounter.getUuid());
+                insert.setString(4,origin); insert.setLong(5,sequence); insert.setTimestamp(6,created); insert.setString(7,json);
+                insert.executeUpdate();
+            }
+            try (PreparedStatement update = connection.prepareStatement(
+                    "update synchronizationmr_local_node set encounter_sequence = ? where singleton_id = 1")) {
+                update.setLong(1,sequence); update.executeUpdate();
+            }
+            return true;
+        });
+    }
+	
+	private void collectObservationIds(com.fasterxml.jackson.databind.JsonNode items, java.util.Set<String> ids) {
+		for (com.fasterxml.jackson.databind.JsonNode item : items) {
+			ids.add(item.path("uuid").asText());
+			collectObservationIds(item.path("groupMembers"), ids);
+		}
+	}
 }

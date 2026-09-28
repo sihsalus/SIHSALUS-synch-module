@@ -7,11 +7,19 @@ param(
     [switch]$SincronizarOrdenes,
     [switch]$PrepararPacientesExistentes,
     [switch]$PrepararEncuentrosExistentes,
+    [switch]$PrepararOrdenesExistentes,
+    [switch]$PrepararResultadosExistentes,
     [ValidateRange(1, 100)]
     [int]$TamanoLotePreparacion = 25
 )
 
 $ErrorActionPreference = 'Stop'
+if ($PrepararResultadosExistentes -and -not $PrepararOrdenesExistentes) {
+    throw 'Use -PrepararOrdenesExistentes junto con -PrepararResultadosExistentes para resolver las referencias de los resultados.'
+}
+if ($PrepararOrdenesExistentes -and (-not $PrepararPacientesExistentes -or -not $PrepararEncuentrosExistentes)) {
+    throw 'Use -PrepararPacientesExistentes y -PrepararEncuentrosExistentes junto con -PrepararOrdenesExistentes para resolver sus referencias.'
+}
 if ($SincronizarOrdenes -and (-not $SincronizarPacientes -or -not $SincronizarEncuentros)) {
     throw 'Use -SincronizarPacientes y -SincronizarEncuentros junto con -SincronizarOrdenes para resolver sus referencias.'
 }
@@ -32,6 +40,7 @@ $env:SYNCMR_ENABLED = 'false'
 $env:SYNCMR_PREPARE_EXISTING_ENABLED = 'false'
 $env:SYNCMR_PREPARE_ENCOUNTERS_ENABLED = 'false'
 $env:SYNCMR_PREPARE_ORDERS_ENABLED = 'false'
+$env:SYNCMR_PREPARE_RESULTS_ENABLED = 'false'
 Remove-Item Env:SYNCMR_MASTER_ENCOUNTER_ENDPOINT, Env:SYNCMR_MASTER_ORDER_ENDPOINT -ErrorAction SilentlyContinue
 function Read-ConnectionPassword([string]$Prompt) {
     $secret = Read-Host $Prompt -AsSecureString
@@ -64,6 +73,10 @@ try {
         $env:SYNCMR_PREPARE_ENCOUNTERS_ENABLED = 'true'
         Write-Host "Preparacion de encuentros existentes habilitada: hasta $TamanoLotePreparacion por ciclo, despues de preparar pacientes."
     }
+    if ($PrepararOrdenesExistentes) {
+        $env:SYNCMR_PREPARE_ORDERS_ENABLED = 'true'
+        Write-Host "Preparacion de ordenes existentes habilitada: hasta $TamanoLotePreparacion por ciclo, despues de preparar pacientes y encuentros."
+    }
     if ($SincronizarPacientes) {
         $env:SYNCMR_REMOTE_USERNAME = "sync_posta_$suffix"
         $env:SYNCMR_REMOTE_PASSWORD = Read-ConnectionPassword "Contraseña de $env:SYNCMR_REMOTE_USERNAME en el maestro"
@@ -81,12 +94,18 @@ try {
         $env:SYNCMR_MASTER_ORDER_ENDPOINT = 'https://localhost:8443/openmrs/moduleServlet/synchronizationmr/orderSync'
         Write-Host "Sincronizacion de ordenes habilitada para $ServerId."
     }
+    if ($PrepararResultadosExistentes) {
+        $env:SYNCMR_PREPARE_RESULTS_ENABLED = 'true'
+        Write-Host "Recuperacion de resultados habilitada: hasta $TamanoLotePreparacion encuentros por ciclo; una pasada despues de preparar ordenes."
+    }
     & mvn openmrs-sdk:run "-DserverId=$ServerId" "-DjvmArgs=$jvmArgs"
     if ($LASTEXITCODE -ne 0) { throw "El SDK terminó con código $LASTEXITCODE." }
 } finally {
     $env:SYNCMR_ENABLED = 'false'
     $env:SYNCMR_PREPARE_EXISTING_ENABLED = 'false'
     $env:SYNCMR_PREPARE_ENCOUNTERS_ENABLED = 'false'
+    $env:SYNCMR_PREPARE_ORDERS_ENABLED = 'false'
+    $env:SYNCMR_PREPARE_RESULTS_ENABLED = 'false'
     Remove-Item Env:SYNCMR_MASTER_ENCOUNTER_ENDPOINT, Env:SYNCMR_MASTER_ORDER_ENDPOINT -ErrorAction SilentlyContinue
     Remove-Item Env:SYNCMR_PREPARE_BATCH_SIZE, Env:SYNCMR_PREPARE_INTERVAL_SECONDS -ErrorAction SilentlyContinue
     Remove-Item Env:SYNCMR_LOCAL_PASSWORD, Env:SYNCMR_REMOTE_PASSWORD -ErrorAction SilentlyContinue

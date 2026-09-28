@@ -54,6 +54,10 @@
         <point>org.openmrs.api.EncounterService</point>
         <class>org.openmrs.module.synchronizationmr.advice.EncounterCreationAdvice</class>
     </advice>
+    <advice>
+        <point>org.openmrs.api.ObsService</point>
+        <class>org.openmrs.module.synchronizationmr.advice.ObservationAdditionAdvice</class>
+    </advice>
     <privilege>
         <name>Receive Synchronization Records</name>
         <description>Recibir eventos de sincronización de pacientes y encuentros de otros nodos.</description>

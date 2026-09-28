@@ -205,5 +205,24 @@
         <sql>ALTER TABLE synchronizationmr_order_event MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
         <sql>ALTER TABLE synchronizationmr_order_receipt MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
     </changeSet>
+    <changeSet id="synchronizationmr-20260927-encounter-additions" author="sihsalus">
+        <!-- Preserve immutable CREATE rows and their unique encounter identity. Additions
+             share the encounter sequence/receipt, but allow many events per encounter. -->
+        <createTable tableName="synchronizationmr_encounter_addition">
+            <column name="event_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="encounter_id" type="int"><constraints nullable="false" /></column>
+            <column name="encounter_uuid" type="varchar(38)"><constraints nullable="false" /></column>
+            <column name="origin_server_id" type="varchar(100)"><constraints nullable="false" /></column>
+            <column name="entity_sequence" type="bigint"><constraints nullable="false" /></column>
+            <column name="date_created" type="datetime"><constraints nullable="false" /></column>
+            <column name="payload_json" type="clob"><constraints nullable="false" /></column>
+        </createTable>
+        <addUniqueConstraint tableName="synchronizationmr_encounter_addition" columnNames="origin_server_id,entity_sequence" constraintName="syncmr_enc_add_sequence_uq" />
+        <createIndex tableName="synchronizationmr_encounter_addition" indexName="syncmr_enc_add_enc_idx"><column name="encounter_id" /></createIndex>
+        <addForeignKeyConstraint baseTableName="synchronizationmr_encounter_addition" baseColumnNames="encounter_id" referencedTableName="encounter" referencedColumnNames="encounter_id" constraintName="syncmr_enc_add_enc_fk" />
+    </changeSet>
+    <changeSet id="synchronizationmr-20260927-encounter-addition-collation" author="sihsalus" dbms="mysql,mariadb">
+        <sql>ALTER TABLE synchronizationmr_encounter_addition MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
+    </changeSet>
 </databaseChangeLog>
  

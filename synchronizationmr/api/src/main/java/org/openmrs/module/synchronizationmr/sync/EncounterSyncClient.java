@@ -110,7 +110,17 @@ public class EncounterSyncClient {
 					checkOrigin(event, origin);
 					require(after < Long.MAX_VALUE && sequence(event, "entitySequence") == after + 1,
 					    "El evento recibido no es el siguiente");
-					long confirmed = receiver.receiveEncounter(event.toString());
+					long confirmed;
+					try {
+						confirmed = receiver.receiveEncounter(event.toString());
+					}
+					catch (EncounterDependencyException dependency) {
+						// A's result may refer to an encounter created by B, whose origin
+						// sorts later. Keep A's receipt unchanged and allow B to arrive.
+						org.apache.commons.logging.LogFactory.getLog(EncounterSyncClient.class).info(
+						    "Resultados pendientes de otro origen de encuentros: " + origin);
+						break;
+					}
 					require(confirmed == after + 1, "Confirmación local inesperada");
 					after = confirmed;
 					received++;

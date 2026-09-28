@@ -18,8 +18,12 @@ import org.openmrs.module.synchronizationmr.api.EncounterSyncService;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.openmrs.module.synchronizationmr.sync.ObservationCaptureScope;
 
-/** Registra la creación de encuentros; no captura ediciones, fusiones ni encuentros anteriores. */
+/**
+ * Captures encounter creation and additional observations; does not overwrite existing clinical
+ * values.
+ */
 public class EncounterCreationAdvice implements MethodInterceptor {
 	
 	private EncounterSyncService service;
@@ -77,14 +81,15 @@ public class EncounterCreationAdvice implements MethodInterceptor {
 			throw new APIException("El interceptor de encuentros requiere una transacción de escritura de OpenMRS");
 		}
 		Encounter encounter = (Encounter) invocation.getArguments()[0];
-		if (org.openmrs.module.synchronizationmr.sync.IncomingEncounterSave.isReceiving(encounter)) {
+		if (org.openmrs.module.synchronizationmr.sync.IncomingEncounterSave.isReceiving(encounter) || ObservationCaptureScope.active(encounter)) {
 			return invocation.proceed();
 		}
-		boolean creation = !service().encounterExists(encounter.getEncounterId());
-		Object result = invocation.proceed();
-		if (creation) {
-			service().recordCreatedEncounter((Encounter) result);
-		}
-		return result;
+        try (ObservationCaptureScope scope = ObservationCaptureScope.enter(encounter)) {
+            boolean creation = !service().encounterExists(encounter.getEncounterId());
+            Object result = invocation.proceed();
+            if (creation) service().recordCreatedEncounter((Encounter) result);
+            else service().recordAddedObservations((Encounter) result);
+            return result;
+        }
 	}
 }

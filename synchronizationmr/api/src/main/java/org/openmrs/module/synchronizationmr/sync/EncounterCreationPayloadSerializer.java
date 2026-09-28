@@ -59,7 +59,37 @@ public class EncounterCreationPayloadSerializer {
         catch (java.io.IOException failure) { throw new APIException("No se pudo generar el JSON del encuentro", failure); }
     }
 	
+	public String serializeAddition(Encounter encounter, java.util.List<Obs> added, Set<String> newIds,
+            String origin, long sequence, String eventUuid, Date created) {
+        ObjectNode event = mapper.createObjectNode();
+        event.put("schemaVersion", 4);
+        event.put("entityType", "ENCOUNTER");
+        event.put("operation", "ADD_OBS");
+        event.put("originServerId", ServerId.requireValid(origin));
+        event.put("entitySequence", sequence);
+        event.put("eventUuid", eventUuid);
+        event.put("occurredAt", instant(created));
+        ObjectNode data = event.putObject("payload");
+        data.put("encounterUuid", required(encounter));
+        data.put("patientUuid", required(encounter.getPatient()));
+        ArrayNode observations = data.putArray("obs");
+        Set<String> seen = new HashSet<>();
+        for (Obs obs : added) {
+            if (obs.getObsGroup() == null || !newIds.contains(obs.getObsGroup().getUuid())) {
+                ObjectNode item = observation(obs, seen, 0, newIds);
+                item.put("parentGroupUuid", reference(obs.getObsGroup()));
+                observations.add(item);
+            }
+        }
+        try { return mapper.writeValueAsString(event); }
+        catch (java.io.IOException failure) { throw new APIException("No se pudo generar el evento de observaciones", failure); }
+    }
+	
 	private ObjectNode observation(Obs obs, Set<String> seen, int depth) {
+		return observation(obs, seen, depth, null);
+	}
+	
+	private ObjectNode observation(Obs obs, Set<String> seen, int depth, Set<String> included) {
 		String uuid = required(obs);
 		if (depth > 50 || !seen.add(uuid)) {
 			throw new APIException("La estructura de observaciones contiene ciclos, duplicados o demasiados niveles");
@@ -90,7 +120,8 @@ public class EncounterCreationPayloadSerializer {
 		ArrayNode members = item.putArray("groupMembers");
 		if (obs.getGroupMembers(true) != null) {
 			for (Obs member : obs.getGroupMembers(true)) {
-				members.add(observation(member, seen, depth + 1));
+				if (included == null || included.contains(member.getUuid()))
+					members.add(observation(member, seen, depth + 1, included));
 			}
 		}
 		return item;

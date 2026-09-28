@@ -74,6 +74,32 @@ public class EncounterSyncClientTest {
 	}
 	
 	@Test
+	public void missingEncounterFromEarlierOriginDoesNotStarveLaterOrigin() throws Exception {
+		prepare(0, 0);
+		String early = "posta_a", later = "posta_b";
+		ObjectNode origins = mapper.createObjectNode();
+		origins.putArray("origins").add(early).add(later);
+		when(remote.get("resource=origins&limit=100")).thenReturn(origins);
+		ObjectNode earlyEvent = envelope(early).put("entitySequence", 1);
+		ObjectNode laterEvent = envelope(later).put("entitySequence", 1);
+		ObjectNode earlyPage = envelope(early);
+		earlyPage.putArray("events").add(earlyEvent);
+		ObjectNode laterPage = envelope(later);
+		laterPage.putArray("events").add(laterEvent);
+		when(remote.get("resource=events&origin=" + early + "&after=0&limit=1")).thenReturn(earlyPage);
+		when(remote.get("resource=events&origin=" + later + "&after=0&limit=1")).thenReturn(laterPage);
+		ObjectNode empty = envelope(later);
+		empty.putArray("events");
+		when(remote.get("resource=events&origin=" + later + "&after=1&limit=1")).thenReturn(empty);
+		when(receiver.receiveEncounter(earlyEvent.toString())).thenThrow(
+		    new EncounterDependencyException("missing encounter"));
+		when(receiver.receiveEncounter(laterEvent.toString())).thenReturn(1L);
+		assertArrayEquals(new int[] { 0, 1 }, client.synchronizeOnce());
+		verify(receiver).receiveEncounter(laterEvent.toString());
+		verify(remote, never()).get("resource=events&origin=" + early + "&after=1&limit=1");
+	}
+	
+	@Test
 	public void rejectsOldProtocolEvenIfServerNameMatches() throws Exception {
 		prepare(1, 0);
 		when(remote.get("resource=node")).thenReturn(mapper.createObjectNode().put("serverId", MASTER)

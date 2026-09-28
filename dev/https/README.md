@@ -525,5 +525,196 @@ Maestro y B no tienen esa referencia y todavía confirman `posta_a=2` para órde
 Pendiente reactivar HTTPS y comprobar recuperación, conservación de la referencia
 y ausencia de duplicados sin volver a guardar la solicitud.
 
+Resultado de recuperación de ORD-5: tras reactivar HTTPS se comprobó una copia
+por base, referencia e instrucciones conservadas, mismo encuentro, evento y hash
+JSON. Maestro y B confirmaron `posta_a=3`. El usuario confirmó también su llegada.
+
+### Reanudación del 27/09/2026: órdenes existentes
+
+Se verificaron los cuatro contenedores activos y cinco órdenes/cinco eventos de
+órdenes, doce encuentros/doce eventos de encuentros en cada base. Se conservó el
+hash de ORD-5. Las identidades server.id y los permisos de preparación son correctos.
+El script ahora admite `-PrepararOrdenesExistentes`, que requiere explícitamente
+`-PrepararPacientesExistentes` y `-PrepararEncuentrosExistentes`. Activa el mecanismo
+ya implementado en el OMOD y limpia la variable de activación al terminar. Se
+verificó la sintaxis con el parser PowerShell; falta la ejecución de la prueba.
+
+Procedimiento pendiente: detener A, desactivar su módulo con la instancia apagada,
+arrancar y registrar tres órdenes ficticias sin captura. Verificar los registros
+nativos y la ausencia de eventos; después detener A, restaurar el arranque del
+módulo y activar preparación por lotes de dos, primero pacientes, luego encuentros
+y finalmente órdenes. No recompilar el OMOD solo por este cambio de script.
+La activación sin reinicio permanece como pendiente de despliegue, ya acordado.
+
+El usuario detuvo A. Se verificó que el puerto 8081 no tenía listener y se cambió
+únicamente `synchronizationmr.started` de true a false en su base, comprobando
+server.id=posta_a. Se conservan cinco órdenes/cinco eventos de órdenes y doce
+encuentros/doce eventos de encuentros. Próximo paso: arrancar con
+`Start-Posta.ps1 -ServerId posta_a`, confirmar módulo inactivo y crear las tres
+órdenes ficticias. Restaurar el arranque del módulo con A apagada antes de preparar.
+
+Con A arrancada se confirmó por REST `started=false` para SynchronizationMR.
+El usuario registró tres órdenes históricas con referencias HIST-A-001/002/003:
+
+- ORD-6: `5b9c383e-3d8e-4bda-bafb-d7bf84a94f98`.
+- ORD-7: `43dea9c4-7647-4f3a-b39c-a48db0c9a6cc`.
+- ORD-8: `8456939b-d007-4116-a55f-efcadacb26cf`.
+
+Se verificó A con ocho órdenes y cinco eventos de órdenes. Las tres solicitudes
+comparten el encuentro `d9fd31ae-83bd-4b87-b887-875780c6d8f2`, también sin evento
+(trece encuentros y doce eventos de encuentros). Se conservaron las referencias
+y las instrucciones ficticias. Maestro y B aún tienen cinco órdenes y doce
+encuentros; ninguna referencia HIST-A está en sus bases. Pendiente detener A,
+restaurar el arranque del módulo y preparar primero el encuentro y luego las
+órdenes en lotes de dos, comprobando referencias y recepción sin duplicados.
+
+Tras detener A, se verificó la ausencia de listener en 8081 y se restauró
+`synchronizationmr.started=true`. A mantiene ocho órdenes y cinco eventos.
+Se confirmaron los conceptos: ORD-6 Alkaline phosphatase, ORD-7 Bacteriuria test,
+urine y ORD-8 Casts presence in urine sediment by light microscopy test.
+Pendiente arrancar desde la raíz con:
+
+```powershell
+.\dev\https\Start-Posta.ps1 -ServerId posta_a -SincronizarPacientes -SincronizarEncuentros -SincronizarOrdenes -PrepararPacientesExistentes -PrepararEncuentrosExistentes -PrepararOrdenesExistentes -TamanoLotePreparacion 2
+```
+
+Resultado verificado tras el arranque: las tres bases tienen ocho órdenes/ocho
+eventos de órdenes y trece encuentros/trece eventos de encuentros. Cada orden
+HIST-A-001/002/003 está una sola vez por base, con el mismo UUID, paciente,
+encuentro, referencia e instrucciones. Maestro y B confirman `posta_a=6` para
+órdenes y `posta_a=9` para encuentros.
+
+Las fechas de los eventos muestran el orden de preparación: encuentro compartido
+a las 16:58:31 del 27/09/2026; ORD-6 y ORD-7 a las 16:59:31 (secuencias A 4 y 5);
+ORD-8 a las 17:00:31 (secuencia A 6). Se verificó así el lote de dos y el siguiente
+ciclo de una orden, sin volver a guardar las solicitudes. Los hashes SHA-256 del
+payload coinciden en las tres bases:
+
+- HIST-A-001: `13ea3999baa8fbaaf2d210323e2dbfe0658fb59e6d25b77c69e3a1e094da8478`.
+- HIST-A-002: `3babed94cb2e3ebf2db03704d48513d194b3dd4d0c77b172651c69356d5bc609`.
+- HIST-A-003: `ebe9e34038412fbc9daea9a8a966b7a91c19764e208b6e9517b4eb8a0cf3a5ed`.
+
+Queda comprobada esta prueba de preparación de órdenes existentes y entrega.
+Esto no resuelve el pendiente de resultados añadidos a encuentros existentes ni
+la sincronización general de actualizaciones y estados descrita anteriormente.
+
+### Resultados añadidos a encuentros: implementación del 27/09/2026
+
+Se implementó la captura y recepción de observaciones adicionales como eventos
+`ADD_OBS`, sin modificar los CREATE existentes. Alcance, límites, pruebas y
+procedimiento en [documento 26](../../26_RESULTADOS_EN_ENCUENTROS_EXISTENTES.md).
+Las pruebas nuevas pasaron, pero la verificación completa y el paquete final
+siguen pendientes: se corrigió el fixture de preparación para limpiar la tabla
+nueva y se separó la salida de Maven de la del IDE mediante `isolated-sync-build`.
+La ejecución final con permisos ampliados no fue autorizada. No se desplegó
+ningún OMOD nuevo; las tres instancias conservan su versión anterior.
+
+Actualización posterior: el usuario detuvo las tres instancias y autorizó ejecutar
+la compilación. `mvn -o -Pisolated-sync-build package` terminó el 27/09/2026 a las
+17:38:51 con BUILD SUCCESS: **221 pruebas aprobadas (181 API + 40 OMOD)**, sin
+fallos, errores ni omitidas. Se verificó el contenido del OMOD nuevo en
+`synchronizationmr/omod/.build-sync/synchronizationmr-1.0.0-SNAPSHOT.omod`, SHA-256
+`4D27475686F637577002895AFF1455471A3A0CF5C968280E635814694B8FC126`.
+Quedan pendientes instalar el artefacto Maven del SDK, respaldar y actualizar los
+OMOD de las tres instancias, arrancar y probar resultados desde el SPA. No se
+reemplazaron todavía los OMOD instalados.
+
+Actualización de los OMOD completada a las 17:43 del 27/09/2026. Se instaló la
+versión probada en Maven con `mvn -o -Pisolated-sync-build install -DskipTests`
+(BUILD SUCCESS). Después de verificar puertos y procesos apagados, se respaldaron
+los OMOD anteriores en `.local-sync-https/omod-before-results-20260927-174316/` y
+se reemplazaron los tres. El paquete final, Maven y las copias instaladas coinciden:
+SHA-256 `F09C7707B74BFD7AE2FB612B3941C940EC906B10DD06D4B4E67C3406F9CBF32D`.
+Pendiente arrancar normalmente con sincronización de pacientes, encuentros y
+órdenes, verificar la migración y probar resultados nuevos. No se requiere activar
+preparación histórica para esta prueba.
+
+El usuario ejecutó después `mvn clean install` sin el perfil aislado. Se verificó
+el 27/09/2026 a las 17:50:30 el OMOD actualizado en `omod/target`, coincidente con
+el artefacto Maven local: SHA-256
+`DAAFD037F2F9AF03BA8825BF25428991E5562E08FF4E6E472BA8B8A5CB911829`.
+Los 23 reportes de `target/surefire-reports` de API y OMOD suman 221 pruebas,
+sin fallos, errores ni omitidas. Se puede volver al procedimiento habitual de
+`mvn clean install` y usar el OMOD de `target`. El fallo anterior evidenció
+bytecode inconsistente; la interferencia del IDE fue una hipótesis, no una causa
+demostrada. No se comprobaron ni reemplazaron las copias de las instancias en esta
+revisión posterior de la compilación del usuario.
+
+Por solicitud del usuario se retiraron las carpetas temporales `.build-sync`,
+su perfil Maven `isolated-sync-build` y la entrada de exclusión correspondiente.
+El procedimiento vigente vuelve a ser `mvn clean install` y utilizar el OMOD de
+`synchronizationmr/omod/target`; las referencias anteriores al perfil aislado
+describen únicamente el historial de esta sesión.
+
+Antes de reanudar las pruebas se verificaron las tres instancias apagadas y se
+copió a sus directorios modules el OMOD de la compilación normal del usuario
+(`omod/target`). Maestro, A, B y Maven local coinciden con SHA-256
+`DAAFD037F2F9AF03BA8825BF25428991E5562E08FF4E6E472BA8B8A5CB911829`.
+Respaldo previo: `.local-sync-https/omod-before-target-20260927-175631/`.
+Quedan pendientes el arranque y la prueba manual de resultados.
+
+Tras el arranque se comprobaron las dos migraciones de adiciones del 27/09 en
+las tres bases y las clases nuevas del API en sus cachés `.openmrs-lib-cache`,
+coincidentes con la compilación de `target`. Los tres OMOD siguen coincidiendo
+con el hash de la compilación normal. Línea base: ocho órdenes por instancia y
+cero eventos de adiciones; ORD-1 conserva sus trece observaciones antiguas solo
+en A. ORD-5 (Blood urea nitrogen, referencia PRUEBA-A-OFFLINE-001) existe en las
+tres, no está detenida ni anulada y no tiene resultados: se elige para la primera
+prueba de resultados nuevos desde A. Pendiente guardar y verificar entrega.
+
+### Resultado nuevo de ORD-5: verificación en las tres bases
+
+El usuario guardó el valor ficticio 5 (mmol/L en el formulario) en A el 27/09/2026
+a las 18:22:49. Se comprobó una observación activa por base, UUID
+`3e3adc1b-73d3-49a0-b129-0bda7e575d08`, valor 5, vinculada a ORD-5
+`e7c39d7b-cfad-47ab-8437-0b3c59202d17` y al encuentro original
+`2ee3390f-b46b-49b0-9175-7f877a6b5f31`. El evento de adición
+`f584d8d8-3449-4d53-8acc-36d0188895f9`, origen A secuencia 10, coincide en los
+tres nodos: SHA-256 `e1fd65d9e4a970b4a57501ba436ea9ebc097015b6fe43fb7efba434cac1e67ee`.
+Maestro y B confirman A=10; no hay enlaces de órdenes pendientes.
+
+El SPA detuvo ORD-5 a las 18:22:49 y creó ORD-9 DISCONTINUE
+`18fb6f69-08d5-476d-aafb-9ac395dbe4c4`, presente en las tres bases. ORD-5 no fue
+anulada (voided=0). En A tiene fulfiller_status=COMPLETED; maestro y B conservan
+NULL para ese campo: sigue pendiente sincronizar el estado de cumplimiento.
+La entrega del resultado nuevo quedó comprobada en base de datos; falta su
+comprobación visual en Results de maestro y B y la recuperación del hemograma
+antiguo ORD-1. No se debe confundir desaparición de la lista activa con borrado.
+
+El usuario confirmó después la visualización del resultado de ORD-5 en las tres
+instancias. Las tres tarjetas (Basic metabolic panel, Serum chemistry panel y
+Renal function panel) muestran la misma observación por pertenecer a esos paneles
+del catálogo; no son tres copias del resultado.
+
+### Recuperar resultados guardados antes de activar su captura
+
+La preparación de resultados se activa explícitamente. No vuelve a introducir
+los datos clínicos y no cambia eventos CREATE ya publicados. Revisa UUID de
+observaciones contra los eventos anteriores y genera ADD_OBS solo para las que
+faltan. Esta operación incluye observaciones originales activas; las correcciones,
+anulaciones, archivos y cambios de estado de cumplimiento siguen fuera de ella.
+
+Después de compilar con `mvn clean install` y actualizar el OMOD con las instancias
+detenidas, arrancar A desde la raíz del repositorio con:
+
+```powershell
+.\dev\https\Start-Posta.ps1 -ServerId posta_a -SincronizarPacientes -SincronizarEncuentros -SincronizarOrdenes -PrepararPacientesExistentes -PrepararEncuentrosExistentes -PrepararOrdenesExistentes -PrepararResultadosExistentes -TamanoLotePreparacion 2
+```
+
+Maestro y B pueden arrancarse como antes. El tamaño 2 facilita observar la prueba;
+el valor predeterminado es 25 encuentros por ciclo. Se prepara primero pacientes,
+encuentros y órdenes. Luego se recorren los encuentros con CREATE, incluso los que
+no necesitan adiciones, para llegar a los resultados antiguos. El log informa
+encuentros revisados, eventos publicados y `complete=true` al terminar la pasada.
+Un fallo conserva el cursor para reintentar; un reinicio comienza otra pasada
+sin volver a publicar las observaciones conocidas. La preparación es local;
+el transporte HTTPS entrega después sus eventos por el flujo de encuentros.
+
+Prueba pendiente: recuperar las 13 observaciones del hemograma ORD-1 desde A y
+comparar sus UUID, valores, grupos y vínculo con la orden en maestro y B.
+Repetir la preparación para comprobar ausencia de duplicados. No volver a
+registrar los valores manualmente. El paquete con esta recuperación todavía
+debe desplegarse; la prueba previa de ORD-5 corresponde a captura nueva.
+
 Referencias: [RemoteIpValve de Tomcat](https://tomcat.apache.org/tomcat-9.0-doc/config/valve.html#Remote_IP_Valve),
 [HTTPS en Nginx](https://nginx.org/en/docs/http/configuring_https_servers.html).

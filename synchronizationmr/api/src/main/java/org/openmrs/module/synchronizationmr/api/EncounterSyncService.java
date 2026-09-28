@@ -13,6 +13,12 @@ public interface EncounterSyncService extends OpenmrsService {
 	@Transactional
 	int prepareExistingEncounters(int limit);
 	
+	/** Explicit scan of unpublished, original observations on previously published encounters. */
+	@Authorized(value = { "Prepare Synchronization Records", "Get Encounters", "Get Observations" }, requireAll = true)
+	@Transactional
+	org.openmrs.module.synchronizationmr.sync.ObservationPreparationBatch prepareExistingObservations(int afterEncounterId,
+	        int limit);
+	
 	@Authorized("View Synchronization Records")
 	@Transactional(readOnly = true)
 	long countEncountersPendingPreparation();
@@ -35,4 +41,8 @@ public interface EncounterSyncService extends OpenmrsService {
 	
 	@Transactional(propagation = Propagation.MANDATORY)
 	void recordCreatedEncounter(Encounter encounter);
+	
+	@Transactional(propagation = Propagation.MANDATORY)
+	void recordAddedObservations(Encounter encounter);
+	
 }

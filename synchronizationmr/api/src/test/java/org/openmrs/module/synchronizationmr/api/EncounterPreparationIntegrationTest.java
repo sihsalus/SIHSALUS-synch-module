@@ -18,6 +18,7 @@ public class EncounterPreparationIntegrationTest extends BaseModuleContextSensit
         new Liquibase("src/main/resources/liquibase.xml", new FileSystemResourceAccessor(), new JdbcConnection(getConnection())).update("");
         Context.getAdministrationService().saveGlobalProperty(new GlobalProperty("server.id", "testServer_1"));
         try (Statement s = getConnection().createStatement()) {
+            s.executeUpdate("delete from synchronizationmr_encounter_addition");
             s.executeUpdate("delete from synchronizationmr_encounter_event");
             s.executeUpdate("delete from synchronizationmr_encounter_receipt");
             s.executeUpdate("update synchronizationmr_local_node set encounter_sequence = 0, server_id = 'testServer_1'");

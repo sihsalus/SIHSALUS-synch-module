@@ -1,4 +1,5 @@
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\advice\EncounterCreationAdvice.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\advice\ObservationAdditionAdvice.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\advice\OrderCreationAdvice.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\advice\PatientCreationAdvice.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\EncounterReceiveDao.java
@@ -27,6 +28,8 @@ C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\mai
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\PatientSyncService.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\SynchronizationMRService.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterCreationPayloadSerializer.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterDependencyException.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterEventStream.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterIncomingEvent.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterObservationVersions.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterSyncClient.java
@@ -36,6 +39,8 @@ C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\mai
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\IncomingEncounterSave.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\IncomingOrderSave.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\IncomingPatientSave.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\ObservationCaptureScope.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\ObservationPreparationBatch.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\OrderCreationPayloadSerializer.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\OrderIncomingEvent.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\OrderPayload.java
