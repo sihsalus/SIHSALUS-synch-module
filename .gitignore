@@ -38,3 +38,9 @@ bower_components
 
 # Local HTTPS certificates, private keys and runtime files
 .local-sync-https/
+
+# Internal working notes, thesis evidence and local laboratory tooling.
+# Keep local copies; publish reviewed documentation separately when needed.
+/[0-9][0-9]_*.md
+/evidencias-tesis/
+/dev/
