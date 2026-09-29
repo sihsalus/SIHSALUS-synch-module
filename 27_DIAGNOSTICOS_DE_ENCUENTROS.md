@@ -2,6 +2,16 @@
 
 ## Estado vigente: función retirada del código a petición del usuario
 
+Comprobación posterior al reinicio, 27/09/2026 22:53: las tres aplicaciones
+responden HTTP 200 y conservan el hash final del OMOD indicado más abajo.
+El autor confirmó el módulo iniciado en las tres interfaces. La revisión SELECT
+encontró los mismos 14 encuentros y 55 observaciones activas del paciente de
+prueba, comparando UUID, conceptos, valores y relaciones. El hemograma conserva
+sus 12 valores y grupo, y los dos resultados de urea los valores 5 y 6, sin
+enlaces pendientes a órdenes. No se modificaron datos. Sigue pendiente un evento
+nuevo para comprobar la sincronización después de esta actualización.
+Evidencia: `evidencias-tesis/2026-09-27/verificacion-datos-tras-reinicio.json`.
+
 El usuario decidió posponer la sincronización de diagnósticos nativos hasta
 definir una pantalla o formulario que la utilice. Se eliminaron el interceptor,
 el serializador específico, ADD_DIAGNOSES/esquema 5, la recepción y las pruebas

@@ -1,0 +1,2329 @@
+{
+  "cutoff": "2026-09-27",
+  "build_finished": "2026-09-27T22:07:46-05:00",
+  "source_commit": "83020e160c410fab4b6ebaf6d60b362926084a2e",
+  "build_log": ".local-sync-https/remove-native-diagnoses-build.log",
+  "artifact": "synchronizationmr/omod/target/synchronizationmr-1.0.0-SNAPSHOT.omod",
+  "artifact_sha256": "eecb454c7da80e0ab0387ccab6bfe19f9194b1995cd5f0e84fb802c8059a8a5e",
+  "note": "Existing reports inspected; tests were not rerun to create this summary. Environment properties and logs are intentionally excluded.",
+  "totals": {
+    "tests": 226,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "suites": [
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.advice.PatientCreationAdviceTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/advice/PatientCreationAdviceTest.java",
+      "category": "Aislada / dobles",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.advice.PatientCreationAdviceTest.xml",
+      "report_sha256": "878a1d7f7b1cb671de4c592c207729c5fddd3fa785408b82ff9e354bbe871c37"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterAdditionIntegrationTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterAdditionIntegrationTest.java",
+      "category": "Contexto OpenMRS/H2",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.api.EncounterAdditionIntegrationTest.xml",
+      "report_sha256": "d953b511b5e1a0eff1e6833de402823edff8d84a0a3e1c2b83903dbc75aa11b1"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterCaptureIntegrationTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterCaptureIntegrationTest.java",
+      "category": "Contexto OpenMRS/H2",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.api.EncounterCaptureIntegrationTest.xml",
+      "report_sha256": "5b0ca5df51218d05f97aeea1338c4588872d5444a1da4f42484203bd735e9169"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterPreparationIntegrationTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterPreparationIntegrationTest.java",
+      "category": "Contexto OpenMRS/H2",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.api.EncounterPreparationIntegrationTest.xml",
+      "report_sha256": "432d901d66e0f86837d039ba4561cde3e15ca25c8ccf213db823c657296ef308"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java",
+      "category": "Contexto OpenMRS/H2",
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest.xml",
+      "report_sha256": "49d205a2303456c1a71db1884f0acf5f0122dab17a5a43fd2a82abbe7e6946ef"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.LocalNodeServiceIntegrationTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/LocalNodeServiceIntegrationTest.java",
+      "category": "Contexto OpenMRS/H2",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.api.LocalNodeServiceIntegrationTest.xml",
+      "report_sha256": "49a4b6088fddfce7a4e14ba759875a00177045df8b056bcdc3d8457ba8ff6d73"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.NodeIdentityMigrationTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/NodeIdentityMigrationTest.java",
+      "category": "Liquibase/H2",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.api.NodeIdentityMigrationTest.xml",
+      "report_sha256": "4699b2d0b471c669838ec8679316aab98aba9f0286a646847a70bb6c14353a3f"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderPreparationIntegrationTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderPreparationIntegrationTest.java",
+      "category": "Contexto OpenMRS/H2",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.api.OrderPreparationIntegrationTest.xml",
+      "report_sha256": "58c56edcf56c20152b42e74d36c4635aee1afe27acdca0f83e0c937171b8de03"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderReceiveIntegrationTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderReceiveIntegrationTest.java",
+      "category": "Contexto OpenMRS/H2",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.api.OrderReceiveIntegrationTest.xml",
+      "report_sha256": "50ccaf42528e985a09b38c6dcb4beb854f9657b007625f02b3f178c856a7a64f"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java",
+      "category": "Contexto OpenMRS/H2",
+      "tests": 25,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest.xml",
+      "report_sha256": "5e99722cd335011113cd184feb677d1fdc09ee9c6cd777806dfd0939cae1684e"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientPreparationIntegrationTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientPreparationIntegrationTest.java",
+      "category": "Contexto OpenMRS/H2",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.api.PatientPreparationIntegrationTest.xml",
+      "report_sha256": "80d5a2f2b044d1f39a4fba147ab145b54d28af90eeef0379f00df70d821058e1"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java",
+      "category": "Contexto OpenMRS/H2",
+      "tests": 20,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest.xml",
+      "report_sha256": "ea2371fd63bfc2a8f0e97defc24aae15b86b8b5d635e50d0e1c4fd81b26d93bf"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterCreationPayloadSerializerTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterCreationPayloadSerializerTest.java",
+      "category": "Aislada / dobles",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.sync.EncounterCreationPayloadSerializerTest.xml",
+      "report_sha256": "51f5f3b748ac251367ff7f33c0e7e395c223e4e1d048702e9ac44f680f5db725"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterSyncClientTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterSyncClientTest.java",
+      "category": "Aislada / dobles",
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.sync.EncounterSyncClientTest.xml",
+      "report_sha256": "2f474ae82e7052a865263aa618c04c0071b74156ab31ca4c9efdc9d373ad73f0"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.OrderSyncClientTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/OrderSyncClientTest.java",
+      "category": "Aislada / dobles",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.sync.OrderSyncClientTest.xml",
+      "report_sha256": "43a51d68cd7cf4f432d6dc2bcdd33ae85515c015fb5e08f214d44737c040e24a"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientCreationPayloadSerializerTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientCreationPayloadSerializerTest.java",
+      "category": "Aislada / dobles",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.sync.PatientCreationPayloadSerializerTest.xml",
+      "report_sha256": "f97d8fc166ca5fad46fb18983171874369f9fa34a38e1ad50153d7959c27da0f"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientPreparationSchedulerTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientPreparationSchedulerTest.java",
+      "category": "Aislada / dobles",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.sync.PatientPreparationSchedulerTest.xml",
+      "report_sha256": "13dfbfff47072d8cb864ada64418dc7755c979cbc206f5b6ddd0defb3fa1b251"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncClientTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncClientTest.java",
+      "category": "Aislada / dobles",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.sync.PatientSyncClientTest.xml",
+      "report_sha256": "70f2078aa96cd7056fbea1b93b991808607367af32635c8a5ecdbfb060e29f6e"
+    },
+    {
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncSchedulerTest",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncSchedulerTest.java",
+      "category": "Aislada / dobles",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/api/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.sync.PatientSyncSchedulerTest.xml",
+      "report_sha256": "d8589057f9a323fe6c4f650d77851ebb0570bcc74bc6b077232744b6612dcbaa"
+    },
+    {
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.EncounterSyncHttpServletTest",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/EncounterSyncHttpServletTest.java",
+      "category": "Web con dobles",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/omod/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.web.EncounterSyncHttpServletTest.xml",
+      "report_sha256": "0d6e1ad89caade973bf8da3f19a60a9a6c99c1f9667e54ddf5f0e58c7f2bc00a"
+    },
+    {
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.OrderSyncHttpServletTest",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/OrderSyncHttpServletTest.java",
+      "category": "Web con dobles",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/omod/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.web.OrderSyncHttpServletTest.xml",
+      "report_sha256": "d2303c67ac9f3f77986a62a3c9d6712cf337ff92fd911c27dbfe604258d5f3b1"
+    },
+    {
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpIntegrationTest",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpIntegrationTest.java",
+      "category": "Contexto OpenMRS/H2",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/omod/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.web.PatientSyncHttpIntegrationTest.xml",
+      "report_sha256": "b1770d4a00ef756885e469e13e0c20902640eb60c678fb574423c0e913d2c259"
+    },
+    {
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpServletTest",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpServletTest.java",
+      "category": "Web con dobles",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "synchronizationmr/omod/target/surefire-reports/TEST-org.openmrs.module.synchronizationmr.web.PatientSyncHttpServletTest.xml",
+      "report_sha256": "73494e241c810e2703c636919894cfa514afb3e653317dc0b9e3554839b27a68"
+    }
+  ],
+  "cases": [
+    {
+      "id": "AUTO-001",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.advice.PatientCreationAdviceTest",
+      "case": "rejectsReadOnlyTransactionBeforeSave",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/advice/PatientCreationAdviceTest.java"
+    },
+    {
+      "id": "AUTO-002",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.advice.PatientCreationAdviceTest",
+      "case": "startsTransactionWhenCoreAdviceHasNoTransactionYet",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/advice/PatientCreationAdviceTest.java"
+    },
+    {
+      "id": "AUTO-003",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.advice.PatientCreationAdviceTest",
+      "case": "recordsPersonConvertedToPatientWithExistingPersonId",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/advice/PatientCreationAdviceTest.java"
+    },
+    {
+      "id": "AUTO-004",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.advice.PatientCreationAdviceTest",
+      "case": "doesNotRecordWhenClinicalSaveFails",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/advice/PatientCreationAdviceTest.java"
+    },
+    {
+      "id": "AUTO-005",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.advice.PatientCreationAdviceTest",
+      "case": "recordsNewPatientAfterSuccessfulSave",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/advice/PatientCreationAdviceTest.java"
+    },
+    {
+      "id": "AUTO-006",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.advice.PatientCreationAdviceTest",
+      "case": "captureFailurePropagatesToClinicalTransaction",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/advice/PatientCreationAdviceTest.java"
+    },
+    {
+      "id": "AUTO-007",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.advice.PatientCreationAdviceTest",
+      "case": "leavesUnrelatedMethodsUntouched",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/advice/PatientCreationAdviceTest.java"
+    },
+    {
+      "id": "AUTO-008",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.advice.PatientCreationAdviceTest",
+      "case": "doesNotTreatPatientEditAsCreation",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/advice/PatientCreationAdviceTest.java"
+    },
+    {
+      "id": "AUTO-009",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterAdditionIntegrationTest",
+      "case": "observationSaveWithoutOuterTransactionCapturesAtomically",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterAdditionIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-010",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterAdditionIntegrationTest",
+      "case": "rejectsExistingObservationUuidInsteadOfOverwritingIt",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterAdditionIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-011",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterAdditionIntegrationTest",
+      "case": "failedDependencyDoesNotSaveEarlierValidObservationOrAdvanceReceipt",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterAdditionIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-012",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterAdditionIntegrationTest",
+      "case": "directObsSaveCapturesCompleteGroupAndSecondAddition",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterAdditionIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-013",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterAdditionIntegrationTest",
+      "case": "localRollbackRemovesObservationAndAdditionTogether",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterAdditionIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-014",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterAdditionIntegrationTest",
+      "case": "preparationRejectsInvalidCursorAndBounds",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterAdditionIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-015",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterAdditionIntegrationTest",
+      "case": "initialGroupRemainsInCreationAndLaterChildReferencesExistingGroup",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterAdditionIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-016",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterAdditionIntegrationTest",
+      "case": "lateOrderLinkFailureRollsBackResultsAndReceipt",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterAdditionIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-017",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterAdditionIntegrationTest",
+      "case": "preparationRollbackKeepsHistoricalResultsAndCanRetry",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterAdditionIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-018",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterAdditionIntegrationTest",
+      "case": "preparesHistoricalResultsWithoutChangingClinicalRowsAndRescansWithoutDuplicates",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterAdditionIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-019",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterAdditionIntegrationTest",
+      "case": "preparationAdvancesPastEmptyEncountersAndHonorsBatchSize",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterAdditionIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-020",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterAdditionIntegrationTest",
+      "case": "receivesGroupWithOrderLinkAndRetriesWithoutEchoOrDuplicates",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterAdditionIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-021",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterAdditionIntegrationTest",
+      "case": "rejectsMissingEncounterWrongPatientGapsAndConflictingRetry",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterAdditionIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-022",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterAdditionIntegrationTest",
+      "case": "appendsToExistingGroupWithoutReplacingItsMembers",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterAdditionIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-023",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterAdditionIntegrationTest",
+      "case": "encounterSaveCapturesGroupOnceAndKeepsCreationImmutable",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterAdditionIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-024",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterCaptureIntegrationTest",
+      "case": "capturesWithoutPatientSyncIdentityOrNetwork",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-025",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterCaptureIntegrationTest",
+      "case": "capturesWhenCallerHasNoOuterTransaction",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-026",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterCaptureIntegrationTest",
+      "case": "capturesTwoCreationsAndDoesNotDuplicateOnEditOrRepeatedCapture",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-027",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterCaptureIntegrationTest",
+      "case": "storesSnapshotAndKeepsItUnchangedAfterEditing",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-028",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterCaptureIntegrationTest",
+      "case": "oldEncounterEditDoesNotBecomeCreation",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-029",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterCaptureIntegrationTest",
+      "case": "rollbackRemovesEncounterAndPendingEventTogether",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-030",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterPreparationIntegrationTest",
+      "case": "preservesCommittedBatchAndResumesRolledBackBatch",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterPreparationIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-031",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterPreparationIntegrationTest",
+      "case": "preparesExistingEncountersWithoutCreatingClinicalRowsOrPreparingPatients",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterPreparationIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-032",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterPreparationIntegrationTest",
+      "case": "refusesHistoricalMissingJsonAndInvalidLimits",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterPreparationIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-033",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "rejectsPreviousObservationFromAnotherPatient",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-034",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "rejectsMissingConceptAndUnsupportedContentWithoutPartialSave",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-035",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "resolvesHistoricalVersionFromEarlierEncounterOfSamePatient",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-036",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "receivesGroupedObservationsAndRetainsOriginalEventWithoutLocalRecapture",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-037",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "failedEventInsertRollsBackNewVisitToo",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-038",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "rejectsMissingHistoricalVersionAndCyclesWithoutConfirming",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-039",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "missingVisitCannotBeReplacedByAnAutomaticallyCreatedVisit",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-040",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "preservesClosedVisitSnapshot",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-041",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "importWithoutVisitDoesNotCreateOneButLocalRegistrationStillDoes",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-042",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "importKeepsExplicitVisitInsteadOfReplacingItWithLocalAutomaticVisit",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-043",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "preservesHistoricalObservationVersionsInsideSnapshotAndOnRetry",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-044",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "stillAcceptsVersionTwoWithoutVisit",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-045",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "rejectsGapsConflictingRetriesAndExistingEncounter",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-046",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "missingPatientDoesNotCreateItOrConfirmEncounter",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-047",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "databaseFailureRollsBackEncounterObservationsAndReceipt",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-048",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "rejectsCycleBetweenTwoVersionsBeforeSaving",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-049",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "rejectsVisitConflictsMissingMetadataAndUnsupportedAttributes",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-050",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "createsVisitWithObservationAndReusesItForRetryAndNextEncounter",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-051",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.EncounterReceiveIntegrationTest",
+      "case": "receivesVisitAndVitalsWithTechnicalRole",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/EncounterReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-052",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.LocalNodeServiceIntegrationTest",
+      "case": "persistsWithoutOuterTransaction",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/LocalNodeServiceIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-053",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.LocalNodeServiceIntegrationTest",
+      "case": "missingOrInvalidConfigurationDoesNotCreateIdentity",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/LocalNodeServiceIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-054",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.LocalNodeServiceIntegrationTest",
+      "case": "identityRollsBackWithCaller",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/LocalNodeServiceIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-055",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.LocalNodeServiceIntegrationTest",
+      "case": "rejectsRenamingEstablishedOrigin",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/LocalNodeServiceIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-056",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.LocalNodeServiceIntegrationTest",
+      "case": "usesConfiguredIdWithoutGeneratingUuidOrAdvancingCounters",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/LocalNodeServiceIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-057",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.LocalNodeServiceIntegrationTest",
+      "case": "simultaneousFirstCallsUseSameConfiguredId",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/LocalNodeServiceIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-058",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.NodeIdentityMigrationTest",
+      "case": "installsFromScratchAndKeepsIdentityAndCountersOnRestart",
+      "status": "PASS",
+      "category": "Liquibase/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/NodeIdentityMigrationTest.java"
+    },
+    {
+      "id": "AUTO-059",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.NodeIdentityMigrationTest",
+      "case": "stopsRatherThanReinterpretingOldOrigins",
+      "status": "PASS",
+      "category": "Liquibase/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/NodeIdentityMigrationTest.java"
+    },
+    {
+      "id": "AUTO-060",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.NodeIdentityMigrationTest",
+      "case": "upgradesEmptySyncTablesAndPreservesClinicalRows",
+      "status": "PASS",
+      "category": "Liquibase/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/NodeIdentityMigrationTest.java"
+    },
+    {
+      "id": "AUTO-061",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderPreparationIntegrationTest",
+      "case": "preservesCommittedBatchAndResumesRolledBackBatch",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderPreparationIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-062",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderPreparationIntegrationTest",
+      "case": "voidedUnpreparedPredecessorDoesNotAllowDependentToJumpAhead",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderPreparationIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-063",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderPreparationIntegrationTest",
+      "case": "preparesExistingOrdersWithoutCreatingClinicalRowsOrPreparingPatients",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderPreparationIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-064",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderPreparationIntegrationTest",
+      "case": "refusesHistoricalMissingJsonAndInvalidLimits",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderPreparationIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-065",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderPreparationIntegrationTest",
+      "case": "dependencyCycleRemainsPendingAndIsNotReportedAsCompleted",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderPreparationIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-066",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderPreparationIntegrationTest",
+      "case": "preparesPredecessorBeforeDependentEvenWhenItsLocalIdIsHigher",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderPreparationIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-067",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderReceiveIntegrationTest",
+      "case": "capturesDiscontinuationCreatedByNativeConvenienceMethod",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-068",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderReceiveIntegrationTest",
+      "case": "databaseFailureRollsBackOrderAndReceipt",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-069",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderReceiveIntegrationTest",
+      "case": "missingEncounterDoesNotCreatePatientOrConfirm",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-070",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderReceiveIntegrationTest",
+      "case": "persistsDeferredObservationLinkAndCompletesItWhenOrderArrives",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-071",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderReceiveIntegrationTest",
+      "case": "rejectsMismatchedPatientAndUnknownCatalog",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-072",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderReceiveIntegrationTest",
+      "case": "rejectsOrderForAnotherPatientWithoutLosingPendingLinks",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-073",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderReceiveIntegrationTest",
+      "case": "importsStoppedSnapshotThenItsDiscontinuationWithoutReopeningIt",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-074",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderReceiveIntegrationTest",
+      "case": "importsRevisionAndClosesPreviousOrderAtomically",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-075",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderReceiveIntegrationTest",
+      "case": "resolvesObservationImmediatelyWhenOrderAlreadyArrived",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-076",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderReceiveIntegrationTest",
+      "case": "receivesOrderWithPatientEncounterAndOriginalEventWithoutRecapture",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-077",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderReceiveIntegrationTest",
+      "case": "receivesDrugAndTestSpecificFields",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-078",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderReceiveIntegrationTest",
+      "case": "rejectsGapChangedRetryAndExistingUuid",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-079",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.OrderReceiveIntegrationTest",
+      "case": "capturesNativeCreationOnlyOnce",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/OrderReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-080",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "committedRecordSurvivesANewTransaction",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-081",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "missingEventIsNotHiddenByQuery",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-082",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "queriesOrderedPagesWithoutChangingPendingEvents",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-083",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "legacyEventWithoutPayloadIsNotReconstructedFromCurrentPatient",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-084",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "higherSequenceDoesNotHideGap",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-085",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "serializationFailureRollsBackPatientIdentityAndCounter",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-086",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "simultaneousClinicalTransactionsAllocateDifferentSequences",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-087",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "changingObsoleteLabelDoesNotChangeServerIdentity",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-088",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "clinicalSaveCreatesPendingIdentityAndRepeatedSaveDoesNotDuplicate",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-089",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "capturesExistingPersonBecomingPatient",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-090",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "failureAfterOutboxWriteRollsBackClinicalSaveWithoutOuterTransaction",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-091",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "creationPayloadPreservesIdentityAndClinicalReferences",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-092",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "rollbackRemovesPatientIdentityEventAndCounterIncrement",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-093",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "preparingAgainPreservesSequenceAndOriginalSnapshot",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-094",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "patientUsesPreviouslyInitializedServerId",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-095",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "capturesWithoutAnOuterTestTransaction",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-096",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "missingPayloadAbortsPageInsteadOfSkippingEvent",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-097",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "successivePatientsShareOriginAndHaveDifferentSequences",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-098",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "editingPatientDoesNotRewriteOriginalPayload",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-099",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "configuringServerIdPreservesExistingPatientEvent",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-100",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "queriesSeparateOriginsAndRejectInvalidArguments",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-101",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "missingServerIdRollsBackClinicalCreationInsteadOfInventingOrigin",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-102",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "preparationRollsBackWithItsCallingTransaction",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-103",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "preparationRejectsMissingPatientAndMissingHistoricalPayload",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-104",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientCaptureIntegrationTest",
+      "case": "preparesPreexistingPatientWithoutCreatingAnotherPatient",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientCaptureIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-105",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientPreparationIntegrationTest",
+      "case": "batchesExistingPatientsWithoutDuplicatingOrRewritingSnapshots",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientPreparationIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-106",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientPreparationIntegrationTest",
+      "case": "doesNotHideAnExistingEventWithoutPayload",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientPreparationIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-107",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientPreparationIntegrationTest",
+      "case": "rejectsInvalidLimitsAndInterruptionWithoutPreparingPatients",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientPreparationIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-108",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientPreparationIntegrationTest",
+      "case": "resumesAfterRollbackWithoutLosingPreviouslyCommittedBatch",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientPreparationIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-109",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientPreparationIntegrationTest",
+      "case": "invalidPatientRollsBackEarlierPatientsInSameBatch",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientPreparationIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-110",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "retryDoesNotOverwriteLocalCorrectionOrReplaceOriginalSnapshot",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-111",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "rejectsInvalidTimeAndMissingNewFields",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-112",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "rejectsEquivalentNamesRatherThanSilentlyDroppingOne",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-113",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "differentContentForConfirmedSequenceIsRejected",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-114",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "rejectsOldNodeUuidSchemaWithoutSavingPatient",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-115",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "duplicateEventUuidRollsBackClinicalSaveAndConfirmationWithoutOuterTransaction",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-116",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "missingCatalogDoesNotSavePatientOrAdvanceConfirmation",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-117",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "cannotConfirmThreeWhenTwoIsMissing",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-118",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "simultaneousDuplicateDeliveryCreatesSingleRecord",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-119",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "preservesBirthtimeAndAttributesIncludingReferenceAcrossDifferentLocalIds",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-120",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "rejectsMissingAttributeCatalogWithoutSavingOrConfirming",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-121",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "rejectsEquivalentIdentifiersRatherThanSilentlyDroppingOne",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-122",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "duplicateDeliveryReturnsConfirmationWithoutRewritingPatient",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-123",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "receivesPatientAndPreservesOriginForRedistribution",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-124",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "rejectsMalformedUnsupportedAndUnknownFields",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-125",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "rejectsExistingPatientWithoutOverwritingOrConfirming",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-126",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "acceptsHistoricalSchemaThreeWithoutRewritingSnapshot",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-127",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "preservesAllAddressFieldsAndMultipleNamesAfterDatabaseReload",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-128",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "unauthenticatedCallerCannotImportPatient",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-129",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.api.PatientReceiveIntegrationTest",
+      "case": "rejectsEquivalentAddressesRatherThanSilentlyDroppingOne",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/api/PatientReceiveIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-130",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterCreationPayloadSerializerTest",
+      "case": "preservesGroupedValuesAndNativeReferences",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterCreationPayloadSerializerTest.java"
+    },
+    {
+      "id": "AUTO-131",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterCreationPayloadSerializerTest",
+      "case": "preservesTextDatesAndVoidedObservations",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterCreationPayloadSerializerTest.java"
+    },
+    {
+      "id": "AUTO-132",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterCreationPayloadSerializerTest",
+      "case": "separatesOrderReferencesAndDoesNotClaimToIncludeComplexFiles",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterCreationPayloadSerializerTest.java"
+    },
+    {
+      "id": "AUTO-133",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterSyncClientTest",
+      "case": "rejectsGapBeforeSaving",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-134",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterSyncClientTest",
+      "case": "acceptsDistinctConfiguredServerId",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-135",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterSyncClientTest",
+      "case": "rejectsUnconfiguredLocalIdentityBeforeNetwork",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-136",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterSyncClientTest",
+      "case": "sendsOwnEventsAndReceivesOtherOriginsWithoutDownloadingItself",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-137",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterSyncClientTest",
+      "case": "transportRejectsInsecureOrEmbeddedCredentials",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-138",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterSyncClientTest",
+      "case": "rejectsOuterTransactionBeforeNetwork",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-139",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterSyncClientTest",
+      "case": "rejectsMasterWithSameServerIdBeforeExchangingEncounters",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-140",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterSyncClientTest",
+      "case": "failureBeforeDeliveryRetriesTheSameOriginalEvent",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-141",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterSyncClientTest",
+      "case": "receptionResumesFromLocallyCommittedSequence",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-142",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterSyncClientTest",
+      "case": "missingEncounterFromEarlierOriginDoesNotStarveLaterOrigin",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-143",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterSyncClientTest",
+      "case": "rejectsOldProtocolEvenIfServerNameMatches",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-144",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterSyncClientTest",
+      "case": "lostAcknowledgementResumesFromMastersPersistedConfirmation",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-145",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterSyncClientTest",
+      "case": "rejectsWrongMasterBeforeSendingClinicalData",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-146",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.EncounterSyncClientTest",
+      "case": "rejectsConfirmationForAnotherOrigin",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/EncounterSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-147",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.OrderSyncClientTest",
+      "case": "rejectsGapBeforeSaving",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/OrderSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-148",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.OrderSyncClientTest",
+      "case": "acceptsDistinctConfiguredServerId",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/OrderSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-149",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.OrderSyncClientTest",
+      "case": "rejectsUnconfiguredLocalIdentityBeforeNetwork",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/OrderSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-150",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.OrderSyncClientTest",
+      "case": "sendsOwnEventsAndReceivesOtherOriginsWithoutDownloadingItself",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/OrderSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-151",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.OrderSyncClientTest",
+      "case": "transportRejectsInsecureOrEmbeddedCredentials",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/OrderSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-152",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.OrderSyncClientTest",
+      "case": "rejectsOuterTransactionBeforeNetwork",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/OrderSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-153",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.OrderSyncClientTest",
+      "case": "failureBeforeDeliveryRetriesTheSameOriginalEvent",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/OrderSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-154",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.OrderSyncClientTest",
+      "case": "receptionResumesFromLocallyCommittedSequence",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/OrderSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-155",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.OrderSyncClientTest",
+      "case": "rejectsOldProtocolEvenIfServerNameMatches",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/OrderSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-156",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.OrderSyncClientTest",
+      "case": "lostAcknowledgementResumesFromMastersPersistedConfirmation",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/OrderSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-157",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.OrderSyncClientTest",
+      "case": "rejectsWrongMasterBeforeSendingClinicalData",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/OrderSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-158",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.OrderSyncClientTest",
+      "case": "rejectsConfirmationForAnotherOrigin",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/OrderSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-159",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.OrderSyncClientTest",
+      "case": "rejectsMasterWithSameServerIdBeforeExchangingOrders",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/OrderSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-160",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientCreationPayloadSerializerTest",
+      "case": "rejectsAddressWithoutStableUuid",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientCreationPayloadSerializerTest.java"
+    },
+    {
+      "id": "AUTO-161",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientCreationPayloadSerializerTest",
+      "case": "emitsOptionalFieldsAndPreservesSimpleAttributesWithoutVoidedHistory",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientCreationPayloadSerializerTest.java"
+    },
+    {
+      "id": "AUTO-162",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientCreationPayloadSerializerTest",
+      "case": "patientWithoutAddressesHasEmptyArray",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientCreationPayloadSerializerTest.java"
+    },
+    {
+      "id": "AUTO-163",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientCreationPayloadSerializerTest",
+      "case": "rejectsUnsupportedAttributeFormatsAndMalformedNumbers",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientCreationPayloadSerializerTest.java"
+    },
+    {
+      "id": "AUTO-164",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientCreationPayloadSerializerTest",
+      "case": "preservesMultipleAddressesAndSkipsVoidedAddress",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientCreationPayloadSerializerTest.java"
+    },
+    {
+      "id": "AUTO-165",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientPreparationSchedulerTest",
+      "case": "preparationNeedsOnlyLocalCredentialsAndBoundedBatch",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientPreparationSchedulerTest.java"
+    },
+    {
+      "id": "AUTO-166",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientPreparationSchedulerTest",
+      "case": "resultsAreExplicitAndRequirePreparationOfTheirDependencies",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientPreparationSchedulerTest.java"
+    },
+    {
+      "id": "AUTO-167",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientPreparationSchedulerTest",
+      "case": "disabledPreparationDoesNotNeedConnectionOrCredentials",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientPreparationSchedulerTest.java"
+    },
+    {
+      "id": "AUTO-168",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncClientTest",
+      "case": "rejectsMasterWithSameServerIdBeforeExchangingPatients",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-169",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncClientTest",
+      "case": "rejectsGapBeforeSaving",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-170",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncClientTest",
+      "case": "acceptsDistinctConfiguredServerId",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-171",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncClientTest",
+      "case": "rejectsUnconfiguredLocalIdentityBeforeNetwork",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-172",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncClientTest",
+      "case": "sendsOwnEventsAndReceivesOtherOriginsWithoutDownloadingItself",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-173",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncClientTest",
+      "case": "transportRejectsInsecureOrEmbeddedCredentials",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-174",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncClientTest",
+      "case": "rejectsOuterTransactionBeforeNetwork",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-175",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncClientTest",
+      "case": "failureBeforeDeliveryRetriesTheSameOriginalEvent",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-176",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncClientTest",
+      "case": "receptionResumesFromLocallyCommittedSequence",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-177",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncClientTest",
+      "case": "rejectsOldProtocolEvenIfServerNameMatches",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-178",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncClientTest",
+      "case": "lostAcknowledgementResumesFromMastersPersistedConfirmation",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-179",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncClientTest",
+      "case": "rejectsWrongMasterBeforeSendingClinicalData",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-180",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncClientTest",
+      "case": "rejectsConfirmationForAnotherOrigin",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncClientTest.java"
+    },
+    {
+      "id": "AUTO-181",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncSchedulerTest",
+      "case": "orderTransportRequiresEncounterTransport",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncSchedulerTest.java"
+    },
+    {
+      "id": "AUTO-182",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncSchedulerTest",
+      "case": "canRestartAfterCleanStop",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncSchedulerTest.java"
+    },
+    {
+      "id": "AUTO-183",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncSchedulerTest",
+      "case": "failedCycleDoesNotCancelNextAttempt",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncSchedulerTest.java"
+    },
+    {
+      "id": "AUTO-184",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncSchedulerTest",
+      "case": "disabledDoesNotRequireCredentials",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncSchedulerTest.java"
+    },
+    {
+      "id": "AUTO-185",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncSchedulerTest",
+      "case": "refusesSecondWorkerAndInterruptsCurrentCycleOnStop",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncSchedulerTest.java"
+    },
+    {
+      "id": "AUTO-186",
+      "module": "api",
+      "suite": "org.openmrs.module.synchronizationmr.sync.PatientSyncSchedulerTest",
+      "case": "validatesEnabledConfiguration",
+      "status": "PASS",
+      "category": "Aislada / dobles",
+      "source": "synchronizationmr/api/src/test/java/org/openmrs/module/synchronizationmr/sync/PatientSyncSchedulerTest.java"
+    },
+    {
+      "id": "AUTO-187",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.EncounterSyncHttpServletTest",
+      "case": "returnsJsonObjectsAndDoesNotConfirmPages",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/EncounterSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-188",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.EncounterSyncHttpServletTest",
+      "case": "receivesOnlyAuthorizedOriginAndReturnsConfirmation",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/EncounterSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-189",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.EncounterSyncHttpServletTest",
+      "case": "returnsNodeAndOrigins",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/EncounterSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-190",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.EncounterSyncHttpServletTest",
+      "case": "rejectsMissingOrBadCredentials",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/EncounterSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-191",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.EncounterSyncHttpServletTest",
+      "case": "rejectsInvalidPaginationAndMissingJsonEvent",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/EncounterSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-192",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.EncounterSyncHttpServletTest",
+      "case": "rejectsMissingServerIdentityOnEveryResource",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/EncounterSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-193",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.EncounterSyncHttpServletTest",
+      "case": "rejectsUnsupportedBodiesAndMethods",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/EncounterSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-194",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.EncounterSyncHttpServletTest",
+      "case": "rejectsUnconfiguredPeerAndClosesScope",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/EncounterSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-195",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.EncounterSyncHttpServletTest",
+      "case": "rejectsOuterTransactionBeforeAcknowledging",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/EncounterSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-196",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.EncounterSyncHttpServletTest",
+      "case": "forbidsOriginSpoofingBeforeCallingReceiver",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/EncounterSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-197",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.EncounterSyncHttpServletTest",
+      "case": "rejectsPlainHttpBeforeAuthentication",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/EncounterSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-198",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.EncounterSyncHttpServletTest",
+      "case": "separatesHighestFromConfirmedSequence",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/EncounterSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-199",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.OrderSyncHttpServletTest",
+      "case": "returnsJsonObjectsAndDoesNotConfirmPages",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/OrderSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-200",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.OrderSyncHttpServletTest",
+      "case": "receivesOnlyAuthorizedOriginAndReturnsConfirmation",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/OrderSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-201",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.OrderSyncHttpServletTest",
+      "case": "returnsNodeAndOrigins",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/OrderSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-202",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.OrderSyncHttpServletTest",
+      "case": "rejectsMissingOrBadCredentials",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/OrderSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-203",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.OrderSyncHttpServletTest",
+      "case": "rejectsInvalidPaginationAndMissingJsonEvent",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/OrderSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-204",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.OrderSyncHttpServletTest",
+      "case": "rejectsMissingServerIdentityOnEveryResource",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/OrderSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-205",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.OrderSyncHttpServletTest",
+      "case": "rejectsUnsupportedBodiesAndMethods",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/OrderSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-206",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.OrderSyncHttpServletTest",
+      "case": "rejectsUnconfiguredPeerAndClosesScope",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/OrderSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-207",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.OrderSyncHttpServletTest",
+      "case": "rejectsOuterTransactionBeforeAcknowledging",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/OrderSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-208",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.OrderSyncHttpServletTest",
+      "case": "forbidsOriginSpoofingBeforeCallingReceiver",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/OrderSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-209",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.OrderSyncHttpServletTest",
+      "case": "rejectsPlainHttpBeforeAuthentication",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/OrderSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-210",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.OrderSyncHttpServletTest",
+      "case": "separatesHighestFromConfirmedSequence",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/OrderSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-211",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpIntegrationTest",
+      "case": "authenticatesPerRequestAndRestoresPreviousUserContext",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-212",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpIntegrationTest",
+      "case": "wrongCredentialsCannotUseExistingBrowserAuthentication",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-213",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpIntegrationTest",
+      "case": "postaCannotImpersonateAnotherOrigin",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-214",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpIntegrationTest",
+      "case": "respondsWithConfirmationAfterRealCommitAndAllowsRetry",
+      "status": "PASS",
+      "category": "Contexto OpenMRS/H2",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpIntegrationTest.java"
+    },
+    {
+      "id": "AUTO-215",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpServletTest",
+      "case": "returnsJsonObjectsAndDoesNotConfirmPages",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-216",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpServletTest",
+      "case": "receivesOnlyAuthorizedOriginAndReturnsConfirmation",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-217",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpServletTest",
+      "case": "returnsNodeAndOrigins",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-218",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpServletTest",
+      "case": "rejectsMissingOrBadCredentials",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-219",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpServletTest",
+      "case": "rejectsInvalidPaginationAndMissingJsonEvent",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-220",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpServletTest",
+      "case": "rejectsMissingServerIdentityOnEveryResource",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-221",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpServletTest",
+      "case": "rejectsUnsupportedBodiesAndMethods",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-222",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpServletTest",
+      "case": "rejectsUnconfiguredPeerAndClosesScope",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-223",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpServletTest",
+      "case": "rejectsOuterTransactionBeforeAcknowledging",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-224",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpServletTest",
+      "case": "forbidsOriginSpoofingBeforeCallingReceiver",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-225",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpServletTest",
+      "case": "rejectsPlainHttpBeforeAuthentication",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpServletTest.java"
+    },
+    {
+      "id": "AUTO-226",
+      "module": "omod",
+      "suite": "org.openmrs.module.synchronizationmr.web.PatientSyncHttpServletTest",
+      "case": "separatesHighestFromConfirmedSequence",
+      "status": "PASS",
+      "category": "Web con dobles",
+      "source": "synchronizationmr/omod/src/test/java/org/openmrs/module/synchronizationmr/web/PatientSyncHttpServletTest.java"
+    }
+  ]
+}
