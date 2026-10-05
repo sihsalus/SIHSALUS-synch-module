@@ -173,9 +173,30 @@ public class PatientReceiveIntegrationTest extends BaseModuleContextSensitiveTes
 	}
 	
 	@Test
-	public void rejectsEquivalentAddressesRatherThanSilentlyDroppingOne() throws Exception {
-		rejectsEquivalentChild("addresses");
-	}
+    public void preservesEquivalentAddressesWithDistinctUuids() throws Exception {
+        Patient source = sample();
+        String origin = "posta_equivalent_addresses";
+        ObjectNode json = (ObjectNode) mapper.readTree(event(source, origin, 1));
+        com.fasterxml.jackson.databind.node.ArrayNode addresses =
+            (com.fasterxml.jackson.databind.node.ArrayNode) json.path("payload").path("addresses");
+        ObjectNode duplicate = ((ObjectNode) addresses.get(0)).deepCopy();
+        duplicate.put("uuid", UUID.randomUUID().toString());
+        addresses.add(duplicate);
+        assertEquals(1, receiver().receivePatient(json.toString()));
+        Context.flushSession();
+        Context.clearSession();
+        Patient saved = Context.getPatientService().getPatientByUuid(source.getUuid());
+        java.util.Set<String> actual = new java.util.HashSet<>();
+        for (PersonAddress address : saved.getAddresses()) {
+            assertFalse(address.getVoided());
+            assertEquals(duplicate.path("address1").asText(), address.getAddress1());
+            actual.add(address.getUuid());
+        }
+        assertEquals(new java.util.HashSet<>(java.util.Arrays.asList(
+            addresses.get(0).path("uuid").asText(), duplicate.path("uuid").asText())), actual);
+        assertEquals(1, receiver().receivePatient(json.toString()));
+        assertEquals(1, receiver().getConfirmedPatientSequence(origin));
+    }
 	
 	private void rejectsEquivalentChild(String collection) throws Exception {
         Patient source = sample();

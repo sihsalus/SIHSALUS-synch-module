@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- Beans to add to the current Application context definition -->
+<!-- Beans que se añaden a la definición actual del contexto de la aplicación -->
 
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -25,8 +25,8 @@
 
     <context:component-scan base-package="org.openmrs.module.synchronizationmr" />
 
-    <!-- Wraps SynchronizationMRService methods in DB transactions and OpenMRS interceptors,
-    which set audit info like dateCreated, changedBy, etc.-->
+    <!-- Envuelve los métodos de SynchronizationMRService en transacciones de base de datos e interceptores de OpenMRS,
+    que establecen datos de auditoría como dateCreated, changedBy, etc.-->
     <bean id="synchronizationmr.SynchronizationMRService"
             class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
         <property name="transactionManager">
@@ -45,8 +45,8 @@
         </property>
     </bean>
 
-    <!-- Adds SynchronizationMRService to OpenMRS context so it can be accessed
-    calling Context.getService(SynchronizationMRService.class) -->
+    <!-- Añade SynchronizationMRService al contexto de OpenMRS para acceder al servicio
+    mediante Context.getService(SynchronizationMRService.class) -->
     <bean parent="serviceContext">
         <property name="moduleService">
             <list>
@@ -61,6 +61,7 @@
         <property name="target">
             <bean class="org.openmrs.module.synchronizationmr.api.impl.PatientSyncServiceImpl">
                 <property name="dao" ref="synchronizationmr.PatientSyncDao" />
+                <property name="updateDao" ref="synchronizationmr.PatientUpdateDao" />
             </bean>
         </property>
         <property name="preInterceptors" ref="serviceInterceptors" />

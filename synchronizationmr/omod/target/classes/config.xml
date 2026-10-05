@@ -2,7 +2,7 @@
 
 <module configVersion="1.2">
 	
-	<!-- Base Module Properties -->
+	<!-- Propiedades básicas del módulo -->
 	<id>synchronizationmr</id>
 	<name>SynchronizationMR</name>
 	<version>1.0.0-SNAPSHOT</version>
@@ -15,7 +15,7 @@
 	<activator>org.openmrs.module.synchronizationmr.SynchronizationMRActivator</activator>
 	
 	<!-- <updateURL>https://modules.openmrs.org/modules/download/synchronizationmr/update.rdf</updateURL> -->
-	<!-- /Base Module Properties -->
+	<!-- /Propiedades básicas del módulo -->
 	
 	<require_version>2.4.2</require_version>
 
@@ -48,6 +48,10 @@
 
     <advice>
         <point>org.openmrs.api.PatientService</point>
+        <class>org.openmrs.module.synchronizationmr.advice.PatientCreationAdvice</class>
+    </advice>
+    <advice>
+        <point>org.openmrs.api.PersonService</point>
         <class>org.openmrs.module.synchronizationmr.advice.PatientCreationAdvice</class>
     </advice>
     <advice>
@@ -84,25 +88,25 @@
 	 /AOP -->
 	
 	
-	<!-- Required Privileges 
+	<!-- Permisos requeridos 
 	<privilege>
 		<name>Form Entry</name>
-		<description>Allows user to access Form Entry pages/functions</description>
+		<description>Permite al usuario acceder a las páginas y funciones de ingreso de formularios</description>
 	</privilege>
-	 /Required Privileges -->
+	 /Permisos requeridos -->
 
 
-	<!-- Required Global Properties 
+	<!-- Propiedades globales requeridas 
 	<globalProperty>
 		<property>synchronizationmr.someProperty</property>
 		<defaultValue></defaultValue>
 		<description>
-			A description of the global property goes here.  The description
-			should explain enough for administrators to understand the purpose
-			and possible values for the global property.
+			Aquí se incluye una descripción de la propiedad global. La descripción
+			debe permitir que los administradores comprendan la finalidad
+			y los valores posibles de la propiedad global.
 		</description>
 	</globalProperty>
-	/Required Global Properties -->
+	/Propiedades globales requeridas -->
 	
 	<!--
 	<dwr>
@@ -123,7 +127,7 @@
 	-->
 	
 	<!-- Servlets -->
-	<!-- Accessed through the url /pageContext()/moduleServlet/<moduleId>/<servlet-name> 
+	<!-- Accesible mediante la URL /pageContext()/moduleServlet/<moduleId>/<servlet-name> 
 	<servlet>
 		<servlet-name>formDownload</servlet-name>
 		<servlet-class>org.openmrs.module.synchronizationmr.web.FormDownloadServlet</servlet-class>
@@ -132,8 +136,8 @@
 	<!-- /Servlets -->
 	
 	
-	<!-- Internationalization -->
-	<!-- All message codes should start with synchronizationmr.* -->
+	<!-- Internacionalización -->
+	<!-- Todos los códigos de mensajes deben comenzar con synchronizationmr.* -->
 	<messages>
 		<lang>en</lang>
 		<file>messages.properties</file>
@@ -146,7 +150,7 @@
 		<lang>es</lang>
 		<file>messages_es.properties</file>
 	</messages>
-	<!-- /Internationalization -->
+	<!-- /Internacionalización -->
 	
 </module>
 

@@ -54,6 +54,9 @@ public class PatientSyncHttpServlet extends HttpServlet {
 	}
 	
 	protected String incomingOrigin(String json) {
+		if (PatientUpdateEvent.isUpdate(json)) {
+			return new PatientUpdateEvent(json).origin;
+		}
 		return new PatientIncomingEvent(json).origin;
 	}
 	

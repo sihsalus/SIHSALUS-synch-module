@@ -76,7 +76,8 @@ public class PatientCaptureIntegrationTest extends BaseModuleContextSensitiveTes
 		assertEquals(first.getSequence(), second.getSequence());
 		assertEquals(first.getOriginServerId(), second.getOriginServerId());
 		assertEquals(json, sync().getCreationPayload(patient.getUuid()));
-		assertEquals(first.getSequence(), sync().getHighestPatientSequence(first.getOriginServerId()));
+		// La identidad y CREATE permanecen iguales; la edición consume ahora otra secuencia de evento.
+		assertEquals(first.getSequence() + 1, sync().getHighestPatientSequence(first.getOriginServerId()));
 	}
 	
 	@Test

@@ -92,4 +92,28 @@ public class NodeIdentityMigrationTest {
             }
         }
     }
+	
+	@Test
+    public void patientUpdateMigrationPreservesInstalledCreationPayloadAndReceipts() throws Exception {
+        try (Connection c = database(); Statement s = c.createStatement()) {
+            Liquibase migration = migration(c);
+            int count = migration.getDatabaseChangeLog().getChangeSets().size();
+            migration.update(count - 1, "");
+            s.execute("insert into synchronizationmr_patient_identity (patient_id,patient_uuid,origin_server_id,entity_sequence) values (42,'patient-uuid','posta_a',1)");
+            s.execute("insert into synchronizationmr_patient_event (event_uuid,patient_id,operation,state,date_created,payload_json) values ('creation-event',42,'CREATE','PENDING',CURRENT_TIMESTAMP,'original-payload-unchanged')");
+            s.execute("insert into synchronizationmr_patient_receipt (origin_server_id,confirmed_sequence) values ('posta_b',4)");
+            s.execute("update synchronizationmr_local_node set server_id='posta_a',patient_sequence=1");
+            c.commit();
+            migration.update(""); migration.update("");
+            try (ResultSet rows = s.executeQuery("select payload_json from synchronizationmr_patient_event where patient_id=42")) {
+                assertTrue(rows.next()); assertEquals("original-payload-unchanged", rows.getString(1));
+            }
+            try (ResultSet rows = s.executeQuery("select confirmed_sequence from synchronizationmr_patient_receipt where origin_server_id='posta_b'")) {
+                assertTrue(rows.next()); assertEquals(4, rows.getLong(1));
+            }
+            for (String table : new String[] {"synchronizationmr_patient_update", "synchronizationmr_patient_state"}) {
+                try (ResultSet rows = s.executeQuery("select count(*) from " + table)) { rows.next(); assertEquals(0, rows.getInt(1)); }
+            }
+        }
+    }
 }

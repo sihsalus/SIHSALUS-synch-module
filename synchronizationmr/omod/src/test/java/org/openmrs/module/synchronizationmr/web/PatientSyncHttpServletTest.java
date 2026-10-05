@@ -206,6 +206,33 @@ public class PatientSyncHttpServletTest {
 	}
 	
 	@Test
+	public void updateUsesAuthenticatedReceiverAndRejectsUnknownGroups() throws Exception {
+		ObjectMapper mapper = new ObjectMapper();
+		com.fasterxml.jackson.databind.node.ObjectNode update = (com.fasterxml.jackson.databind.node.ObjectNode) mapper
+		        .readTree(event());
+		update.put("schemaVersion", 5);
+		update.put("operation", "UPDATE");
+		update.putArray("changedGroups").add("names");
+		com.fasterxml.jackson.databind.node.ObjectNode payload = (com.fasterxml.jackson.databind.node.ObjectNode) update
+		        .get("payload");
+		payload.putNull("birthtime");
+		payload.putArray("attributes");
+		String json = update.toString();
+		when(receiver.receivePatient(json)).thenReturn(1L);
+		MockHttpServletRequest request = request("POST", "receive");
+		request.setContentType("application/json");
+		request.setContent(json.getBytes(StandardCharsets.UTF_8));
+		assertEquals(200, call(request).getStatus());
+		verify(peer).authorizeReceive(origin);
+		verify(receiver).receivePatient(json);
+		reset(receiver);
+		update.putArray("changedGroups").add("roles");
+		request.setContent(update.toString().getBytes(StandardCharsets.UTF_8));
+		assertEquals(400, call(request).getStatus());
+		verifyNoInteractions(receiver);
+	}
+	
+	@Test
 	public void rejectsOuterTransactionBeforeAcknowledging() throws Exception {
 		TransactionSynchronizationManager.setActualTransactionActive(true);
 		MockHttpServletRequest request = request("POST", "receive");

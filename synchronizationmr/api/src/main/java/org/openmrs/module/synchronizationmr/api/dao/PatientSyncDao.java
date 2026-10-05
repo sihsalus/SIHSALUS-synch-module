@@ -29,6 +29,15 @@ import org.springframework.stereotype.Repository;
 @Repository("synchronizationmr.PatientSyncDao")
 public class PatientSyncDao {
 	
+	/**
+	 * Ambos tipos de evento comparten una secuencia consecutiva; se conserva la identidad de
+	 * CREATE.
+	 */
+	public static final String EVENTS = "(select i.origin_server_id, i.entity_sequence, i.patient_uuid, e.event_uuid, e.payload_json"
+	        + " from synchronizationmr_patient_identity i left join synchronizationmr_patient_event e on e.patient_id=i.patient_id"
+	        + " union all select u.origin_server_id,u.entity_sequence,i.patient_uuid,u.event_uuid,u.payload_json"
+	        + " from synchronizationmr_patient_update u join synchronizationmr_patient_identity i on i.patient_id=u.patient_id) events";
+	
 	private static final String PENDING_PATIENTS = " from patient p join person person on person.person_id = p.patient_id"
 	        + " left join synchronizationmr_patient_identity i on i.patient_id = p.patient_id"
 	        + " left join synchronizationmr_patient_event e on e.patient_id = i.patient_id"
@@ -37,7 +46,7 @@ public class PatientSyncDao {
 	
 	public java.util.List<Integer> lockAndFindPatientsPendingPreparation(int limit) {
         sessionFactory.getCurrentSession().flush();
-        // Same lock as capture/import: concurrent batches cannot allocate two identities.
+        // Usa el mismo bloqueo que la captura e importación: los lotes concurrentes no pueden asignar dos identidades.
         localNodeDao.getLocalServerId();
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             java.util.List<Integer> ids = new java.util.ArrayList<>();
@@ -66,7 +75,7 @@ public class PatientSyncDao {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             java.util.List<String> origins = new java.util.ArrayList<>();
             try (PreparedStatement query = connection.prepareStatement(
-                    "select distinct origin_server_id from synchronizationmr_patient_identity where origin_server_id > ? order by origin_server_id")) {
+                    "select distinct origin_server_id from " + EVENTS + " where origin_server_id > ? order by origin_server_id")) {
                 query.setString(1, afterOrigin); query.setMaxRows(limit);
                 try (ResultSet rows = query.executeQuery()) {
                     while (rows.next()) { origins.add(rows.getString(1)); }
@@ -79,7 +88,7 @@ public class PatientSyncDao {
 	public long findHighestPatientSequence(String origin) {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             try (PreparedStatement query = connection.prepareStatement(
-                    "select coalesce(max(entity_sequence), 0) from synchronizationmr_patient_identity where origin_server_id = ?")) {
+                    "select coalesce(max(entity_sequence), 0) from " + EVENTS + " where origin_server_id = ?")) {
                 query.setString(1, origin);
                 try (ResultSet rows = query.executeQuery()) {
                     rows.next();
@@ -96,10 +105,8 @@ public class PatientSyncDao {
             // LEFT JOIN conserva identidades cuyo evento falte: un JOIN interno ocultaría ese fallo.
             // No filtramos por estado global: otro destino podría necesitar un evento ya entregado.
             try (PreparedStatement query = connection.prepareStatement(
-                    "select i.entity_sequence, i.patient_uuid, e.event_uuid, e.payload_json"
-                    + " from synchronizationmr_patient_identity i left join synchronizationmr_patient_event e"
-                    + " on e.patient_id = i.patient_id where i.origin_server_id = ? and i.entity_sequence > ?"
-                    + " order by i.entity_sequence asc")) {
+                    "select entity_sequence, patient_uuid, event_uuid, payload_json from " + EVENTS
+                    + " where origin_server_id = ? and entity_sequence > ? order by entity_sequence asc")) {
                 query.setString(1, origin);
                 query.setLong(2, afterSequence);
                 query.setMaxRows(limit);

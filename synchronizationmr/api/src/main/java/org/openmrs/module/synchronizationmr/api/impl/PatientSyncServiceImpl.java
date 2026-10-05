@@ -20,6 +20,31 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 public class PatientSyncServiceImpl extends BaseOpenmrsService implements PatientSyncService {
 	
+	@javax.annotation.Resource(name = "synchronizationmr.PatientUpdateDao")
+	private org.openmrs.module.synchronizationmr.api.dao.PatientUpdateDao updateDao;
+	
+	public void setUpdateDao(org.openmrs.module.synchronizationmr.api.dao.PatientUpdateDao updateDao) {
+		this.updateDao = updateDao;
+	}
+	
+	@Override
+	public void lockPatientChanges() {
+		requireWriteTransaction();
+		updateDao.lock();
+	}
+	
+	@Override
+	public void recordPatientChildChanges(Integer patientId) {
+		requireWriteTransaction();
+		updateDao.recordSavedChild(patientId);
+	}
+	
+	@Override
+	public void recordPatientChanges(Patient patient) {
+		requireWriteTransaction();
+		updateDao.recordSaved(patient);
+	}
+	
 	@Override
 	public int prepareExistingPatients(int limit) {
 		requireWriteTransaction();

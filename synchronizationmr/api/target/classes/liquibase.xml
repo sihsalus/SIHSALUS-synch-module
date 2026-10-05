@@ -206,8 +206,8 @@
         <sql>ALTER TABLE synchronizationmr_order_receipt MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
     </changeSet>
     <changeSet id="synchronizationmr-20260927-encounter-additions" author="sihsalus">
-        <!-- Preserve immutable CREATE rows and their unique encounter identity. Additions
-             share the encounter sequence/receipt, but allow many events per encounter. -->
+        <!-- Conserva las filas CREATE inmutables y su identidad única de encuentro. Las adiciones
+             comparten la secuencia y confirmación del encuentro, pero permiten varios eventos por encuentro. -->
         <createTable tableName="synchronizationmr_encounter_addition">
             <column name="event_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
             <column name="encounter_id" type="int"><constraints nullable="false" /></column>
@@ -223,6 +223,25 @@
     </changeSet>
     <changeSet id="synchronizationmr-20260927-encounter-addition-collation" author="sihsalus" dbms="mysql,mariadb">
         <sql>ALTER TABLE synchronizationmr_encounter_addition MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
+    </changeSet>
+    <changeSet id="synchronizationmr-20261005-patient-updates" author="sihsalus">
+        <!-- CREATE permanece inmutable y la identidad original conserva su secuencia.
+             UPDATE consume el mismo contador de eventos PATIENT y se almacena por separado. -->
+        <createTable tableName="synchronizationmr_patient_update">
+            <column name="event_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="patient_id" type="int"><constraints nullable="false" /></column>
+            <column name="origin_server_id" type="varchar(100)"><constraints nullable="false" /></column>
+            <column name="entity_sequence" type="bigint"><constraints nullable="false" /></column>
+            <column name="payload_json" type="clob"><constraints nullable="false" /></column>
+        </createTable>
+        <addUniqueConstraint tableName="synchronizationmr_patient_update" columnNames="origin_server_id,entity_sequence" constraintName="syncmr_patient_update_sequence_uq" />
+        <addForeignKeyConstraint baseTableName="synchronizationmr_patient_update" baseColumnNames="patient_id" referencedTableName="synchronizationmr_patient_identity" referencedColumnNames="patient_id" constraintName="syncmr_patient_update_patient_fk" />
+        <createTable tableName="synchronizationmr_patient_state">
+            <column name="patient_id" type="int"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="snapshot_json" type="clob"><constraints nullable="false" /></column>
+            <column name="versions_json" type="clob"><constraints nullable="false" /></column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="synchronizationmr_patient_state" baseColumnNames="patient_id" referencedTableName="synchronizationmr_patient_identity" referencedColumnNames="patient_id" constraintName="syncmr_patient_state_patient_fk" />
     </changeSet>
 </databaseChangeLog>
  

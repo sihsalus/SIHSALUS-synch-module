@@ -29,6 +29,47 @@ public class PatientReceiveDao {
 	@javax.annotation.Resource(name = "synchronizationmr.LocalNodeDao")
 	private LocalNodeDao localNodeDao;
 	
+	@javax.annotation.Resource(name = "synchronizationmr.PatientUpdateDao")
+	private PatientUpdateDao updateDao;
+	
+	public long receiveUpdate(PatientUpdateEvent event) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()
+            || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
+            throw new APIException("Patient reception requires a write transaction");
+        }
+        if (localNodeDao.getLocalServerId().equals(event.origin)) {
+            throw new APIException("Cannot receive own-origin events");
+        }
+        return sessionFactory.getCurrentSession().doReturningWork(connection -> {
+            long confirmed = confirmed(connection, event.origin);
+            if (event.sequence <= confirmed) {
+                try (PreparedStatement q = connection.prepareStatement("select patient_uuid,event_uuid,payload_json from "
+                        + PatientSyncDao.EVENTS + " where origin_server_id=? and entity_sequence=?")) {
+                    q.setString(1, event.origin); q.setLong(2, event.sequence);
+                    try (ResultSet rows = q.executeQuery()) {
+                        if (rows.next() && event.patientUuid.equals(rows.getString(1)) && event.eventUuid.equals(rows.getString(2))
+                            && event.sameContent(rows.getString(3)) && !rows.next()) { return confirmed; }
+                    }
+                }
+                throw new APIException("Confirmed update does not match stored event");
+            }
+            if (confirmed == Long.MAX_VALUE || event.sequence != confirmed + 1) {
+                throw new APIException("Patient event sequence is not consecutive");
+            }
+            updateDao.receive(connection, event);
+            if (confirmed == 0) {
+                try (PreparedStatement q = connection.prepareStatement("insert into synchronizationmr_patient_receipt (origin_server_id,confirmed_sequence) values (?,?)")) {
+                    q.setString(1, event.origin); q.setLong(2, event.sequence); q.executeUpdate();
+                }
+            } else {
+                try (PreparedStatement q = connection.prepareStatement("update synchronizationmr_patient_receipt set confirmed_sequence=? where origin_server_id=?")) {
+                    q.setLong(1, event.sequence); q.setString(2, event.origin); q.executeUpdate();
+                }
+            }
+            return event.sequence;
+        });
+    }
+	
 	public long confirmed(String origin) {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> confirmed(connection, origin));
     }
@@ -54,9 +95,8 @@ public class PatientReceiveDao {
             long confirmed = confirmed(connection, event.origin);
             if (event.sequence <= confirmed) {
                 try (PreparedStatement query = connection.prepareStatement(
-                        "select i.patient_uuid, e.event_uuid, e.payload_json from synchronizationmr_patient_identity i"
-                        + " join synchronizationmr_patient_event e on e.patient_id = i.patient_id"
-                        + " where i.origin_server_id = ? and i.entity_sequence = ?")) {
+                        "select patient_uuid, event_uuid, payload_json from " + PatientSyncDao.EVENTS
+                        + " where origin_server_id = ? and entity_sequence = ?")) {
                     query.setString(1, event.origin);
                     query.setLong(2, event.sequence);
                     try (ResultSet rows = query.executeQuery()) {
@@ -74,6 +114,12 @@ public class PatientReceiveDao {
             // No sobrescribir ni vincular silenciosamente pacientes preexistentes sin una correspondencia validada.
             if (Context.getPersonService().getPersonByUuid(event.patientUuid) != null) {
                 throw new APIException("El paciente o persona ya existe sin esta recepción confirmada; se requiere conciliación");
+            }
+            try (PreparedStatement check = connection.prepareStatement("select event_uuid from synchronizationmr_patient_update where event_uuid=?")) {
+                check.setString(1, event.eventUuid);
+                try (ResultSet rows = check.executeQuery()) {
+                    if (rows.next()) { throw new APIException("Event UUID already used by UPDATE"); }
+                }
             }
             Patient incoming = event.toPatient();
             Patient saved = IncomingPatientSave.save(incoming, () -> Context.getPatientService().savePatient(incoming));

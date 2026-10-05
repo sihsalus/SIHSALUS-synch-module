@@ -19,8 +19,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** Registra la creación de pacientes; no captura ediciones, fusiones ni pacientes anteriores. */
+/** Captura CREATE y los cambios admitidos del paciente mediante PatientService y PersonService. */
 public class PatientCreationAdvice implements MethodInterceptor {
+	private static final ThreadLocal<Boolean> CAPTURING = new ThreadLocal<>();
 	
 	private PatientSyncService service;
 	
@@ -40,10 +41,12 @@ public class PatientCreationAdvice implements MethodInterceptor {
 	
 	@Override
 	public Object invoke(MethodInvocation invocation) throws Throwable {
-		if (!"savePatient".equals(invocation.getMethod().getName()) || invocation.getArguments().length != 1
-		        || !(invocation.getArguments()[0] instanceof Patient)) {
+		org.openmrs.Person person = person(invocation);
+		if (person == null || Boolean.TRUE.equals(CAPTURING.get())) {
 			return invocation.proceed();
 		}
+        if (org.openmrs.module.synchronizationmr.sync.IncomingPatientSave.isReceivingPerson(
+                person)) { return invocation.proceed(); }
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             return capture(invocation);
         }
@@ -70,15 +73,44 @@ public class PatientCreationAdvice implements MethodInterceptor {
 		        || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
 			throw new APIException("El interceptor de pacientes requiere una transacción de escritura de OpenMRS");
 		}
-		Patient patient = (Patient) invocation.getArguments()[0];
-		if (org.openmrs.module.synchronizationmr.sync.IncomingPatientSave.isReceiving(patient)) {
-			return invocation.proceed();
+		org.openmrs.Person person = person(invocation);
+		boolean patientSave = "savePatient".equals(invocation.getMethod().getName());
+		boolean exists = service().patientExists(person.getPersonId());
+		if (!patientSave && !exists) { return invocation.proceed(); }
+		service().lockPatientChanges();
+		CAPTURING.set(true);
+		try {
+			Object result = invocation.proceed();
+			if (patientSave && !exists) {
+				service().recordCreatedPatient((Patient) result);
+			} else if (!(invocation.getArguments()[0] instanceof org.openmrs.Person)) {
+				service().recordPatientChildChanges(person.getPersonId());
+			} else {
+				Patient saved;
+				if (result instanceof Patient) { saved = (Patient) result; }
+				else {
+					saved = new Patient((org.openmrs.Person) result);
+					saved.setIdentifiers(Context.getPatientService().getPatient(person.getPersonId()).getIdentifiers());
+				}
+				service().recordPatientChanges(saved);
+			}
+			return result;
+		} finally { CAPTURING.remove(); }
+	}
+
+	private org.openmrs.Person person(MethodInvocation invocation) {
+		String method = invocation.getMethod().getName();
+        if (invocation.getArguments() == null || invocation.getArguments().length == 0) { return null; }
+		Object value = invocation.getArguments()[0];
+		if (("savePatient".equals(method) || "savePerson".equals(method)) && value instanceof org.openmrs.Person) {
+			return (org.openmrs.Person) value;
 		}
-		boolean creation = !service().patientExists(patient.getPatientId());
-		Object result = invocation.proceed();
-		if (creation) {
-			service().recordCreatedPatient((Patient) result);
-		}
-		return result;
+		if (("savePersonName".equals(method) || "voidPersonName".equals(method) || "unvoidPersonName".equals(method))
+		        && value instanceof org.openmrs.PersonName) { return ((org.openmrs.PersonName) value).getPerson(); }
+		if (("savePersonAddress".equals(method) || "voidPersonAddress".equals(method) || "unvoidPersonAddress".equals(method))
+		        && value instanceof org.openmrs.PersonAddress) { return ((org.openmrs.PersonAddress) value).getPerson(); }
+		if (("savePatientIdentifier".equals(method) || "voidPatientIdentifier".equals(method) || "unvoidPatientIdentifier".equals(method))
+		        && value instanceof org.openmrs.PatientIdentifier) { return ((org.openmrs.PatientIdentifier) value).getPatient(); }
+		return null;
 	}
 }

@@ -93,6 +93,18 @@ public final class PatientIncomingEvent {
 	}
 	
 	public Patient toPatient() {
+		return toPatient(false);
+	}
+	
+	/**
+	 * UPDATE solo puede reutilizar los UUID de registros asociados cuando pertenecen al mismo
+	 * paciente.
+	 */
+	public Patient toPatientForUpdate() {
+		return toPatient(true);
+	}
+	
+	private Patient toPatient(boolean updating) {
         JsonNode data = root.get("payload");
         Patient patient = new Patient();
         patient.setUuid(patientUuid);
@@ -114,11 +126,12 @@ public final class PatientIncomingEvent {
                 fields(item, "uuid,attributeTypeUuid,format,value,valueReferenceUuid");
                 String id = unique(item, attributeUuids);
                 String type = reference(text(item, "attributeTypeUuid", true));
-                if (Context.getPersonService().getPersonAttributeByUuid(id) != null) { throw conflict(); }
+                PersonAttribute oldAttribute = Context.getPersonService().getPersonAttributeByUuid(id);
+                if (oldAttribute != null) { owner(updating, oldAttribute.getPerson()); }
                 PersonAttribute attribute = PatientAttributeValues.receive(id, type,
                     text(item, "format", true), text(item, "value", false),
                     text(item, "valueReferenceUuid", false));
-                // addAttribute replaces another active value of the same type; a snapshot must preserve both.
+                // addAttribute reemplaza otro valor activo del mismo tipo; la copia del paciente debe conservar ambos.
                 attribute.setPerson(patient);
                 if (!patient.getAttributes().add(attribute)) { throw invalid(); }
             }
@@ -139,7 +152,8 @@ public final class PatientIncomingEvent {
             fields(item, "uuid,preferred,prefix,givenName,middleName,familyNamePrefix,familyName,familyName2,familyNameSuffix,degree");
             PersonName name = new PersonName();
             name.setUuid(unique(item, seen));
-            if (Context.getPersonService().getPersonNameByUuid(name.getUuid()) != null) { throw conflict(); }
+            PersonName oldName = Context.getPersonService().getPersonNameByUuid(name.getUuid());
+            if (oldName != null) { owner(updating, oldName.getPerson()); }
             name.setPreferred(flag(item, "preferred"));
             name.setPrefix(text(item, "prefix", false));
             name.setGivenName(text(item, "givenName", false));
@@ -158,7 +172,8 @@ public final class PatientIncomingEvent {
             fields(item, "uuid,identifier,preferred,identifierTypeUuid,locationUuid");
             PatientIdentifier identifier = new PatientIdentifier();
             identifier.setUuid(unique(item, seen));
-            if (Context.getPatientService().getPatientIdentifierByUuid(identifier.getUuid()) != null) { throw conflict(); }
+            PatientIdentifier oldIdentifier = Context.getPatientService().getPatientIdentifierByUuid(identifier.getUuid());
+            if (oldIdentifier != null) { owner(updating, oldIdentifier.getPatient()); }
             identifier.setIdentifier(text(item, "identifier", true));
             identifier.setPreferred(flag(item, "preferred"));
             PatientIdentifierType type = Context.getPatientService()
@@ -177,11 +192,15 @@ public final class PatientIncomingEvent {
         }
         seen.clear();
         if (data.has("addresses")) {
+            // La identidad es el UUID: dos direcciones pueden tener el mismo contenido y preferencia.
+            // El TreeSet predeterminado de OpenMRS las confunde al reconstruirlas sin ID local.
+            patient.setAddresses(new TreeSet<>(Comparator.comparing(PersonAddress::getUuid)));
             for (JsonNode item : array(data, "addresses", false)) {
                 fields(item, "uuid,preferred,address1,address2,address3,address4,address5,address6,address7,address8,address9,address10,address11,address12,address13,address14,address15,cityVillage,countyDistrict,stateProvince,country,postalCode,latitude,longitude,startDate,endDate");
                 PersonAddress address = new PersonAddress();
                 address.setUuid(unique(item, seen));
-                if (Context.getPersonService().getPersonAddressByUuid(address.getUuid()) != null) { throw conflict(); }
+                PersonAddress oldAddress = Context.getPersonService().getPersonAddressByUuid(address.getUuid());
+                if (oldAddress != null) { owner(updating, oldAddress.getPerson()); }
                 address.setPreferred(flag(item, "preferred"));
                 address.setAddress1(text(item, "address1", false));
                 address.setAddress2(text(item, "address2", false));
@@ -207,13 +226,18 @@ public final class PatientIncomingEvent {
                 address.setLongitude(text(item, "longitude", false));
                 address.setStartDate(instant(text(item, "startDate", false)));
                 address.setEndDate(instant(text(item, "endDate", false)));
-                int addressesBefore = patient.getAddresses().size();
-                patient.addAddress(address);
-                if (patient.getAddresses().size() != addressesBefore + 1) { throw invalid(); }
+                address.setPerson(patient);
+                if (address.isBlank() || !patient.getAddresses().add(address)) { throw invalid(); }
             }
         }
         return patient;
     }
+	
+	private void owner(boolean updating, Person person) {
+		if (!updating || person == null || !patientUuid.equals(person.getUuid())) {
+			throw conflict();
+		}
+	}
 	
 	public static String uuid(String value) {
 		if (value == null || !value.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) {

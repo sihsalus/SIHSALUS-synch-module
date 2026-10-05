@@ -17,6 +17,10 @@ public final class IncomingPatientSave {
     private static final ThreadLocal<Patient> CURRENT = new ThreadLocal<>();
     private IncomingPatientSave() { }
     public static boolean isReceiving(Patient patient) { return CURRENT.get() == patient; }
+    public static boolean isReceivingPerson(org.openmrs.Person person) {
+        Patient current = CURRENT.get();
+        return current != null && person != null && current.getUuid().equals(person.getUuid());
+    }
     public static Patient save(Patient patient, Supplier<Patient> action) {
         Patient previous = CURRENT.get();
         CURRENT.set(patient);

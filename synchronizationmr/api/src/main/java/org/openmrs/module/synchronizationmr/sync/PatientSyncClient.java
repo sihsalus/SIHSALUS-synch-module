@@ -76,6 +76,7 @@ public class PatientSyncClient {
 			sent++;
 		}
 		String cursor = null;
+		org.openmrs.api.APIException deferred = null;
 		while (true) {
 			checkInterrupted();
 			JsonNode origins = remote.get("resource=origins&limit=100" + (cursor == null ? "" : "&afterOrigin=" + cursor))
@@ -110,7 +111,16 @@ public class PatientSyncClient {
 					checkOrigin(event, origin);
 					require(after < Long.MAX_VALUE && sequence(event, "entitySequence") == after + 1,
 					    "El evento recibido no es el siguiente");
-					long confirmed = receiver.receivePatient(event.toString());
+					long confirmed;
+					try {
+						confirmed = receiver.receivePatient(event.toString());
+					}
+					catch (org.openmrs.api.APIException failure) {
+						// Un UPDATE puede llegar antes que el CREATE de su paciente desde un origen procesado después.
+						// Conserva esta confirmación, procesa otros orígenes y reintenta en el siguiente ciclo.
+						deferred = failure;
+						break;
+					}
 					require(confirmed == after + 1, "Confirmación local inesperada");
 					after = confirmed;
 					received++;
@@ -119,6 +129,9 @@ public class PatientSyncClient {
 			if (origins.size() < 100) {
 				break;
 			}
+		}
+		if (deferred != null) {
+			throw deferred;
 		}
 		return new int[] { sent, received };
 	}

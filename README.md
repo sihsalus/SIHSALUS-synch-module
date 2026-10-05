@@ -31,6 +31,7 @@ Cada instalación conserva su base de datos. El intercambio ocurre mediante los 
 | Área | Funcionalidad implementada |
 | --- | --- |
 | **Pacientes** | Captura y recepción de altas con los datos de identificación, nombres, direcciones y atributos admitidos por el contrato. |
+| **Modificaciones de pacientes** | Eventos UPDATE, identidad conservada y prevalencia del cambio más reciente por grupo de datos. Validado con pruebas automatizadas; pendiente de validación en las tres instancias. |
 | **Encuentros** | Captura y recepción de encuentros, observaciones y grupos; conservación de la relación con la visita mediante una instantánea. |
 | **Órdenes** | Creación de órdenes de examen y medicamento admitidas, con referencias a paciente, encuentro y metadatos clínicos. |
 | **Resultados** | Incorporación de observaciones nuevas a encuentros previamente sincronizados mediante eventos `ADD_OBS`. |
@@ -137,19 +138,21 @@ Se utilizan dos niveles complementarios:
 
 La ejecución documentada del **27/09/2026** completó **226 casos: 186 de API y 40 de OMOD**, sin fallos, errores ni omisiones. Este resultado corresponde a esa versión y batería; no representa cobertura del 100 % del código ni cumplimiento integral de todos los requisitos.
 
+El incremento de modificaciones de pacientes del **05/10/2026**, incluida la corrección de direcciones con igual contenido y UUID distintos, completó **262 casos: 221 de API y 41 de OMOD**, sin fallos, errores ni omisiones. Incluye resolución de conflictos, reintentos, permisos, rollback y migración del esquema. En laboratorio se verificaron modificaciones desde ambas postas, descarga de un cambio del maestro tras restablecer HTTPS y un conflicto entre ediciones desconectadas: prevaleció el nombre más reciente de B y se conservó el nacimiento modificado por A. Estas comprobaciones no cubren todos los campos, empates de marcas de tiempo ni relojes desajustados.
+
 Para ejecutar las pruebas desde `synchronizationmr`:
 
 ```shell
-mvn test
+mvn package
 ```
 
-Los reportes se generan en `api/target/surefire-reports` y `omod/target/surefire-reports`. Las pruebas automatizadas no requieren levantar las tres instancias del laboratorio. Los ensayos multinodo son una validación separada.
+Los reportes se generan en `api/target/surefire-reports` y `omod/target/surefire-reports`. La fase `package` ejecuta las pruebas y genera el JAR de API que necesita el submódulo OMOD. Las pruebas automatizadas no requieren levantar las tres instancias del laboratorio. Los ensayos multinodo son una validación separada.
 
 ## Alcance y evolución
 
-El desarrollo actual se centra en creación, preparación de datos existentes y adición de resultados. Entre los trabajos pendientes se encuentran:
+El desarrollo actual incluye creación, preparación de datos existentes, adición de resultados y el incremento de modificaciones de pacientes. Para UPDATE se requiere actualizar los nodos y añadir los permisos `Edit Patients` y `Edit People` a las cuentas técnicas receptoras. Los cambios se comparan por grupos (datos demográficos, nombres, direcciones, identificadores y atributos), con desempate determinista y conservación de eventos anteriores. Entre los trabajos pendientes se encuentran:
 
-- Propagación general de modificaciones, cierre de visitas y otros cambios posteriores de estado.
+- Validación multinodo de las modificaciones de pacientes; modificaciones de encuentros/órdenes, cierre de visitas y otros cambios posteriores de estado.
 - Auditoría completa por destino y resultado de operación, y consulta exacta por identidad de sincronización.
 - Evaluación de desempeño y volumen bajo criterios definidos.
 - Ampliación de contratos para contenidos clínicos que todavía no están admitidos.

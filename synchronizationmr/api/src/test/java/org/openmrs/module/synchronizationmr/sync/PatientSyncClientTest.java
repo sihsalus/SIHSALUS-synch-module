@@ -92,6 +92,31 @@ public class PatientSyncClientTest {
 		return result;
 	}
 	
+	@Test
+	public void failedUpdateDoesNotPreventFetchingItsCreationFromAnotherOrigin() throws Exception {
+		prepare(0, 0);
+		ObjectNode origins = mapper.createObjectNode();
+		origins.putArray("origins").add("a_edits").add("z_creator");
+		when(remote.get("resource=origins&limit=100")).thenReturn(origins);
+		ObjectNode update = envelope("a_edits").put("entitySequence", 1).put("operation", "UPDATE");
+		ObjectNode creation = envelope("z_creator").put("entitySequence", 1).put("operation", "CREATE");
+		ObjectNode updates = envelope("a_edits"); updates.putArray("events").add(update);
+		ObjectNode creations = envelope("z_creator"); creations.putArray("events").add(creation);
+		ObjectNode empty = envelope("z_creator"); empty.putArray("events");
+		when(remote.get("resource=events&origin=a_edits&after=0&limit=1")).thenReturn(updates);
+		when(remote.get("resource=events&origin=z_creator&after=0&limit=1")).thenReturn(creations);
+		when(remote.get("resource=events&origin=z_creator&after=1&limit=1")).thenReturn(empty);
+		when(receiver.receivePatient(update.toString())).thenThrow(new org.openmrs.api.APIException("Missing patient"));
+		when(receiver.receivePatient(creation.toString())).thenReturn(1L);
+		assertThrows(org.openmrs.api.APIException.class, client::synchronizeOnce);
+		verify(receiver).receivePatient(creation.toString());
+		doReturn(1L).when(receiver).receivePatient(update.toString());
+		ObjectNode noUpdates = envelope("a_edits"); noUpdates.putArray("events");
+		when(remote.get("resource=events&origin=a_edits&after=1&limit=1")).thenReturn(noUpdates);
+		when(receiver.getConfirmedPatientSequence("z_creator")).thenReturn(1L);
+		assertArrayEquals(new int[] {0, 1}, client.synchronizeOnce());
+	}
+	
 	private ObjectNode page(long sequence) {
 		ObjectNode result = envelope(MASTER);
 		result.putArray("events").add(envelope(MASTER).put("entitySequence", sequence));

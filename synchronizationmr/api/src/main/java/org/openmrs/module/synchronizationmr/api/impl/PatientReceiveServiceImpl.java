@@ -24,6 +24,9 @@ public class PatientReceiveServiceImpl extends BaseOpenmrsService implements Pat
 	
 	@Override
 	public long receivePatient(String json) {
+		if (org.openmrs.module.synchronizationmr.sync.PatientUpdateEvent.isUpdate(json)) {
+			return dao.receiveUpdate(new org.openmrs.module.synchronizationmr.sync.PatientUpdateEvent(json));
+		}
 		return dao.receive(new PatientIncomingEvent(json));
 	}
 	

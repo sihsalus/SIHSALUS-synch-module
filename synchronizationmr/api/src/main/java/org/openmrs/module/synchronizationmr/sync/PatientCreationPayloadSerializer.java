@@ -41,7 +41,19 @@ public class PatientCreationPayloadSerializer {
 		event.put("entitySequence", sequence);
 		event.put("operation", "CREATE");
 		event.put("occurredAt", created.toInstant().toString());
-		ObjectNode data = event.putObject("payload");
+		event.set("payload", snapshot(patient));
+		try {
+			return mapper.writeValueAsString(event);
+		}
+		catch (JsonProcessingException failure) {
+			// No incluir los datos personales del paciente en el mensaje de error.
+			throw new APIException("No se pudo construir el JSON de creación del paciente", failure);
+		}
+	}
+	
+	/** Copia de campos admitidos, compartida con el detector de modificaciones. */
+	ObjectNode snapshot(Patient patient) {
+		ObjectNode data = mapper.createObjectNode();
 		data.put("patientUuid", required(patient.getUuid(), "paciente"));
 		data.put("gender", patient.getGender());
 		// Una fecha de nacimiento es una fecha civil, no un instante convertido a UTC.
@@ -129,13 +141,7 @@ public class PatientCreationPayloadSerializer {
 			item.put("locationUuid",
 			    identifier.getLocation() == null ? null : required(identifier.getLocation().getUuid(), "ubicación"));
 		}
-		try {
-			return mapper.writeValueAsString(event);
-		}
-		catch (JsonProcessingException failure) {
-			// No incluir los datos personales del paciente en el mensaje de error.
-			throw new APIException("No se pudo construir el JSON de creación del paciente", failure);
-		}
+		return data;
 	}
 	
 	private String required(String uuid, String reference) {

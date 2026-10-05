@@ -18,6 +18,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 public interface PatientSyncService extends OpenmrsService {
 	
+	/**
+	 * Serializa las ediciones locales y la aplicación remota antes de volcar el guardado clínico a
+	 * la base de datos.
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	void lockPatientChanges();
+	
+	/** Añade un UPDATE solo cuando existe un cambio real en un paciente activo preparado. */
+	@Transactional(propagation = Propagation.MANDATORY)
+	void recordPatientChanges(Patient patient);
+	
+	@Transactional(propagation = Propagation.MANDATORY)
+	void recordPatientChildChanges(Integer patientId);
+	
 	/** Prepara hasta 100 pacientes activos pendientes, en una única transacción local. */
 	@Authorized(value = { "Prepare Synchronization Records", "Get Patients" }, requireAll = true)
 	@Transactional
