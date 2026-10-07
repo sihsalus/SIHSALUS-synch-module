@@ -12,11 +12,11 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** Covers REST result entry through ObsService as well as encounters saved by forms. */
+/** Captura adiciones y versiones corregidas guardadas directamente mediante ObsService. */
 public class ObservationAdditionAdvice implements MethodInterceptor {
-	
+
 	@Override public Object invoke(MethodInvocation invocation) throws Throwable {
-        if (!"saveObs".equals(invocation.getMethod().getName()) || invocation.getArguments().length != 2
+        if (!("saveObs".equals(invocation.getMethod().getName()) || "voidObs".equals(invocation.getMethod().getName())) || invocation.getArguments().length != 2
                 || !(invocation.getArguments()[0] instanceof Obs)) return invocation.proceed();
         Obs obs = (Obs) invocation.getArguments()[0];
         if (obs.getEncounter() == null || IncomingEncounterSave.isReceiving(obs.getEncounter())
@@ -29,9 +29,10 @@ public class ObservationAdditionAdvice implements MethodInterceptor {
             catch (Throwable failure) { throw new APIException("No se pudo capturar las observaciones", failure); }
         });
     }
-	
+
 	private Object capture(MethodInvocation invocation) throws Throwable {
         try (ObservationCaptureScope scope = ObservationCaptureScope.enter(((Obs) invocation.getArguments()[0]).getEncounter())) {
+            Context.getService(EncounterSyncService.class).lockEncounterChanges();
             Obs saved = (Obs) invocation.proceed();
             Context.getService(EncounterSyncService.class).recordAddedObservations(saved.getEncounter());
             return saved;

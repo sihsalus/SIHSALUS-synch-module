@@ -10,22 +10,34 @@ import org.openmrs.*;
 import org.openmrs.api.APIException;
 import org.springframework.stereotype.Component;
 
-/** Copia explícita del encuentro y sus observaciones al capturar el alta; no serializa Hibernate. */
+/** Copia explÃ­cita del encuentro y sus observaciones al capturar el alta; no serializa Hibernate. */
 @Component("synchronizationmr.EncounterCreationPayloadSerializer")
 public class EncounterCreationPayloadSerializer {
-	
+
 	private final ObjectMapper mapper = new ObjectMapper();
-	
+
 	public String serialize(Encounter encounter, String origin, long sequence, String eventUuid, Date created) {
-        ObjectNode event = mapper.createObjectNode();
-        event.put("schemaVersion", 3);
-        event.put("entityType", "ENCOUNTER");
-        event.put("operation", "CREATE");
-        event.put("originServerId", ServerId.requireValid(origin));
-        event.put("entitySequence", sequence);
-        event.put("eventUuid", eventUuid);
-        event.put("occurredAt", instant(created));
-        ObjectNode data = event.putObject("payload");
+		ObjectNode event = mapper.createObjectNode();
+		event.put("schemaVersion", encounter.getVisit() != null && encounter.getVisit().getAttributes() != null
+		        && !encounter.getVisit().getAttributes().isEmpty() ? 7 : 3);
+		event.put("entityType", "ENCOUNTER");
+		event.put("operation", "CREATE");
+		event.put("originServerId", ServerId.requireValid(origin));
+		event.put("entitySequence", sequence);
+		event.put("eventUuid", eventUuid);
+		event.put("occurredAt", instant(created));
+		event.set("payload", snapshot(encounter));
+		try {
+			return mapper.writeValueAsString(event);
+		}
+		catch (java.io.IOException failure) {
+			throw new APIException("No se pudo generar el JSON del encuentro", failure);
+		}
+	}
+
+	/** Copia independiente de los campos incluidos en CREATE, sin la cabecera del evento. */
+	public ObjectNode snapshot(Encounter encounter) {
+        ObjectNode data = mapper.createObjectNode();
         data.put("encounterUuid", required(encounter));
         data.put("patientUuid", required(encounter.getPatient()));
         data.put("encounterDatetime", instant(encounter.getEncounterDatetime()));
@@ -48,17 +60,16 @@ public class EncounterCreationPayloadSerializer {
         for (Obs obs : encounter.getObsAtTopLevel(true)) {
             observations.add(observation(obs, seen, 0));
         }
-        // Solo referencias: las órdenes tendrán eventos y secuencias independientes.
+        // Solo referencias: las Ã³rdenes tendrÃ¡n eventos y secuencias independientes.
         ArrayNode orders = data.putArray("orderUuids");
         for (Order order : encounter.getOrders()) { orders.add(required(order)); }
         // Estas entidades no se incluyen silenciosamente como si fueran observaciones.
         ArrayNode pending = data.putArray("unsupportedContent");
         if (encounter.getDiagnoses() != null && !encounter.getDiagnoses().isEmpty()) { pending.add("DIAGNOSES"); }
         if (encounter.getConditions(true) != null && !encounter.getConditions(true).isEmpty()) { pending.add("CONDITIONS"); }
-        try { return mapper.writeValueAsString(event); }
-        catch (java.io.IOException failure) { throw new APIException("No se pudo generar el JSON del encuentro", failure); }
+        return data;
     }
-	
+
 	public String serializeAddition(Encounter encounter, java.util.List<Obs> added, Set<String> newIds,
             String origin, long sequence, String eventUuid, Date created) {
         ObjectNode event = mapper.createObjectNode();
@@ -84,11 +95,19 @@ public class EncounterCreationPayloadSerializer {
         try { return mapper.writeValueAsString(event); }
         catch (java.io.IOException failure) { throw new APIException("No se pudo generar el evento de observaciones", failure); }
     }
-	
+
+	/** Copia plana de una versiÃ³n; el grupo se enlaza despuÃ©s de guardar todos sus miembros. */
+	public ObjectNode observationVersion(Obs obs) {
+        ObjectNode result = observation(obs, new HashSet<>(), 0, java.util.Collections.singleton(obs.getUuid()));
+		result.put("parentGroupUuid", reference(obs.getObsGroup()));
+        result.put("previousVoidReason", obs.getPreviousVersion() == null ? null : obs.getPreviousVersion().getVoidReason());
+        return result;
+    }
+
 	private ObjectNode observation(Obs obs, Set<String> seen, int depth) {
 		return observation(obs, seen, depth, null);
 	}
-	
+
 	private ObjectNode observation(Obs obs, Set<String> seen, int depth, Set<String> included) {
 		String uuid = required(obs);
 		if (depth > 50 || !seen.add(uuid)) {
@@ -114,7 +133,7 @@ public class EncounterCreationPayloadSerializer {
 		item.put("voided", Boolean.TRUE.equals(obs.getVoided()));
 		item.put("voidReason", obs.getVoidReason());
 		item.put("previousVersionUuid", reference(obs.getPreviousVersion()));
-		// valueComplex es solo una referencia; no contiene el archivo. El receptor futuro debe tratarlo explícitamente.
+		// valueComplex es solo una referencia; no contiene el archivo. El receptor futuro debe tratarlo explÃ­citamente.
 		item.put("valueComplex", obs.getValueComplex());
 		item.put("complexDataIncluded", false);
 		ArrayNode members = item.putArray("groupMembers");
@@ -126,18 +145,18 @@ public class EncounterCreationPayloadSerializer {
 		}
 		return item;
 	}
-	
+
 	private String required(OpenmrsObject value) {
 		if (value == null || value.getUuid() == null || value.getUuid().trim().isEmpty()) {
 			throw new APIException("Falta el UUID de una entidad requerida por el encuentro");
 		}
 		return value.getUuid();
 	}
-	
+
 	private String reference(OpenmrsObject value) {
 		return value == null ? null : required(value);
 	}
-	
+
 	private String instant(Date value) {
 		return value == null ? null : java.time.Instant.ofEpochMilli(value.getTime()).toString();
 	}

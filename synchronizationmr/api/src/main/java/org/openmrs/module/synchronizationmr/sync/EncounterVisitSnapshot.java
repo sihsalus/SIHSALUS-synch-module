@@ -3,19 +3,21 @@ package org.openmrs.module.synchronizationmr.sync;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.util.Date;
+import java.util.*;
 import org.openmrs.*;
 import org.openmrs.api.APIException;
 import org.openmrs.api.context.Context;
 import static org.openmrs.module.synchronizationmr.sync.EventJson.*;
 
-/** Visit dependency carried by an encounter CREATE, not a separate event stream. */
-final class EncounterVisitSnapshot {
-	
+/** Dependencia de visita transportada por CREATE, sin un flujo separado de eventos. */
+public final class EncounterVisitSnapshot {
+
+	private static final String TEXT = "org.openmrs.customdatatype.datatype.FreeTextDatatype";
+
 	private EncounterVisitSnapshot() {
 	}
-	
-	static JsonNode serialize(Visit visit) {
+
+	public static JsonNode serialize(Visit visit) {
 		if (visit == null)
 			return JsonNodeFactory.instance.nullNode();
 		ObjectNode data = JsonNodeFactory.instance.objectNode();
@@ -28,12 +30,25 @@ final class EncounterVisitSnapshot {
 		data.put("stopDatetime", date(visit.getStopDatetime()));
 		data.put("voided", Boolean.TRUE.equals(visit.getVoided()));
 		data.put("voidReason", visit.getVoidReason());
-		// Custom attribute value references may be local IDs or external files.
-		// Preserve the fact they exist and reject reception rather than silently discard them.
-		data.put("unsupportedAttributes", visit.getAttributes() != null && !visit.getAttributes().isEmpty());
+        boolean unsupported = false;
+        if (visit.getAttributes() != null && !visit.getAttributes().isEmpty()) {
+            com.fasterxml.jackson.databind.node.ArrayNode attributes = data.putArray("attributes");
+            List<VisitAttribute> sorted = new ArrayList<>(visit.getAttributes());
+            sorted.sort(Comparator.comparing(VisitAttribute::getUuid));
+            for (VisitAttribute attribute : sorted) {
+                VisitAttributeType type = attribute.getAttributeType();
+                if (type == null || !TEXT.equals(type.getDatatypeClassname())) { unsupported = true; continue; }
+                ObjectNode item = attributes.addObject();
+                item.put("uuid", id(attribute)); item.put("typeUuid", id(type));
+                item.put("datatype", type.getDatatypeClassname()); item.put("datatypeConfig", type.getDatatypeConfig());
+                item.put("value", attribute.getValueReference());
+                item.put("voided", Boolean.TRUE.equals(attribute.getVoided())); item.put("voidReason", attribute.getVoidReason());
+            }
+        }
+        data.put("unsupportedAttributes", unsupported);
 		return data;
 	}
-	
+
 	static Visit resolve(JsonNode payload, Patient patient, Date encounterDate) {
 		String visitId = text(payload, "visitUuid", false);
 		JsonNode data = payload.get("visit");
@@ -46,7 +61,7 @@ final class EncounterVisitSnapshot {
 		}
 		fields(
 		    data,
-		    "uuid,patientUuid,visitTypeUuid,locationUuid,indicationUuid,startDatetime,stopDatetime,voided,voidReason,unsupportedAttributes");
+		    "uuid,patientUuid,visitTypeUuid,locationUuid,indicationUuid,startDatetime,stopDatetime,voided,voidReason,unsupportedAttributes,attributes");
 		if (!reference(visitId).equals(reference(text(data, "uuid", true)))
 		        || !patient.getUuid().equals(reference(text(data, "patientUuid", true))))
 			throw invalid();
@@ -75,36 +90,60 @@ final class EncounterVisitSnapshot {
 		expected.setStartDatetime(nativeDate(instant(text(data, "startDatetime", true))));
 		expected.setStopDatetime(nativeDate(instant(text(data, "stopDatetime", false))));
 		expected.setVoidReason(text(data, "voidReason", false));
+        if (data.has("attributes")) {
+            Set<String> ids = new HashSet<>();
+            for (JsonNode item : array(data, "attributes", false)) {
+                fields(item, "uuid,typeUuid,datatype,datatypeConfig,value,voided,voidReason");
+                VisitAttribute attribute = new VisitAttribute(); attribute.setUuid(unique(item, ids));
+                VisitAttributeType type = Context.getVisitService().getVisitAttributeTypeByUuid(reference(text(item, "typeUuid", true)));
+                if (type == null || Boolean.TRUE.equals(type.getRetired())) throw dependency("visit.attribute.typeUuid");
+                if (!TEXT.equals(text(item,"datatype",true)) || !TEXT.equals(type.getDatatypeClassname())
+                    || !Objects.equals(type.getDatatypeConfig(),text(item,"datatypeConfig",false))) throw invalid();
+                String value = text(item,"value",true);
+                if (value.length() > 65535) throw invalid();
+                attribute.setAttributeType(type); attribute.setValueReferenceInternal(value);
+                attribute.setVoided(flag(item,"voided")); attribute.setVoidReason(text(item,"voidReason",false));
+                if (attribute.getVoided()) {
+                    if (attribute.getVoidReason()==null || attribute.getVoidReason().trim().isEmpty()) throw invalid();
+                    attribute.setVoidedBy(Context.getAuthenticatedUser()); attribute.setDateVoided(new Date());
+                }
+                expected.addAttribute(attribute);
+            }
+        }
 		if (encounterDate == null
 		        || encounterDate.getTime() / 1000 < expected.getStartDatetime().getTime() / 1000
 		        || (expected.getStopDatetime() != null && (expected.getStopDatetime().before(expected.getStartDatetime()) || encounterDate
 		                .getTime() / 1000 > expected.getStopDatetime().getTime() / 1000)))
 			throw invalid();
 		Visit existing = Context.getVisitService().getVisitByUuid(visitId);
-		if (existing == null)
+		if (existing == null) {
+            for (VisitAttribute attribute : expected.getAttributes()) {
+                if (Context.getVisitService().getVisitAttributeByUuid(attribute.getUuid()) != null) throw conflict();
+            }
 			return expected;
-		// CREATE never overwrites an existing visit or attaches to a different patient's visit.
+        }
+		// CREATE no sobrescribe una visita existente ni cambia su paciente.
 		if (!comparisonSnapshot(existing).equals(comparisonSnapshot(expected))) {
 			throw new APIException("La visita existente difiere del evento; requiere conciliacion, no se sobrescribe");
 		}
 		return existing;
 	}
-	
+
 	private static Date nativeDate(Date value) {
 		return value == null ? null : new Date(Math.floorDiv(value.getTime(), 1000L) * 1000L);
 	}
-	
+
 	private static String id(OpenmrsObject value) {
 		return value == null ? null : reference(value.getUuid());
 	}
-	
+
 	private static String date(Date value) {
 		return value == null ? null : java.time.Instant.ofEpochMilli(value.getTime()).toString();
 	}
-	
+
 	private static JsonNode comparisonSnapshot(Visit visit) {
 		ObjectNode data = (ObjectNode) serialize(visit);
-		// Compare at native database precision, without changing the original event.
+		// Compara con la precisión nativa de la base sin cambiar el evento original.
 		for (String field : new String[] { "startDatetime", "stopDatetime" }) {
 			String value = text(data, field, false);
 			if (value != null)

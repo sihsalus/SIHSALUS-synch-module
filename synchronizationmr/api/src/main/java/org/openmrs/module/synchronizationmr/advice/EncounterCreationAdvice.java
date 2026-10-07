@@ -21,27 +21,27 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.openmrs.module.synchronizationmr.sync.ObservationCaptureScope;
 
 /**
- * Captures encounter creation and additional observations; does not overwrite existing clinical
- * values.
+ * Captura creaciÃ³n, cambios de metadatos y nuevas observaciones dentro de la transacciÃ³n
+ * clÃ­nica.
  */
 public class EncounterCreationAdvice implements MethodInterceptor {
-	
+
 	private EncounterSyncService service;
-	
+
 	private PlatformTransactionManager transactionManager;
-	
+
 	public void setTransactionManager(PlatformTransactionManager transactionManager) {
 		this.transactionManager = transactionManager;
 	}
-	
+
 	public void setService(EncounterSyncService service) {
 		this.service = service;
 	}
-	
+
 	private EncounterSyncService service() {
 		return service != null ? service : Context.getService(EncounterSyncService.class);
 	}
-	
+
 	@Override
 	public Object invoke(MethodInvocation invocation) throws Throwable {
 
@@ -50,14 +50,15 @@ public class EncounterCreationAdvice implements MethodInterceptor {
             return org.openmrs.module.synchronizationmr.sync.IncomingEncounterSave.protectVisitAssignment(
                 (org.openmrs.api.handler.EncounterVisitHandler) invocation.proceed());
         }
-		if (!"saveEncounter".equals(invocation.getMethod().getName()) || invocation.getArguments().length != 1
+		if (!(("saveEncounter".equals(invocation.getMethod().getName()) && invocation.getArguments().length == 1)
+                || ("voidEncounter".equals(invocation.getMethod().getName()) && invocation.getArguments().length == 2))
 		        || !(invocation.getArguments()[0] instanceof Encounter)) {
 			return invocation.proceed();
 		}
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             return capture(invocation);
         }
-        // OpenMRS puede ejecutar este interceptor antes de abrir su transacción.
+        // OpenMRS puede ejecutar este interceptor antes de abrir su transacciÃ³n.
         // Envolvemos el guardado del encuentro y del evento pendiente para confirmar
         // ambos juntos o deshacer ambos si ocurre un error local.
         PlatformTransactionManager manager = transactionManager != null ? transactionManager
@@ -70,25 +71,33 @@ public class EncounterCreationAdvice implements MethodInterceptor {
                 throw failure;
             }
             catch (Throwable failure) {
-                throw new APIException("No se pudo registrar la creación del encuentro para sincronización", failure);
+                throw new APIException("No se pudo registrar la creaciÃ³n del encuentro para sincronizaciÃ³n", failure);
             }
         });
     }
-	
+
 	private Object capture(MethodInvocation invocation) throws Throwable {
 		if (!TransactionSynchronizationManager.isActualTransactionActive()
 		        || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
-			throw new APIException("El interceptor de encuentros requiere una transacción de escritura de OpenMRS");
+			throw new APIException("El interceptor de encuentros requiere una transacciÃ³n de escritura de OpenMRS");
 		}
 		Encounter encounter = (Encounter) invocation.getArguments()[0];
 		if (org.openmrs.module.synchronizationmr.sync.IncomingEncounterSave.isReceiving(encounter) || ObservationCaptureScope.active(encounter)) {
 			return invocation.proceed();
 		}
         try (ObservationCaptureScope scope = ObservationCaptureScope.enter(encounter)) {
+            service().lockEncounterChanges();
             boolean creation = !service().encounterExists(encounter.getEncounterId());
+            java.util.Map<String,String> before = "saveEncounter".equals(invocation.getMethod().getName()) && !creation
+                ? service().snapshotObservationReplacements(encounter) : java.util.Collections.emptyMap();
             Object result = invocation.proceed();
-            if (creation) service().recordCreatedEncounter((Encounter) result);
-            else service().recordAddedObservations((Encounter) result);
+            if ("voidEncounter".equals(invocation.getMethod().getName())) service().recordVoidedEncounter((Encounter) result);
+            else if (creation) service().recordCreatedEncounter((Encounter) result);
+            else {
+                service().linkObservationReplacements((Encounter) result,before);
+                service().recordChangedEncounter((Encounter) result);
+                service().recordAddedObservations((Encounter) result);
+            }
             return result;
         }
 	}

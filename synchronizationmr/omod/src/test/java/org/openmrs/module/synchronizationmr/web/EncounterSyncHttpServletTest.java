@@ -25,47 +25,144 @@ import static org.mockito.Mockito.*;
 
 /** Prueba del contrato HTTP con peticiones simuladas; no inicia un servidor. */
 public class EncounterSyncHttpServletTest {
-	
+
+	@Test
+	public void receivesEncounterVoidWithAuthenticatedOrigin() throws Exception {
+		org.openmrs.Encounter e = new org.openmrs.Encounter();
+		e.setPatient(new org.openmrs.Patient());
+		e.setVoidReason("Prueba de anulacion");
+		e.setDateVoided(new Date(0));
+		String json = org.openmrs.module.synchronizationmr.sync.EncounterVoidEvent.create(e, origin, 1,
+		    java.time.Instant.EPOCH);
+		when(receiver.receiveEncounter(json)).thenReturn(1L);
+		MockHttpServletRequest request = request("POST", "receive");
+		request.setContentType("application/json");
+		request.setContent(json.getBytes(StandardCharsets.UTF_8));
+		assertEquals(200, call(request).getStatus());
+		verify(peer).authorizeEncounterReceive(origin);
+		verify(receiver).receiveEncounter(json);
+	}
+
+	@Test
+	public void receivesObservationVoidWithAuthenticatedOrigin() throws Exception {
+		org.openmrs.Encounter e = new org.openmrs.Encounter();
+		e.setPatient(new org.openmrs.Patient());
+		com.fasterxml.jackson.databind.node.ArrayNode items = new ObjectMapper().createArrayNode();
+		com.fasterxml.jackson.databind.node.ObjectNode item = items.addObject();
+		item.put("uuid", UUID.randomUUID().toString());
+		item.put("reason", "Correccion ficticia");
+		item.put("dateVoided", "2026-01-01T00:00:00Z");
+		String json = org.openmrs.module.synchronizationmr.sync.ObservationVoidEvent.create(e, items, origin, 1,
+		    java.time.Instant.parse("2026-01-01T00:00:00Z"));
+		when(receiver.receiveEncounter(json)).thenReturn(1L);
+		MockHttpServletRequest request = request("POST", "receive");
+		request.setContentType("application/json");
+		request.setContent(json.getBytes(StandardCharsets.UTF_8));
+		assertEquals(200, call(request).getStatus());
+		verify(peer).authorizeEncounterReceive(origin);
+		verify(receiver).receiveEncounter(json);
+	}
+
+	@Test
+	public void receivesLegacyVisitSupplementUsingOriginalOrigin() throws Exception {
+		org.openmrs.Encounter e = new org.openmrs.Encounter();
+		e.setPatient(new org.openmrs.Patient());
+		e.setEncounterType(new org.openmrs.EncounterType());
+		e.setEncounterDatetime(new Date(0));
+		org.openmrs.Visit visit = new org.openmrs.Visit();
+		visit.setPatient(e.getPatient());
+		visit.setVisitType(new org.openmrs.VisitType());
+		visit.setStartDatetime(new Date(0));
+		e.setVisit(visit);
+		org.openmrs.VisitAttributeType type = new org.openmrs.VisitAttributeType();
+		type.setDatatypeClassname("org.openmrs.customdatatype.datatype.FreeTextDatatype");
+		org.openmrs.VisitAttribute attribute = new org.openmrs.VisitAttribute();
+		attribute.setAttributeType(type);
+		attribute.setValueReferenceInternal("Prueba");
+		visit.addAttribute(attribute);
+		ObjectMapper mapper = new ObjectMapper();
+		com.fasterxml.jackson.databind.node.ObjectNode old = (com.fasterxml.jackson.databind.node.ObjectNode) mapper
+		        .readTree(new org.openmrs.module.synchronizationmr.sync.EncounterCreationPayloadSerializer().serialize(e,
+		            origin, 1, UUID.randomUUID().toString(), new Date(0)));
+		old.put("schemaVersion", 3);
+		com.fasterxml.jackson.databind.node.ObjectNode data = (com.fasterxml.jackson.databind.node.ObjectNode) old.path(
+		    "payload").path("visit");
+		data.remove("attributes");
+		data.put("unsupportedAttributes", true);
+		String wire = org.openmrs.module.synchronizationmr.sync.EncounterVisitSupplement.prepare(old.toString(), visit);
+		when(receiver.receiveEncounter(wire)).thenReturn(1L);
+		MockHttpServletRequest request = request("POST", "receive");
+		request.setContentType("application/json");
+		request.setContent(wire.getBytes(StandardCharsets.UTF_8));
+		assertEquals(200, call(request).getStatus());
+		verify(peer).authorizeEncounterReceive(origin);
+		verify(receiver).receiveEncounter(wire);
+	}
+
+	@Test
+	public void receivesCorrectionUsingTheSameAuthenticatedEncounterStream() throws Exception {
+		org.openmrs.Encounter encounter = new org.openmrs.Encounter();
+		encounter.setPatient(new org.openmrs.Patient());
+		org.openmrs.Obs old = new org.openmrs.Obs(), value = new org.openmrs.Obs();
+		value.setConcept(new org.openmrs.Concept());
+		value.setPreviousVersion(old);
+		value.setValueNumeric(77.0);
+		value.setObsDatetime(new Date(0));
+		com.fasterxml.jackson.databind.node.ObjectNode item = new org.openmrs.module.synchronizationmr.sync.EncounterCreationPayloadSerializer()
+		        .observationVersion(value);
+		item.put("rootUuid", old.getUuid());
+		String json = org.openmrs.module.synchronizationmr.sync.ObservationCorrectionEvent.create(encounter,
+		    new ObjectMapper().createArrayNode().add(item), Collections.singletonMap(old.getUuid(), value.getUuid()),
+		    origin, 1, java.time.Instant.EPOCH);
+		when(receiver.receiveEncounter(json)).thenReturn(1L);
+		MockHttpServletRequest request = request("POST", "receive");
+		request.setContentType("application/json");
+		request.setContent(json.getBytes(StandardCharsets.UTF_8));
+		assertEquals(200, call(request).getStatus());
+		verify(peer).authorizeEncounterReceive(origin);
+		verify(receiver).receiveEncounter(json);
+	}
+
 	private final EncounterSyncService sync = mock(EncounterSyncService.class);
-	
+
 	private final EncounterReceiveService receiver = mock(EncounterReceiveService.class);
-	
+
 	private final LocalNodeService node = mock(LocalNodeService.class);
-	
+
 	private final PatientSyncPeerSession peer = mock(PatientSyncPeerSession.class);
-	
+
 	private final String origin = "testServer_1";
-	
+
 	private boolean authenticationFails;
-	
+
 	private final EncounterSyncHttpServlet servlet = new EncounterSyncHttpServlet() {
-		
+
 		@Override
 		protected PatientSyncPeerSession openPeer(String user, String password) {
 			assertEquals("posta", user);
 			assertEquals("clave:prueba", password);
 			if (authenticationFails) {
-				throw new APIAuthenticationException("Credenciales no válidas");
+				throw new APIAuthenticationException("Credenciales no vÃ¡lidas");
 			}
 			return peer;
 		}
-		
+
 		@Override
 		protected EncounterSyncService encounters() {
 			return sync;
 		}
-		
+
 		@Override
 		protected EncounterReceiveService encounterReceiver() {
 			return receiver;
 		}
-		
+
 		@Override
 		protected LocalNodeService node() {
 			return node;
 		}
 	};
-	
+
 	private MockHttpServletRequest request(String method, String resource) {
 		MockHttpServletRequest request = new MockHttpServletRequest(method, "/moduleServlet/synchronizationmr/encounterSync");
 		request.setSecure(true);
@@ -74,25 +171,54 @@ public class EncounterSyncHttpServletTest {
 		request.setParameter("resource", resource);
 		return request;
 	}
-	
+
 	private MockHttpServletResponse call(MockHttpServletRequest request) throws Exception {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		servlet.service(request, response);
 		return response;
 	}
-	
+
 	private String event() {
 		return "{\"schemaVersion\":2,\"originServerId\":\"" + origin + "\",\"eventUuid\":\"" + UUID.randomUUID()
 		        + "\",\"entitySequence\":1,\"entityType\":\"ENCOUNTER\",\"operation\":\"CREATE\","
 		        + "\"occurredAt\":\"2026-09-20T00:00:00Z\",\"payload\":{\"encounterUuid\":\"" + UUID.randomUUID()
 		        + "\",\"patientUuid\":\"" + UUID.randomUUID() + "\"}}";
 	}
-	
+
 	@AfterEach
 	public void cleanup() {
 		TransactionSynchronizationManager.clear();
 	}
-	
+
+	@Test
+	public void receivesUpdateThroughAuthenticatedEndpointAndRejectsUnsupportedGroups() throws Exception {
+		ObjectMapper mapper = new ObjectMapper();
+		com.fasterxml.jackson.databind.node.ObjectNode update = (com.fasterxml.jackson.databind.node.ObjectNode) mapper
+		        .readTree(event());
+		update.put("schemaVersion", 5);
+		update.put("operation", "UPDATE");
+		update.putArray("changedGroups").add("locationUuid");
+		com.fasterxml.jackson.databind.node.ObjectNode data = (com.fasterxml.jackson.databind.node.ObjectNode) update
+		        .get("payload");
+		data.put("encounterDatetime", "2026-01-01T00:00:00Z");
+		data.put("encounterTypeUuid", "tipo");
+		data.putNull("locationUuid");
+		data.putNull("formUuid");
+		data.putArray("encounterProviders");
+		String json = update.toString();
+		when(receiver.receiveEncounter(json)).thenReturn(1L);
+		MockHttpServletRequest request = request("POST", "receive");
+		request.setContentType("application/json");
+		request.setContent(json.getBytes(StandardCharsets.UTF_8));
+		assertEquals(200, call(request).getStatus());
+		verify(peer).authorizeEncounterReceive(origin);
+		verify(receiver).receiveEncounter(json);
+		update.putArray("changedGroups").add("obs");
+		request.setContent(update.toString().getBytes(StandardCharsets.UTF_8));
+		assertEquals(400, call(request).getStatus());
+		verifyNoMoreInteractions(receiver);
+	}
+
 	@Test
 	public void rejectsPlainHttpBeforeAuthentication() throws Exception {
 		MockHttpServletRequest request = request("GET", "node");
@@ -100,7 +226,7 @@ public class EncounterSyncHttpServletTest {
 		assertEquals(403, call(request).getStatus());
 		verifyNoInteractions(peer, sync, node);
 	}
-	
+
 	@Test
 	public void rejectsMissingOrBadCredentials() throws Exception {
 		MockHttpServletRequest request = request("GET", "node");
@@ -112,7 +238,7 @@ public class EncounterSyncHttpServletTest {
 		assertEquals(401, call(request("GET", "node")).getStatus());
 		verifyNoInteractions(sync, node);
 	}
-	
+
 	@Test
 	public void rejectsUnconfiguredPeerAndClosesScope() throws Exception {
 		doThrow(new APIAuthenticationException("Cuenta sin configurar")).when(peer).authorize();
@@ -120,7 +246,7 @@ public class EncounterSyncHttpServletTest {
 		verify(peer).close();
 		verifyNoInteractions(node);
 	}
-	
+
 	@Test
 	public void returnsNodeAndOrigins() throws Exception {
 		when(node.getLocalServerId()).thenReturn(origin);
@@ -133,7 +259,7 @@ public class EncounterSyncHttpServletTest {
 		when(sync.getEncounterOrigins(null, 25)).thenReturn(Collections.singletonList(origin));
 		assertTrue(call(request("GET", "origins")).getContentAsString().contains(origin));
 	}
-	
+
 	@Test
 	public void rejectsMissingServerIdentityOnEveryResource() throws Exception {
 		when(node.getLocalServerId()).thenThrow(new APIException("Configure server.id"));
@@ -142,7 +268,7 @@ public class EncounterSyncHttpServletTest {
 		}
 		verifyNoInteractions(sync, receiver);
 	}
-	
+
 	@Test
 	public void separatesHighestFromConfirmedSequence() throws Exception {
 		when(sync.getHighestEncounterSequence(origin)).thenReturn(3L);
@@ -153,7 +279,7 @@ public class EncounterSyncHttpServletTest {
 		assertEquals(3, json.get("highestSequence").asInt());
 		assertEquals(1, json.get("confirmedSequence").asInt());
 	}
-	
+
 	@Test
 	public void returnsJsonObjectsAndDoesNotConfirmPages() throws Exception {
 		String json = event();
@@ -167,7 +293,7 @@ public class EncounterSyncHttpServletTest {
 		assertEquals(1, result.get("lastReturnedSequence").asInt());
 		verifyNoInteractions(receiver);
 	}
-	
+
 	@Test
 	public void rejectsInvalidPaginationAndMissingJsonEvent() throws Exception {
 		MockHttpServletRequest request = request("GET", "events");
@@ -180,7 +306,7 @@ public class EncounterSyncHttpServletTest {
 		assertEquals(409, response.getStatus());
 		assertFalse(response.getContentAsString().contains("privados"));
 	}
-	
+
 	@Test
 	public void receivesOnlyAuthorizedOriginAndReturnsConfirmation() throws Exception {
 		String json = event();
@@ -194,7 +320,7 @@ public class EncounterSyncHttpServletTest {
 		verify(receiver).receiveEncounter(json);
 		assertEquals(1, new ObjectMapper().readTree(response.getContentAsString()).get("confirmedSequence").asInt());
 	}
-	
+
 	@Test
 	public void forbidsOriginSpoofingBeforeCallingReceiver() throws Exception {
 		doThrow(new APIAuthenticationException("Origen ajeno")).when(peer).authorizeEncounterReceive(origin);
@@ -204,7 +330,7 @@ public class EncounterSyncHttpServletTest {
 		assertEquals(403, call(request).getStatus());
 		verifyNoInteractions(receiver);
 	}
-	
+
 	@Test
 	public void rejectsOuterTransactionBeforeAcknowledging() throws Exception {
 		TransactionSynchronizationManager.setActualTransactionActive(true);
@@ -214,7 +340,7 @@ public class EncounterSyncHttpServletTest {
 		assertEquals(503, call(request).getStatus());
 		verifyNoInteractions(receiver);
 	}
-	
+
 	@Test
 	public void rejectsUnsupportedBodiesAndMethods() throws Exception {
 		assertEquals(405, call(request("DELETE", "receive")).getStatus());

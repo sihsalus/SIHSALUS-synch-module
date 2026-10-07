@@ -14,43 +14,47 @@ import org.springframework.test.context.transaction.TestTransaction;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class LocalNodeServiceIntegrationTest extends BaseModuleContextSensitiveTest {
-	
+
+	private String patientSequence, encounterSequence;
+
 	@BeforeEach
     public void prepareNode() throws Exception {
         new Liquibase("src/main/resources/liquibase.xml", new FileSystemResourceAccessor(),
                 new JdbcConnection(getConnection())).update("");
         try (java.sql.Statement s = getConnection().createStatement()) {
-            s.executeUpdate("update synchronizationmr_local_node set server_id = null, patient_sequence = 0, encounter_sequence = 0 where singleton_id = 1");
+            s.executeUpdate("update synchronizationmr_local_node set server_id = null where singleton_id = 1");
         }
+        patientSequence = scalar("select patient_sequence from synchronizationmr_local_node");
+        encounterSequence = scalar("select encounter_sequence from synchronizationmr_local_node");
         configure("testServer_1");
     }
-	
+
 	private void configure(String value) {
 		Context.getAdministrationService().saveGlobalProperty(new GlobalProperty("server.id", value));
 	}
-	
+
 	private LocalNodeService service() {
 		return Context.getService(LocalNodeService.class);
 	}
-	
+
 	private String scalar(String query) throws Exception {
         try (java.sql.Statement s = getConnection().createStatement(); java.sql.ResultSet r = s.executeQuery(query)) {
             assertTrue(r.next()); return r.getString(1);
         }
     }
-	
+
 	@Test
     public void usesConfiguredIdWithoutGeneratingUuidOrAdvancingCounters() throws Exception {
         String patients = scalar("select count(*) from patient");
         assertEquals("testServer_1", service().getLocalServerId());
         assertEquals("testServer_1", service().getLocalServerId());
         assertEquals("testServer_1", scalar("select server_id from synchronizationmr_local_node"));
-        assertEquals("0", scalar("select patient_sequence from synchronizationmr_local_node"));
-        assertEquals("0", scalar("select encounter_sequence from synchronizationmr_local_node"));
+        assertEquals(patientSequence, scalar("select patient_sequence from synchronizationmr_local_node"));
+        assertEquals(encounterSequence, scalar("select encounter_sequence from synchronizationmr_local_node"));
         assertEquals(patients, scalar("select count(*) from patient"));
         assertThrows(java.sql.SQLException.class, () -> scalar("select node_uuid from synchronizationmr_local_node"));
     }
-	
+
 	@Test
     public void missingOrInvalidConfigurationDoesNotCreateIdentity() throws Exception {
         for (String value : new String[] { "", " ", "posta 1", "../posta", "a/b", new String(new char[101]).replace('\0', 'a') }) {
@@ -61,7 +65,7 @@ public class LocalNodeServiceIntegrationTest extends BaseModuleContextSensitiveT
         assertThrows(APIException.class, () -> service().getLocalServerId());
         assertNull(scalar("select server_id from synchronizationmr_local_node"));
     }
-	
+
 	@Test
     public void rejectsRenamingEstablishedOrigin() throws Exception {
         service().getLocalServerId();
@@ -69,7 +73,7 @@ public class LocalNodeServiceIntegrationTest extends BaseModuleContextSensitiveT
         assertThrows(APIException.class, () -> service().getLocalServerId());
         assertEquals("testServer_1", scalar("select server_id from synchronizationmr_local_node"));
     }
-	
+
 	@Test
 	public void persistsWithoutOuterTransaction() throws Exception {
 		TestTransaction.flagForCommit();
@@ -82,7 +86,7 @@ public class LocalNodeServiceIntegrationTest extends BaseModuleContextSensitiveT
 		}
 		assertEquals("testServer_1", scalar("select server_id from synchronizationmr_local_node"));
 	}
-	
+
 	@Test
 	public void identityRollsBackWithCaller() throws Exception {
 		TestTransaction.flagForCommit();
@@ -94,7 +98,7 @@ public class LocalNodeServiceIntegrationTest extends BaseModuleContextSensitiveT
 		TestTransaction.start();
 		assertNull(scalar("select server_id from synchronizationmr_local_node"));
 	}
-	
+
 	@Test
     public void simultaneousFirstCallsUseSameConfiguredId() throws Exception {
         Credentials credentials = getCredentials();
@@ -115,6 +119,6 @@ public class LocalNodeServiceIntegrationTest extends BaseModuleContextSensitiveT
             assertEquals("testServer_1", a.get(20, TimeUnit.SECONDS));
             assertEquals("testServer_1", b.get(20, TimeUnit.SECONDS));
         } finally { start.countDown(); pool.shutdownNow(); TestTransaction.start(); }
-        assertEquals("0", scalar("select patient_sequence from synchronizationmr_local_node"));
+        assertEquals(patientSequence, scalar("select patient_sequence from synchronizationmr_local_node"));
     }
 }

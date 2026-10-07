@@ -243,5 +243,110 @@
         </createTable>
         <addForeignKeyConstraint baseTableName="synchronizationmr_patient_state" baseColumnNames="patient_id" referencedTableName="synchronizationmr_patient_identity" referencedColumnNames="patient_id" constraintName="syncmr_patient_state_patient_fk" />
     </changeSet>
+    <changeSet id="synchronizationmr-20261006-encounter-updates" author="sihsalus">
+        <!-- Conserva CREATE y ADD_OBS; UPDATE utiliza el mismo contador de encuentros. -->
+        <createTable tableName="synchronizationmr_encounter_update">
+            <column name="event_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="encounter_id" type="int"><constraints nullable="false" /></column>
+            <column name="encounter_uuid" type="varchar(38)"><constraints nullable="false" /></column>
+            <column name="origin_server_id" type="varchar(100)"><constraints nullable="false" /></column>
+            <column name="entity_sequence" type="bigint"><constraints nullable="false" /></column>
+            <column name="date_created" type="datetime"><constraints nullable="false" /></column>
+            <column name="payload_json" type="clob"><constraints nullable="false" /></column>
+        </createTable>
+        <addUniqueConstraint tableName="synchronizationmr_encounter_update" columnNames="origin_server_id,entity_sequence" constraintName="syncmr_enc_update_sequence_uq" />
+        <createIndex tableName="synchronizationmr_encounter_update" indexName="syncmr_enc_update_enc_idx"><column name="encounter_id" /></createIndex>
+        <addForeignKeyConstraint baseTableName="synchronizationmr_encounter_update" baseColumnNames="encounter_id" referencedTableName="encounter" referencedColumnNames="encounter_id" constraintName="syncmr_enc_update_enc_fk" />
+        <createTable tableName="synchronizationmr_encounter_state">
+            <column name="encounter_id" type="int"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="snapshot_json" type="clob"><constraints nullable="false" /></column>
+            <column name="versions_json" type="clob"><constraints nullable="false" /></column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="synchronizationmr_encounter_state" baseColumnNames="encounter_id" referencedTableName="encounter" referencedColumnNames="encounter_id" constraintName="syncmr_enc_state_enc_fk" />
+    </changeSet>
+    <changeSet id="synchronizationmr-20261006-encounter-update-collation" author="sihsalus" dbms="mysql,mariadb">
+        <sql>ALTER TABLE synchronizationmr_encounter_update MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
+    </changeSet>
+    <changeSet id="synchronizationmr-20261006-observation-corrections" author="sihsalus">
+        <createTable tableName="synchronizationmr_encounter_correction">
+            <column name="event_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="encounter_id" type="int"><constraints nullable="false" /></column>
+            <column name="encounter_uuid" type="varchar(38)"><constraints nullable="false" /></column>
+            <column name="origin_server_id" type="varchar(100)"><constraints nullable="false" /></column>
+            <column name="entity_sequence" type="bigint"><constraints nullable="false" /></column>
+            <column name="date_created" type="datetime"><constraints nullable="false" /></column>
+            <column name="payload_json" type="clob"><constraints nullable="false" /></column>
+        </createTable>
+        <addUniqueConstraint tableName="synchronizationmr_encounter_correction" columnNames="origin_server_id,entity_sequence" constraintName="syncmr_enc_corr_sequence_uq" />
+        <addForeignKeyConstraint baseTableName="synchronizationmr_encounter_correction" baseColumnNames="encounter_id" referencedTableName="encounter" referencedColumnNames="encounter_id" constraintName="syncmr_enc_corr_enc_fk" />
+        <createTable tableName="synchronizationmr_obs_revision">
+            <column name="obs_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="encounter_id" type="int"><constraints nullable="false" /></column>
+            <column name="root_uuid" type="varchar(38)"><constraints nullable="false" /></column>
+            <column name="previous_uuid" type="varchar(38)" />
+            <column name="parent_uuid" type="varchar(38)" />
+            <column name="snapshot_json" type="clob"><constraints nullable="false" /></column>
+        </createTable>
+        <createIndex tableName="synchronizationmr_obs_revision" indexName="syncmr_obs_rev_enc_idx"><column name="encounter_id" /></createIndex>
+        <addForeignKeyConstraint baseTableName="synchronizationmr_obs_revision" baseColumnNames="encounter_id" referencedTableName="encounter" referencedColumnNames="encounter_id" constraintName="syncmr_obs_rev_enc_fk" />
+        <createTable tableName="synchronizationmr_obs_head">
+            <column name="root_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="encounter_id" type="int"><constraints nullable="false" /></column>
+            <column name="head_uuid" type="varchar(38)"><constraints nullable="false" /></column>
+            <column name="version_json" type="clob"><constraints nullable="false" /></column>
+        </createTable>
+        <createIndex tableName="synchronizationmr_obs_head" indexName="syncmr_obs_head_enc_idx"><column name="encounter_id" /></createIndex>
+        <addForeignKeyConstraint baseTableName="synchronizationmr_obs_head" baseColumnNames="encounter_id" referencedTableName="encounter" referencedColumnNames="encounter_id" constraintName="syncmr_obs_head_enc_fk" />
+    </changeSet>
+    <changeSet id="synchronizationmr-20261006-observation-corrections-collation" author="sihsalus" dbms="mysql,mariadb">
+        <sql>ALTER TABLE synchronizationmr_encounter_correction MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
+    </changeSet>
+    <changeSet id="synchronizationmr-20261006-visit-supplements" author="sihsalus">
+        <createTable tableName="synchronizationmr_visit_supplement">
+            <column name="event_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="wire_json" type="clob"><constraints nullable="false" /></column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="synchronizationmr_visit_supplement" baseColumnNames="event_uuid" referencedTableName="synchronizationmr_encounter_event" referencedColumnNames="event_uuid" constraintName="syncmr_visit_supp_event_fk" />
+    </changeSet>
+    <changeSet id="synchronizationmr-20261006-observation-voids" author="sihsalus">
+        <createTable tableName="synchronizationmr_encounter_void">
+            <column name="event_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="encounter_id" type="int"><constraints nullable="false" /></column>
+            <column name="encounter_uuid" type="varchar(38)"><constraints nullable="false" /></column>
+            <column name="origin_server_id" type="varchar(100)"><constraints nullable="false" /></column>
+            <column name="entity_sequence" type="bigint"><constraints nullable="false" /></column>
+            <column name="date_created" type="datetime"><constraints nullable="false" /></column>
+            <column name="payload_json" type="clob"><constraints nullable="false" /></column>
+        </createTable>
+        <addUniqueConstraint tableName="synchronizationmr_encounter_void" columnNames="origin_server_id,entity_sequence" constraintName="syncmr_enc_void_seq_uq" />
+        <addForeignKeyConstraint baseTableName="synchronizationmr_encounter_void" baseColumnNames="encounter_id" referencedTableName="encounter" referencedColumnNames="encounter_id" constraintName="syncmr_enc_void_enc_fk" />
+        <createTable tableName="synchronizationmr_obs_void">
+            <column name="obs_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="encounter_id" type="int"><constraints nullable="false" /></column>
+            <column name="reason" type="varchar(255)"><constraints nullable="false" /></column>
+            <column name="date_voided" type="datetime"><constraints nullable="false" /></column>
+            <column name="version_json" type="clob"><constraints nullable="false" /></column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="synchronizationmr_obs_void" baseColumnNames="encounter_id" referencedTableName="encounter" referencedColumnNames="encounter_id" constraintName="syncmr_obs_void_enc_fk" />
+    </changeSet>
+    <changeSet id="synchronizationmr-20261006-observation-voids-collation" author="sihsalus" dbms="mysql,mariadb">
+        <sql>ALTER TABLE synchronizationmr_encounter_void MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
+    </changeSet>
+    <changeSet id="synchronizationmr-20261006-encounter-annulments" author="sihsalus">
+        <createTable tableName="synchronizationmr_encounter_annulment">
+            <column name="event_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="encounter_id" type="int"><constraints nullable="false" /></column>
+            <column name="encounter_uuid" type="varchar(38)"><constraints nullable="false" /></column>
+            <column name="origin_server_id" type="varchar(100)"><constraints nullable="false" /></column>
+            <column name="entity_sequence" type="bigint"><constraints nullable="false" /></column>
+            <column name="date_created" type="datetime"><constraints nullable="false" /></column>
+            <column name="payload_json" type="clob"><constraints nullable="false" /></column>
+        </createTable>
+        <addUniqueConstraint tableName="synchronizationmr_encounter_annulment" columnNames="origin_server_id,entity_sequence" constraintName="syncmr_enc_annul_seq_uq" />
+        <addForeignKeyConstraint baseTableName="synchronizationmr_encounter_annulment" baseColumnNames="encounter_id" referencedTableName="encounter" referencedColumnNames="encounter_id" constraintName="syncmr_enc_annul_enc_fk" />
+    </changeSet>
+    <changeSet id="synchronizationmr-20261006-encounter-annulments-collation" author="sihsalus" dbms="mysql,mariadb">
+        <sql>ALTER TABLE synchronizationmr_encounter_annulment MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
+    </changeSet>
 </databaseChangeLog>
  

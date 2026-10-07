@@ -10,27 +10,39 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-/** Encounter, observations, original event and receipt commit together. */
+/** El contenido clÃ­nico, el evento original y el recibo se confirman en la misma transacciÃ³n. */
 @Repository("synchronizationmr.EncounterReceiveDao")
 public class EncounterReceiveDao {
-	
+
 	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessionFactory;
-	
+
 	@javax.annotation.Resource(name = "synchronizationmr.LocalNodeDao")
 	private LocalNodeDao localNodeDao;
-	
+
 	@javax.annotation.Resource(name = "synchronizationmr.OrderLinkDao")
 	private OrderLinkDao orderLinks;
-	
+
+	@javax.annotation.Resource(name = "synchronizationmr.EncounterUpdateDao")
+	private EncounterUpdateDao updates;
+
+	@javax.annotation.Resource(name = "synchronizationmr.ObservationCorrectionDao")
+	private ObservationCorrectionDao corrections;
+
+	@javax.annotation.Resource(name = "synchronizationmr.ObservationVoidDao")
+	private ObservationVoidDao voids;
+
+	@javax.annotation.Resource(name = "synchronizationmr.EncounterVoidDao")
+	private EncounterVoidDao annulments;
+
 	public long confirmed(String origin) {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> confirmed(connection, origin));
     }
-	
+
 	private long confirmed(Connection connection, String origin) throws SQLException {
 		return confirmed(connection, origin, false);
 	}
-	
+
 	private long confirmed(Connection connection, String origin, boolean lock) throws SQLException {
         try (PreparedStatement query = connection.prepareStatement(
                 "select confirmed_sequence from synchronizationmr_encounter_receipt where origin_server_id = ?" + (lock ? " for update" : ""))) {
@@ -38,10 +50,10 @@ public class EncounterReceiveDao {
             try (ResultSet rows = query.executeQuery()) { return rows.next() ? rows.getLong(1) : 0; }
         }
     }
-	
+
 	public long receive(EncounterIncomingEvent event) {
         if (!TransactionSynchronizationManager.isActualTransactionActive()
-                || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) { throw new APIException("La recepción requiere transacción de escritura"); }
+                || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) { throw new APIException("La recepciÃ³n requiere transacciÃ³n de escritura"); }
         if (localNodeDao.getLocalServerId().equals(event.origin)) { throw new APIException("No se importa el propio origen"); }
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             long confirmed = confirmed(connection, event.origin, true);
@@ -51,13 +63,13 @@ public class EncounterReceiveDao {
                     query.setString(1, event.origin); query.setLong(2, event.sequence);
                     try (ResultSet rows = query.executeQuery()) {
                         if (rows.next() && event.encounterUuid.equals(rows.getString(1)) && event.eventUuid.equals(rows.getString(2))
-                                && event.sameContent(rows.getString(3))) { return confirmed; }
+                                && event.sameContent(EncounterVisitSupplementDao.wire(connection,event.eventUuid,rows.getString(3)))) { return confirmed; }
                     }
                 }
                 throw new APIException("El evento no coincide con la secuencia ya confirmada");
             }
             if (confirmed == Long.MAX_VALUE || event.sequence != confirmed + 1) { throw new APIException("Falta una secuencia anterior de encuentros"); }
-            for (String table : new String[]{"synchronizationmr_encounter_event", "synchronizationmr_encounter_addition"}) {
+            for (String table : new String[]{"synchronizationmr_encounter_event", "synchronizationmr_encounter_addition", "synchronizationmr_encounter_update", "synchronizationmr_encounter_correction", "synchronizationmr_encounter_void", "synchronizationmr_encounter_annulment"}) {
             try (PreparedStatement query = connection.prepareStatement(
                     "select event_uuid from " + table + " where event_uuid = ? for update")) {
                 query.setString(1, event.eventUuid);
@@ -66,10 +78,18 @@ public class EncounterReceiveDao {
                 }
             }
             }
-            if (event.addition) {
+            if (event.voidEncounter) {
+                annulments.receive(connection,new EncounterVoidEvent(event.json));
+            } else if (event.voidObservations) {
+                voids.receive(connection,new ObservationVoidEvent(event.json));
+            } else if (event.correction) {
+                corrections.receive(connection, new ObservationCorrectionEvent(event.json));
+            } else if (event.update) {
+                updates.receive(connection, new EncounterUpdateEvent(event.json));
+            } else if (event.addition) {
                 receiveAddition(connection, event);
             } else {
-            if (Context.getEncounterService().getEncounterByUuid(event.encounterUuid) != null) { throw new APIException("El encuentro ya existe sin esta recepción confirmada"); }
+            if (Context.getEncounterService().getEncounterByUuid(event.encounterUuid) != null) { throw new APIException("El encuentro ya existe sin esta recepciÃ³n confirmada"); }
             Encounter incoming = event.toEncounter();
             EncounterObservationVersions versions = new EncounterObservationVersions(event);
             if (incoming.getVisit() != null && incoming.getVisit().getVisitId() == null) {
@@ -87,6 +107,10 @@ public class EncounterReceiveDao {
                 insert.setString(9, event.json); insert.executeUpdate();
             }
             }
+            // Una edicion tardia se conserva, pero no reactiva un encuentro anulado.
+            Encounter affected = Context.getEncounterService().getEncounterByUuid(event.encounterUuid);
+            annulments.preserveAnnulment(connection,affected);
+            EncounterVisitSupplementDao.record(connection,event);
             if (confirmed == 0) {
                 try (PreparedStatement insert = connection.prepareStatement("insert into synchronizationmr_encounter_receipt (origin_server_id, confirmed_sequence) values (?, ?)")) {
                     insert.setString(1, event.origin); insert.setLong(2, event.sequence); insert.executeUpdate();
@@ -99,7 +123,7 @@ public class EncounterReceiveDao {
             return event.sequence;
         });
     }
-	
+
 	private void receiveAddition(Connection connection, EncounterIncomingEvent event) throws SQLException {
         Encounter encounter = Context.getEncounterService().getEncounterByUuid(event.encounterUuid);
         if (encounter == null) throw new EncounterDependencyException("ENCOUNTER_NOT_AVAILABLE: falta el encuentro de los resultados");

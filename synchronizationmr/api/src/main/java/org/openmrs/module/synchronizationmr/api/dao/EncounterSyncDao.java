@@ -11,13 +11,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.openmrs.module.synchronizationmr.sync.EncounterEventStream;
 
-/** Solo escribe en tablas del módulo. Comparte la transacción del encuentro clínico. */
+/** Solo escribe en tablas del mÃ³dulo. Comparte la transacciÃ³n del encuentro clÃ­nico. */
 @Repository("synchronizationmr.EncounterSyncDao")
 public class EncounterSyncDao {
-	
+
 	private static final String PENDING = " from encounter c left join synchronizationmr_encounter_event e on e.encounter_id = c.encounter_id"
 	        + " where c.voided = false and (e.event_uuid is null or e.payload_json is null or trim(e.payload_json) = '')";
-	
+
 	public java.util.List<Integer> lockAndFindPending(int limit) {
         sessionFactory.getCurrentSession().flush();
         localNodeDao.getLocalServerId();
@@ -30,7 +30,7 @@ public class EncounterSyncDao {
             return ids;
         });
     }
-	
+
 	public long countPending() {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             try (PreparedStatement query = connection.prepareStatement("select count(*)" + PENDING); ResultSet rows = query.executeQuery()) {
@@ -38,20 +38,20 @@ public class EncounterSyncDao {
             }
         });
     }
-	
+
 	public void requirePayload(int id) {
         sessionFactory.getCurrentSession().doWork(connection -> {
             try (PreparedStatement query = connection.prepareStatement("select payload_json from synchronizationmr_encounter_event where encounter_id = ?")) {
                 query.setInt(1, id);
                 try (ResultSet rows = query.executeQuery()) {
                     if (!rows.next() || rows.getString(1) == null || rows.getString(1).trim().isEmpty()) {
-                        throw new APIException("Evento histórico sin JSON; requiere revisión y no se reconstruye automáticamente");
+                        throw new APIException("Evento histÃ³rico sin JSON; requiere revisiÃ³n y no se reconstruye automÃ¡ticamente");
                     }
                 }
             }
         });
     }
-	
+
 	public java.util.List<String> findEncounterOrigins(String afterOrigin, int limit) {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             java.util.List<String> origins = new java.util.ArrayList<>();
@@ -65,7 +65,7 @@ public class EncounterSyncDao {
             return java.util.Collections.unmodifiableList(origins);
         });
     }
-	
+
 	public long findHighestEncounterSequence(String origin) {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             try (PreparedStatement query = connection.prepareStatement(
@@ -78,12 +78,12 @@ public class EncounterSyncDao {
             }
         });
     }
-	
+
 	public java.util.List<org.openmrs.module.synchronizationmr.sync.EncounterSyncEvent> findEncounterEventsAfter(
             String origin, long afterSequence, int limit) {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             java.util.List<org.openmrs.module.synchronizationmr.sync.EncounterSyncEvent> events = new java.util.ArrayList<>();
-            // No filtramos por estado global: otro destino podría necesitar un evento ya entregado.
+            // No filtramos por estado global: otro destino podrÃ­a necesitar un evento ya entregado.
             try (PreparedStatement query = connection.prepareStatement(
                     "select i.entity_sequence, i.encounter_uuid, i.event_uuid, i.payload_json"
                     + " from " + EncounterEventStream.SQL + " i"
@@ -97,15 +97,15 @@ public class EncounterSyncDao {
                     while (rows.next()) {
                         long sequence = rows.getLong(1);
                         if (previous == Long.MAX_VALUE || sequence != previous + 1) {
-                            throw new org.openmrs.api.APIException("No se puede entregar la página: falta la secuencia " + (previous + 1));
+                            throw new org.openmrs.api.APIException("No se puede entregar la pÃ¡gina: falta la secuencia " + (previous + 1));
                         }
                         String eventUuid = rows.getString(3);
                         String payload = rows.getString(4);
                         if (eventUuid == null || payload == null || payload.trim().isEmpty()) {
-                            throw new org.openmrs.api.APIException("No se puede entregar la página: falta el evento o su JSON en la secuencia " + sequence);
+                            throw new org.openmrs.api.APIException("No se puede entregar la pÃ¡gina: falta el evento o su JSON en la secuencia " + sequence);
                         }
                         events.add(new org.openmrs.module.synchronizationmr.sync.EncounterSyncEvent(
-                                origin, sequence, eventUuid, rows.getString(2), payload));
+                                origin, sequence, eventUuid, rows.getString(2), EncounterVisitSupplementDao.wire(connection,eventUuid,payload)));
                         previous = sequence;
                     }
                 }
@@ -113,16 +113,16 @@ public class EncounterSyncDao {
             return java.util.Collections.unmodifiableList(events);
         });
     }
-	
+
 	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessionFactory;
-	
+
 	@javax.annotation.Resource(name = "synchronizationmr.LocalNodeDao")
 	private LocalNodeDao localNodeDao;
-	
+
 	@javax.annotation.Resource(name = "synchronizationmr.EncounterCreationPayloadSerializer")
 	private org.openmrs.module.synchronizationmr.sync.EncounterCreationPayloadSerializer serializer;
-	
+
 	public boolean exists(Integer id) {
         if (id == null) { return false; }
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
@@ -132,7 +132,7 @@ public class EncounterSyncDao {
             }
         });
     }
-	
+
 	public void capture(Encounter encounter) {
         sessionFactory.getCurrentSession().flush();
         sessionFactory.getCurrentSession().doWork(connection -> {
@@ -174,7 +174,7 @@ public class EncounterSyncDao {
             }
         });
     }
-	
+
 	public java.util.List<Integer> findPublishedEncountersAfter(int after, int limit) {
         sessionFactory.getCurrentSession().flush();
         localNodeDao.getLocalServerId();
@@ -189,11 +189,11 @@ public class EncounterSyncDao {
             return ids;
         });
     }
-	
+
 	public void captureAdditions(Encounter encounter) {
 		captureAdditions(encounter, false);
 	}
-	
+
 	/** Only previously unpublished observations are added. Existing values are never overwritten. */
 	public boolean captureAdditions(Encounter encounter, boolean strict) {
         sessionFactory.getCurrentSession().flush();
@@ -204,7 +204,7 @@ public class EncounterSyncDao {
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
             // Current reads under the node lock also work with MariaDB REPEATABLE READ.
             // A consistent read could otherwise miss a concurrently committed capture.
-            for (String table : new String[]{"synchronizationmr_encounter_event", "synchronizationmr_encounter_addition"}) {
+            for (String table : new String[]{"synchronizationmr_encounter_event", "synchronizationmr_encounter_addition", "synchronizationmr_encounter_correction"}) {
             try (PreparedStatement query = connection.prepareStatement(
                     "select payload_json from " + table + " where encounter_id = ? for update")) {
                 query.setInt(1, encounter.getEncounterId());
@@ -271,7 +271,7 @@ public class EncounterSyncDao {
             return true;
         });
     }
-	
+
 	private void collectObservationIds(com.fasterxml.jackson.databind.JsonNode items, java.util.Set<String> ids) {
 		for (com.fasterxml.jackson.databind.JsonNode item : items) {
 			ids.add(item.path("uuid").asText());

@@ -9,38 +9,110 @@ import org.openmrs.api.APIException;
 import org.openmrs.api.context.Context;
 import static org.openmrs.module.synchronizationmr.sync.EventJson.*;
 
-/** Reconstructs one encounter snapshot; missing dependencies never create partial encounters. */
+/** Valida eventos y reconstruye encuentros; una dependencia ausente impide la recepciÃ³n parcial. */
 public final class EncounterIncomingEvent {
-	
+
 	private static final ObjectMapper MAPPER = new ObjectMapper().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
 	        .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
-	
+
 	public final JsonNode root;
-	
-	public final String json, origin, eventUuid, encounterUuid, patientUuid;
-	
+
+	public final String json, wireJson, origin, eventUuid, encounterUuid, patientUuid;
+
+	private final JsonNode visitSupplement;
+
 	public final long sequence;
-	
+
 	public final Date occurredAt;
-	
+
 	public final boolean addition;
-	
+
+	public final boolean update;
+
+	public final boolean correction;
+
+	public final boolean voidObservations;
+
+	public final boolean voidEncounter;
+
 	public EncounterIncomingEvent(String json) {
 		if (json == null || json.length() > 1000000) {
 			throw invalid();
 		}
+		wireJson = json;
+		EncounterVisitSupplement supplement = EncounterVisitSupplement.read(json);
+		visitSupplement = supplement == null ? null : supplement.visit;
+		if (supplement != null)
+			json = supplement.original;
 		try {
 			root = MAPPER.readTree(json);
 		}
 		catch (Exception e) {
 			throw invalid();
 		}
+
+		if (root == null || !root.isObject())
+			throw invalid();
+		voidEncounter = "VOID_ENCOUNTER".equals(root.path("operation").asText());
+		voidObservations = "VOID_OBS".equals(root.path("operation").asText());
+		correction = "CORRECT_OBS".equals(root.path("operation").asText());
+		update = "UPDATE".equals(root.path("operation").asText());
+		if (voidEncounter) {
+			EncounterVoidEvent event = new EncounterVoidEvent(json);
+			addition = false;
+			origin = event.origin;
+			eventUuid = event.eventUuid;
+			encounterUuid = event.encounterUuid;
+			patientUuid = event.patientUuid;
+			sequence = event.sequence;
+			occurredAt = Date.from(event.occurredAt);
+			this.json = json;
+			return;
+		}
+		if (voidObservations) {
+			ObservationVoidEvent event = new ObservationVoidEvent(json);
+			addition = false;
+			origin = event.origin;
+			eventUuid = event.eventUuid;
+			encounterUuid = event.encounterUuid;
+			patientUuid = event.patientUuid;
+			sequence = event.sequence;
+			occurredAt = Date.from(event.occurredAt);
+			this.json = json;
+			return;
+		}
+		if (correction) {
+			ObservationCorrectionEvent event = new ObservationCorrectionEvent(json);
+			addition = false;
+			origin = event.origin;
+			eventUuid = event.eventUuid;
+			encounterUuid = event.encounterUuid;
+			patientUuid = event.patientUuid;
+			sequence = event.sequence;
+			occurredAt = Date.from(event.occurredAt);
+			this.json = json;
+			return;
+		}
+		if (update) {
+			EncounterUpdateEvent event = new EncounterUpdateEvent(json);
+			addition = false;
+			origin = event.origin;
+			eventUuid = event.eventUuid;
+			encounterUuid = event.encounterUuid;
+			patientUuid = event.patientUuid;
+			sequence = event.sequence;
+			occurredAt = Date.from(event.occurredAt);
+			this.json = json;
+			return;
+		}
 		fields(root, "schemaVersion,eventUuid,originServerId,entityType,entitySequence,operation,occurredAt,payload");
 		JsonNode version = root.get("schemaVersion"), number = root.get("entitySequence");
 		addition = "ADD_OBS".equals(text(root, "operation", true));
-		if (version == null || !version.isIntegralNumber() || !version.canConvertToInt()
-		        || (addition ? version.intValue() != 4 : (version.intValue() != 2 && version.intValue() != 3))
-		        || !"ENCOUNTER".equals(text(root, "entityType", true))
+		if (version == null
+		        || !version.isIntegralNumber()
+		        || !version.canConvertToInt()
+		        || (addition ? version.intValue() != 4 : (version.intValue() != 2 && version.intValue() != 3 && version
+		                .intValue() != 7)) || !"ENCOUNTER".equals(text(root, "entityType", true))
 		        || (!addition && !"CREATE".equals(text(root, "operation", true))) || number == null
 		        || !number.isIntegralNumber() || !number.canConvertToLong() || number.longValue() < 1) {
 			throw invalid();
@@ -57,26 +129,28 @@ public final class EncounterIncomingEvent {
 		    data,
 		    addition ? "encounterUuid,patientUuid,obs"
 		            : "encounterUuid,patientUuid,encounterDatetime,encounterTypeUuid,locationUuid,formUuid,visitUuid,voided,voidReason,encounterProviders,obs,orderUuids,unsupportedContent"
-		                    + (version.intValue() == 3 ? ",visit" : ""));
+		                    + ((version.intValue() == 3 || version.intValue() == 7) ? ",visit" : ""));
 		encounterUuid = reference(text(data, "encounterUuid", true));
 		patientUuid = reference(text(data, "patientUuid", true));
 		this.json = json;
 	}
-	
+
 	public boolean sameContent(String other) {
 		try {
-			return other != null && root.equals(MAPPER.readTree(other));
+			return other != null && MAPPER.readTree(wireJson).equals(MAPPER.readTree(other));
 		}
 		catch (Exception e) {
 			return false;
 		}
 	}
-	
+
 	public Encounter toEncounter() {
-        if (addition) throw invalid();
-        JsonNode data = root.get("payload");
+        if (addition || update || correction || voidObservations || voidEncounter) throw invalid();
+        JsonNode data = root.get("payload").deepCopy();
+        if (visitSupplement != null) ((com.fasterxml.jackson.databind.node.ObjectNode)data).set("visit",visitSupplement);
+        if (root.path("schemaVersion").intValue()==3 && visitSupplement==null && data.path("visit").has("attributes")) throw invalid();
         if (array(data, "unsupportedContent", false).size() != 0) {
-            throw new APIException("El encuentro contiene diagnósticos o condiciones aún no admitidos");
+            throw new APIException("El encuentro contiene diagnÃ³sticos o condiciones aÃºn no admitidos");
         }
         Set<String> orderIds = new HashSet<>();
         for (JsonNode id : array(data, "orderUuids", false)) {
@@ -90,14 +164,14 @@ public final class EncounterIncomingEvent {
         encounter.setUuid(encounterUuid);
         encounter.setPatient(patient);
         encounter.setEncounterDatetime(instant(text(data, "encounterDatetime", true)));
-        if (root.path("schemaVersion").intValue() == 3) {
-            // Match native datetime precision before validating visit boundaries.
+        if ((root.path("schemaVersion").intValue() == 3 || root.path("schemaVersion").intValue() == 7)) {
+            // Ajusta la precisiÃ³n de fecha nativa antes de comprobar los lÃ­mites de la visita.
             encounter.setEncounterDatetime(new Date(Math.floorDiv(encounter.getEncounterDatetime().getTime(), 1000L) * 1000L));
         }
         encounter.setEncounterType(resolve(data, "encounterTypeUuid", true, Context.getEncounterService()::getEncounterTypeByUuid));
         encounter.setLocation(resolve(data, "locationUuid", false, Context.getLocationService()::getLocationByUuid));
         encounter.setForm(resolve(data, "formUuid", false, Context.getFormService()::getFormByUuid));
-        Visit visit = root.path("schemaVersion").intValue() == 3
+        Visit visit = (root.path("schemaVersion").intValue() == 3 || root.path("schemaVersion").intValue() == 7)
             ? EncounterVisitSnapshot.resolve(data, patient, encounter.getEncounterDatetime())
             : resolve(data, "visitUuid", false, Context.getVisitService()::getVisitByUuid);
         if (visit != null && (Boolean.TRUE.equals(visit.getVoided()) || !patientUuid.equals(visit.getPatient().getUuid()))) { throw invalid(); }
@@ -119,10 +193,10 @@ public final class EncounterIncomingEvent {
         for (JsonNode item : array(data, "obs", false)) { encounter.addObs(observation(item, encounter, seen, 0)); }
         return encounter;
     }
-	
-	/** Validate the complete addition before any observation is saved. */
+
+	/** Valida la adiciÃ³n completa antes de guardar cualquier observaciÃ³n. */
 	public List<Obs> addedObservations(Encounter encounter) {
-        if (!addition || encounter == null || Boolean.TRUE.equals(encounter.getVoided())
+        if (!addition || encounter == null
                 || !encounterUuid.equals(encounter.getUuid()) || !patientUuid.equals(encounter.getPatient().getUuid())
                 || Boolean.TRUE.equals(encounter.getPatient().getVoided())) throw conflict();
         List<Obs> result = new ArrayList<>();
@@ -133,7 +207,7 @@ public final class EncounterIncomingEvent {
             if (parentId != null) {
                 Obs parent = Context.getObsService().getObsByUuid(reference(parentId));
                 if (parent == null) throw new EncounterDependencyException("Falta el grupo de observaciones de los resultados");
-                if (Boolean.TRUE.equals(parent.getVoided()) || !parent.isObsGrouping()
+                if ((Boolean.TRUE.equals(parent.getVoided()) && !encounter.getVoided()) || !parent.isObsGrouping()
                         || parent.getEncounter() == null || !encounterUuid.equals(parent.getEncounter().getUuid())
                         || parent.getPerson() == null || !patientUuid.equals(parent.getPerson().getUuid())) throw conflict();
                 obs.setObsGroup(parent);
@@ -143,7 +217,7 @@ public final class EncounterIncomingEvent {
         if (result.isEmpty()) throw invalid();
         return result;
     }
-	
+
 	private Obs observation(JsonNode item, Encounter encounter, Set<String> seen, int depth) {
         if (depth > 50 || seen.size() >= 1000) { throw invalid(); }
         fields(item, "uuid,conceptUuid,obsDatetime,locationUuid,orderUuid,valueNumeric,valueText,valueDatetime,valueCodedUuid,valueCodedNameUuid,valueDrugUuid,valueModifier,comment,accessionNumber,status,interpretation,voided,voidReason,previousVersionUuid,valueComplex,complexDataIncluded,groupMembers"
@@ -189,7 +263,7 @@ public final class EncounterIncomingEvent {
         for (JsonNode child : array(item, "groupMembers", false)) { obs.addGroupMember(observation(child, encounter, seen, depth + 1)); }
         return obs;
     }
-	
+
 	private <T extends OpenmrsObject> T resolve(JsonNode node, String field, boolean required, Function<String, T> lookup) {
 		String id = text(node, field, required);
 		if (id == null) {

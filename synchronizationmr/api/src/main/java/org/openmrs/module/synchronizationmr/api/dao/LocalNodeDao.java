@@ -23,16 +23,19 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 /** Fija server.id bajo el mismo bloqueo que protege los contadores. No genera UUID. */
 @Repository("synchronizationmr.LocalNodeDao")
 public class LocalNodeDao {
-	
+
 	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessionFactory;
-	
+
 	public String getLocalServerId() {
         if (!TransactionSynchronizationManager.isActualTransactionActive()
                 || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
-            throw new APIException("La identidad del nodo requiere una transacción de escritura activa");
+            throw new APIException("La identidad del nodo requiere una transacciÃ³n de escritura activa");
         }
-        String configured = Context.getAdministrationService().getGlobalProperty(ServerId.PROPERTY);
+        // La lectura por clave conserva la propiedad pendiente de esta misma sesiÃ³n sin
+        // adelantar el flush de una Obs que aÃºn necesita el versionado de saveObs.
+        org.openmrs.GlobalProperty property = sessionFactory.getCurrentSession().get(org.openmrs.GlobalProperty.class, ServerId.PROPERTY);
+        String configured = property == null ? null : property.getPropertyValue();
         if (!ServerId.isValid(configured)) {
             throw new APIException("Configure la Global Property server.id antes de capturar o sincronizar registros");
         }
@@ -41,11 +44,11 @@ public class LocalNodeDao {
             try (PreparedStatement query = connection.prepareStatement(
                     "select server_id from synchronizationmr_local_node where singleton_id = 1 for update");
                     ResultSet rows = query.executeQuery()) {
-                if (!rows.next()) { throw new SQLException("Falta la fila del nodo; revise las migraciones del módulo"); }
+                if (!rows.next()) { throw new SQLException("Falta la fila del nodo; revise las migraciones del mÃ³dulo"); }
                 existing = rows.getString(1);
             }
             if (existing != null && !existing.equals(configured)) {
-                throw new APIException("server.id cambió después de fijar la identidad; restaure la configuración del establecimiento");
+                throw new APIException("server.id cambiÃ³ despuÃ©s de fijar la identidad; restaure la configuraciÃ³n del establecimiento");
             }
             if (existing == null) {
                 try (PreparedStatement update = connection.prepareStatement(
