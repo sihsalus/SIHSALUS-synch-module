@@ -14,12 +14,12 @@ import org.springframework.stereotype.Repository;
 /** Reconoce reemplazos uno a uno dentro de un mismo saveEncounter, nunca por proximidad temporal. */
 @Repository("synchronizationmr.ObservationReplacementDao")
 public class ObservationReplacementDao {
-
+	
 	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessions;
-
+	
 	private static final ObjectMapper M = new ObjectMapper();
-
+	
 	public Map<String,String> before(Encounter encounter) {
         if(encounter == null || encounter.getId() == null || encounter.getVoided()) return Collections.emptyMap();
         // JDBC no provoca el autoflush de objetos que REST ya modifico en memoria.
@@ -40,7 +40,7 @@ public class ObservationReplacementDao {
             return rows;
         });
     }
-
+	
 	public void link(Encounter encounter, Map<String,String> before) {
         if(before==null || before.isEmpty() || encounter.getVoided()) return;
         sessions.getCurrentSession().flush();
@@ -70,7 +70,7 @@ public class ObservationReplacementDao {
         // CORRECT_OBS captura el enlace y mantiene la misma regla de versionado que una correccion nativa.
         sessions.getCurrentSession().flush();
     }
-
+	
 	private Map<String,String> read(Connection c,int encounterId) throws SQLException {
         Map<String,String> rows=new LinkedHashMap<>();
         try(PreparedStatement q=c.prepareStatement("select o.uuid,o.voided,o.person_id,o.concept_id,o.obs_datetime,o.location_id,o.order_id,o.obs_group_id,o.form_namespace_and_path,"
@@ -86,14 +86,14 @@ public class ObservationReplacementDao {
         }
         return rows;
     }
-
+	
 	private Map<String,List<String>> group(Map<String,String> rows) {
         Map<String,List<String>> result=new HashMap<>();
         for(Map.Entry<String,String> row:rows.entrySet()) if(row.getValue()!=null)
             result.computeIfAbsent(row.getValue(), k -> new ArrayList<>()).add(row.getKey());
         return result;
     }
-
+	
 	private void collect(JsonNode items, Set<String> ids) {
 		for (JsonNode item : items) {
 			ids.add(item.path("uuid").asText());

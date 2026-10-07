@@ -12,11 +12,15 @@ org\openmrs\module\synchronizationmr\sync\ObservationCorrectionEvent.class
 org\openmrs\module\synchronizationmr\sync\ObservationCaptureScope.class
 org\openmrs\module\synchronizationmr\sync\OrderSyncEvent.class
 org\openmrs\module\synchronizationmr\advice\PatientCreationAdvice.class
+org\openmrs\module\synchronizationmr\api\dao\VisitUpdateDao$State.class
 org\openmrs\module\synchronizationmr\api\impl\OrderReceiveServiceImpl.class
 org\openmrs\module\synchronizationmr\api\impl\OrderSyncServiceImpl.class
+org\openmrs\module\synchronizationmr\api\dao\ObservationReplacementDao.class
 org\openmrs\module\synchronizationmr\sync\PatientIncomingEvent.class
+org\openmrs\module\synchronizationmr\sync\VisitVoidEvent.class
 org\openmrs\module\synchronizationmr\sync\PatientSnapshot.class
 org\openmrs\module\synchronizationmr\sync\OrderCreationPayloadSerializer.class
+org\openmrs\module\synchronizationmr\sync\VisitUpdateEvent.class
 org\openmrs\module\synchronizationmr\sync\EncounterCreationPayloadSerializer.class
 org\openmrs\module\synchronizationmr\sync\EncounterIncomingEvent.class
 org\openmrs\module\synchronizationmr\api\OrderSyncService.class
@@ -40,6 +44,7 @@ org\openmrs\module\synchronizationmr\api\dao\EncounterSyncDao.class
 org\openmrs\module\synchronizationmr\api\impl\PatientReceiveServiceImpl.class
 org\openmrs\module\synchronizationmr\sync\EncounterObservationVersions.class
 org\openmrs\module\synchronizationmr\advice\EncounterCreationAdvice.class
+org\openmrs\module\synchronizationmr\api\dao\VisitVoidDao.class
 org\openmrs\module\synchronizationmr\api\EncounterSyncService.class
 org\openmrs\module\synchronizationmr\sync\PatientHttpsTransport.class
 org\openmrs\module\synchronizationmr\api\dao\ObservationVoidDao.class
@@ -49,6 +54,8 @@ org\openmrs\module\synchronizationmr\api\impl\PatientSyncServiceImpl.class
 org\openmrs\module\synchronizationmr\api\SynchronizationMRService.class
 org\openmrs\module\synchronizationmr\api\LocalNodeService.class
 org\openmrs\module\synchronizationmr\api\dao\EncounterReceiveDao.class
+org\openmrs\module\synchronizationmr\api\impl\EncounterSyncServiceImpl.class
+org\openmrs\module\synchronizationmr\advice\VisitChangeAdvice.class
 org\openmrs\module\synchronizationmr\sync\PatientUpdateEvent.class
 org\openmrs\module\synchronizationmr\sync\ObservationPreparationBatch.class
 org\openmrs\module\synchronizationmr\api\dao\EncounterUpdateDao$State.class
@@ -56,6 +63,7 @@ org\openmrs\module\synchronizationmr\sync\EncounterSyncEvent.class
 org\openmrs\module\synchronizationmr\SynchronizationMRActivator.class
 org\openmrs\module\synchronizationmr\api\impl\SynchronizationMRServiceImpl.class
 org\openmrs\module\synchronizationmr\sync\PatientCreationPayloadSerializer.class
+org\openmrs\module\synchronizationmr\sync\VisitAnnulmentScope.class
 org\openmrs\module\synchronizationmr\sync\PatientSyncScheduler.class
 org\openmrs\module\synchronizationmr\api\dao\PatientReceiveDao.class
 org\openmrs\module\synchronizationmr\sync\EventJson.class
@@ -63,6 +71,7 @@ org\openmrs\module\synchronizationmr\sync\PatientAttributeValues.class
 org\openmrs\module\synchronizationmr\api\impl\LocalNodeServiceImpl.class
 org\openmrs\module\synchronizationmr\api\dao\LocalNodeDao.class
 org\openmrs\module\synchronizationmr\sync\OrderIncomingEvent.class
+org\openmrs\module\synchronizationmr\sync\VisitMetadata.class
 org\openmrs\module\synchronizationmr\api\dao\OrderReceiveDao.class
 org\openmrs\module\synchronizationmr\sync\EncounterDependencyException.class
 org\openmrs\module\synchronizationmr\sync\OrderPayload.class
@@ -70,6 +79,7 @@ org\openmrs\module\synchronizationmr\sync\EncounterSyncClient.class
 org\openmrs\module\synchronizationmr\sync\IncomingOrderSave.class
 org\openmrs\module\synchronizationmr\sync\PatientSyncRecord.class
 org\openmrs\module\synchronizationmr\SynchronizationMR.class
+org\openmrs\module\synchronizationmr\api\dao\VisitUpdateDao.class
 org\openmrs\module\synchronizationmr\api\dao\PatientUpdateDao$State.class
 org\openmrs\module\synchronizationmr\sync\PatientUpdateApply.class
 org\openmrs\module\synchronizationmr\api\EncounterReceiveService.class

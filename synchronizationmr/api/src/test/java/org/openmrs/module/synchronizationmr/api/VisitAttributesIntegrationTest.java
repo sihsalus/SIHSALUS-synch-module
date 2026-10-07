@@ -16,7 +16,7 @@ import org.openmrs.test.jupiter.BaseModuleContextSensitiveTest;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class VisitAttributesIntegrationTest extends BaseModuleContextSensitiveTest {
-
+	
 	@Test
 	public void acceptsNativeDatePrecisionWhenPreparingLegacyVisit() throws Exception {
 		Encounter e = sample();
@@ -27,7 +27,7 @@ public class VisitAttributesIntegrationTest extends BaseModuleContextSensitiveTe
 		assertEquals(old,
 		    new EncounterIncomingEvent(sync().getEncounterEventsAfter(origin, 0, 1).get(0).getPayloadJson()).json);
 	}
-
+	
 	@Test
 	public void rollsBackVisitAttributesAndSupplementWhenReceptionIsRolledBack() throws Exception {
 		Encounter e = sample();
@@ -47,7 +47,7 @@ public class VisitAttributesIntegrationTest extends BaseModuleContextSensitiveTe
 		assertTrue(sync().getEncounterEventsAfter(origin, 0, 1).isEmpty());
 		assertEquals(1, receiver().receiveEncounter(wire));
 	}
-
+	
 	@Test public void rejectsOversizedSchemaAndUnexpectedAttributeFields() throws Exception {
         Encounter e=sample();String old=legacy(json(e));
         ObjectNode wire=(ObjectNode)mapper.readTree(EncounterVisitSupplement.prepare(old,e.getVisit()));
@@ -58,13 +58,13 @@ public class VisitAttributesIntegrationTest extends BaseModuleContextSensitiveTe
         assertThrows(APIException.class,()->receiver().receiveEncounter(wire.toString()));
         assertEquals(0,receiver().getConfirmedEncounterSequence(origin));
     }
-
+	
 	private final ObjectMapper mapper = new ObjectMapper();
-
+	
 	private final String origin = "visit_" + UUID.randomUUID();
-
+	
 	private VisitAttributeType type;
-
+	
 	@BeforeEach
 	public void prepare() throws Exception {
 		new Liquibase("src/main/resources/liquibase.xml", new FileSystemResourceAccessor(), new JdbcConnection(
@@ -77,7 +77,7 @@ public class VisitAttributesIntegrationTest extends BaseModuleContextSensitiveTe
 		type.setDatatypeClassname("org.openmrs.customdatatype.datatype.FreeTextDatatype");
 		Context.getVisitService().saveVisitAttributeType(type);
 	}
-
+	
 	private Encounter sample() {
 		Encounter e = new Encounter();
 		e.setPatient(Context.getPatientService().getPatient(2));
@@ -96,20 +96,20 @@ public class VisitAttributesIntegrationTest extends BaseModuleContextSensitiveTe
 		v.addAttribute(a);
 		return e;
 	}
-
+	
 	private EncounterReceiveService receiver() {
 		return Context.getService(EncounterReceiveService.class);
 	}
-
+	
 	private EncounterSyncService sync() {
 		return Context.getService(EncounterSyncService.class);
 	}
-
+	
 	private String json(Encounter e) {
 		return new EncounterCreationPayloadSerializer().serialize(e, origin, 1, UUID.randomUUID().toString(),
 		    new java.util.Date());
 	}
-
+	
 	private String legacy(String json) throws Exception {
 		ObjectNode old = (ObjectNode) mapper.readTree(json);
 		old.put("schemaVersion", 3);
@@ -118,13 +118,13 @@ public class VisitAttributesIntegrationTest extends BaseModuleContextSensitiveTe
 		visit.put("unsupportedAttributes", true);
 		return old.toString();
 	}
-
+	
 	private Visit saved(Encounter e) {
 		Context.flushSession();
 		Context.clearSession();
 		return Context.getVisitService().getVisitByUuid(e.getVisit().getUuid());
 	}
-
+	
 	@Test
 	public void receivesTextAttributesAndReusesVisitWithoutDuplicates() throws Exception {
 		Encounter e = sample();
@@ -143,7 +143,7 @@ public class VisitAttributesIntegrationTest extends BaseModuleContextSensitiveTe
 		assertEquals(2, receiver().receiveEncounter(second));
 		assertEquals(1, saved(e).getAttributes().size());
 	}
-
+	
 	@Test public void supplementsOldCreateWithoutChangingItsOriginalJsonAndForwardsSameWire()throws Exception {
         Encounter e=sample();String old=legacy(json(e));String wire=EncounterVisitSupplement.prepare(old,e.getVisit());
         assertThrows(APIException.class,()->receiver().receiveEncounter(old));assertEquals(0,receiver().getConfirmedEncounterSequence(origin));
@@ -159,7 +159,7 @@ public class VisitAttributesIntegrationTest extends BaseModuleContextSensitiveTe
         assertThrows(APIException.class,()->receiver().receiveEncounter(altered.toString()));
         assertThrows(APIException.class,()->receiver().receiveEncounter(old));
     }
-
+	
 	@Test public void rejectsAlteredIdentityMetadataAndNonLegacySupplements()throws Exception {
         Encounter e=sample();String old=legacy(json(e));String wire=EncounterVisitSupplement.prepare(old,e.getVisit());
         ObjectNode changed=(ObjectNode)mapper.readTree(wire);changed.put("originServerId","otro");
@@ -170,7 +170,7 @@ public class VisitAttributesIntegrationTest extends BaseModuleContextSensitiveTe
         assertThrows(APIException.class,()->EncounterVisitSupplement.prepare(json(e),e.getVisit()));
         assertEquals(0,receiver().getConfirmedEncounterSequence(origin));assertNull(saved(e));
     }
-
+	
 	@Test public void rejectsUnknownDatatypeConfigurationAndDuplicateAttributeUuid()throws Exception {
         Encounter e=sample();ObjectNode original=(ObjectNode)mapper.readTree(json(e));
         for(String field:Arrays.asList("datatype","datatypeConfig","typeUuid")) {
@@ -181,7 +181,7 @@ public class VisitAttributesIntegrationTest extends BaseModuleContextSensitiveTe
         assertThrows(APIException.class,()->receiver().receiveEncounter(duplicate.toString()));
         assertEquals(0,receiver().getConfirmedEncounterSequence(origin));assertNull(saved(e));
     }
-
+	
 	@Test public void refusesAttributeUuidAlreadyOwnedByAnotherVisit()throws Exception {
         Encounter first=sample();receiver().receiveEncounter(json(first));
         Encounter other=sample();other.getVisit().getAttributes().iterator().next().setUuid(first.getVisit().getAttributes().iterator().next().getUuid());
@@ -189,7 +189,7 @@ public class VisitAttributesIntegrationTest extends BaseModuleContextSensitiveTe
         assertThrows(APIException.class,()->receiver().receiveEncounter(incoming));assertNull(saved(other));
         assertEquals(1,receiver().getConfirmedEncounterSequence(origin));
     }
-
+	
 	private String historicalLocal(Encounter e)throws Exception {
         e.setVisit(Context.getVisitService().saveVisit(e.getVisit()));Context.getEncounterService().saveEncounter(e);sync().recordCreatedEncounter(e);
         Context.flushSession();
@@ -203,7 +203,7 @@ public class VisitAttributesIntegrationTest extends BaseModuleContextSensitiveTe
             }
         }
     }
-
+	
 	@Test
 	public void explicitPreparationIsIdempotentAndDoesNotConsumeSequence() throws Exception {
 		Encounter e = sample();
@@ -218,7 +218,7 @@ public class VisitAttributesIntegrationTest extends BaseModuleContextSensitiveTe
 		assertFalse(sync().prepareVisitAttributes(e.getUuid()));
 		assertEquals(wire, sync().getEncounterEventsAfter("testServer_1", before - 1, 1).get(0).getPayloadJson());
 	}
-
+	
 	@Test public void preparationRejectsForeignCreateAndChangedVisitMetadata()throws Exception {
         Encounter remote=sample();receiver().receiveEncounter(json(remote));assertThrows(APIException.class,()->sync().prepareVisitAttributes(remote.getUuid()));
         Encounter local=sample();historicalLocal(local);local.getVisit().setStopDatetime(local.getEncounterDatetime());

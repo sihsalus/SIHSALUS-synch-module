@@ -15,20 +15,20 @@ import org.springframework.stereotype.Repository;
 /** Versiones inmutables y elecciÃ³n de la versiÃ³n vigente por observaciÃ³n original. */
 @Repository("synchronizationmr.ObservationCorrectionDao")
 public class ObservationCorrectionDao {
-
+	
 	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessions;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.LocalNodeDao")
 	private LocalNodeDao node;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.OrderLinkDao")
 	private OrderLinkDao orderLinks;
-
+	
 	private static final ObjectMapper M = new ObjectMapper();
-
+	
 	private final EncounterCreationPayloadSerializer serializer = new EncounterCreationPayloadSerializer();
-
+	
 	public void capture(Encounter encounter) {
         if (encounter == null || encounter.getEncounterId() == null || encounter.getVoided()) return;
         String origin = node.getLocalServerId(); sessions.getCurrentSession().flush();
@@ -89,7 +89,7 @@ public class ObservationCorrectionDao {
             }
         });
     }
-
+	
 	public void receive(Connection c, ObservationCorrectionEvent event) throws SQLException {
         if (!Context.hasPrivilege("Edit Observations")) throw new org.openmrs.api.APIAuthenticationException("Las correcciones requieren Edit Observations");
         Encounter encounter = Context.getEncounterService().getEncounterByUuid(event.encounterUuid);
@@ -139,7 +139,7 @@ public class ObservationCorrectionDao {
         orderLinks.record(new EncounterIncomingEvent(event.json));
         insert(c, encounter, event);
     }
-
+	
 	private void saveNew(Obs obs, Map<String, Obs> added, Set<String> saved) {
 		if (saved.contains(obs.getUuid()))
 			return;
@@ -155,7 +155,7 @@ public class ObservationCorrectionDao {
 		sessions.getCurrentSession().save(obs);
 		saved.add(obs.getUuid());
 	}
-
+	
 	private String rootForIncoming(Connection c, String id, Map<String, JsonNode> incoming, Encounter encounter,
 	        Set<String> seen) throws SQLException {
 		if (!seen.add(id) || seen.size() > 1000)
@@ -166,7 +166,7 @@ public class ObservationCorrectionDao {
 		String previous = nullable(value, "previousVersionUuid");
 		return previous == null ? id : rootForIncoming(c, previous, incoming, encounter, seen);
 	}
-
+	
 	private String lineage(Connection c, Obs obs, Encounter encounter) throws SQLException {
         Set<String> seen = new HashSet<>();
         while (obs != null) {
@@ -180,7 +180,7 @@ public class ObservationCorrectionDao {
         }
         throw invalid();
     }
-
+	
 	private void remember(Connection c, Encounter encounter, ObservationCorrectionEvent event) throws SQLException {
         for (JsonNode item : event.observations()) {
             try (PreparedStatement q = c.prepareStatement("insert into synchronizationmr_obs_revision (obs_uuid,encounter_id,root_uuid,previous_uuid,parent_uuid,snapshot_json) values (?,?,?,?,?,?)")) {
@@ -189,13 +189,13 @@ public class ObservationCorrectionDao {
             }
         }
     }
-
+	
 	private JsonNode headVersion(Connection c, String root) throws SQLException {
         try (PreparedStatement q = c.prepareStatement("select version_json from synchronizationmr_obs_head where root_uuid=? for update")) {
             q.setString(1,root); try (ResultSet r=q.executeQuery()) { return r.next()?parse(r.getString(1)):null; }
         }
     }
-
+	
 	private void setHead(Connection c, Encounter encounter, String root, String head, JsonNode version) throws SQLException {
         boolean exists = headVersion(c,root)!=null;
         try (PreparedStatement q = c.prepareStatement(exists ? "update synchronizationmr_obs_head set encounter_id=?,head_uuid=?,version_json=? where root_uuid=?"
@@ -203,7 +203,7 @@ public class ObservationCorrectionDao {
             q.setInt(1,encounter.getEncounterId()); q.setString(2,head); q.setString(3,version.toString()); q.setString(4,root); q.executeUpdate();
         }
     }
-
+	
 	/**
 	 * La FK nativa permite un sucesor por versiÃ³n. Las ramas alternativas se conservan en el
 	 * mÃ³dulo.
@@ -262,20 +262,20 @@ public class ObservationCorrectionDao {
         for(Obs obs:all.values()) sessions.getCurrentSession().refresh(obs);
         sessions.getCurrentSession().refresh(encounter);
     }
-
+	
 	private Map<String, Obs> observations(Connection c,Encounter encounter)throws SQLException {
         Map<String,Obs> result=new LinkedHashMap<>();
         try(PreparedStatement q=c.prepareStatement("select obs_id from obs where encounter_id=? order by obs_id for update")) {
             q.setInt(1,encounter.getEncounterId());try(ResultSet r=q.executeQuery()){while(r.next()){Obs obs=Context.getObsService().getObs(r.getInt(1));result.put(obs.getUuid(),obs);}}
         } return result;
     }
-
+	
 	private String pendingOrder(Connection c,String uuid)throws SQLException {
         try(PreparedStatement q=c.prepareStatement("select order_uuid from synchronizationmr_order_link where obs_uuid=?")) {
             q.setString(1,uuid);try(ResultSet r=q.executeQuery()){return r.next()?r.getString(1):null;}
         }
     }
-
+	
 	private Obs requireObs(String uuid, Encounter encounter) {
 		Obs obs = Context.getObsService().getObsByUuid(uuid);
 		if (obs == null)
@@ -283,20 +283,20 @@ public class ObservationCorrectionDao {
 		own(obs, encounter);
 		return obs;
 	}
-
+	
 	private void own(Obs obs, Encounter encounter) {
 		if (obs.getEncounter() == null || !encounter.getUuid().equals(obs.getEncounter().getUuid())
 		        || !encounter.getPatient().getUuid().equals(obs.getPerson().getUuid()))
 			throw invalid();
 	}
-
+	
 	private void collect(JsonNode items, Set<String> ids) {
 		for (JsonNode item : items) {
 			ids.add(item.path("uuid").asText());
 			collect(item.path("groupMembers"), ids);
 		}
 	}
-
+	
 	private JsonNode parse(String json) {
 		try {
 			return M.readTree(json);
@@ -305,15 +305,15 @@ public class ObservationCorrectionDao {
 			throw invalid();
 		}
 	}
-
+	
 	private String nullable(JsonNode item, String key) {
 		return item.path(key).isMissingNode() || item.path(key).isNull() ? null : item.path(key).asText();
 	}
-
+	
 	private APIException invalid() {
 		return new APIException("La correcciÃ³n contiene referencias incompatibles o una historia invÃ¡lida");
 	}
-
+	
 	private void insert(Connection c,Encounter encounter,ObservationCorrectionEvent event)throws SQLException {
         try(PreparedStatement q=c.prepareStatement("insert into synchronizationmr_encounter_correction (event_uuid,encounter_id,encounter_uuid,origin_server_id,entity_sequence,date_created,payload_json) values (?,?,?,?,?,?,?)")) {
             q.setString(1,event.eventUuid);q.setInt(2,encounter.getEncounterId());q.setString(3,encounter.getUuid());q.setString(4,event.origin);q.setLong(5,event.sequence);q.setTimestamp(6,Timestamp.from(event.occurredAt));q.setString(7,event.json);q.executeUpdate();

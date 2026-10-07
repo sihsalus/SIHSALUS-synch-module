@@ -10,19 +10,19 @@ import static org.openmrs.module.synchronizationmr.sync.EventJson.*;
 
 /** Complemento explícito e inmutable: conserva el CREATE antiguo y fecha su preparación. */
 public final class EncounterVisitSupplement {
-
+	
 	private static final ObjectMapper M = new ObjectMapper().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION).enable(
 	    DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
-
+	
 	public final String original;
-
+	
 	public final JsonNode visit;
-
+	
 	private EncounterVisitSupplement(String original, JsonNode visit) {
 		this.original = original;
 		this.visit = visit;
 	}
-
+	
 	public static EncounterVisitSupplement read(String json) {
 		try {
 			JsonNode wire = M.readTree(json);
@@ -65,7 +65,7 @@ public final class EncounterVisitSupplement {
 			throw invalid();
 		}
 	}
-
+	
 	private static JsonNode normalized(JsonNode visit) {
 		ObjectNode copy = ((ObjectNode) visit).deepCopy();
 		for (String field : Arrays.asList("startDatetime", "stopDatetime")) {
@@ -75,7 +75,7 @@ public final class EncounterVisitSupplement {
 		}
 		return copy;
 	}
-
+	
 	public static String prepare(String original, Visit visit) {
 		try {
 			ObjectNode wire = (ObjectNode) M.readTree(original);

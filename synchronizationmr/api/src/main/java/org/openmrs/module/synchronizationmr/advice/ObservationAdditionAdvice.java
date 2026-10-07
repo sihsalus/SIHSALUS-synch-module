@@ -14,7 +14,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /** Captura adiciones y versiones corregidas guardadas directamente mediante ObsService. */
 public class ObservationAdditionAdvice implements MethodInterceptor {
-
+	
 	@Override public Object invoke(MethodInvocation invocation) throws Throwable {
         if (!("saveObs".equals(invocation.getMethod().getName()) || "voidObs".equals(invocation.getMethod().getName())) || invocation.getArguments().length != 2
                 || !(invocation.getArguments()[0] instanceof Obs)) return invocation.proceed();
@@ -29,7 +29,7 @@ public class ObservationAdditionAdvice implements MethodInterceptor {
             catch (Throwable failure) { throw new APIException("No se pudo capturar las observaciones", failure); }
         });
     }
-
+	
 	private Object capture(MethodInvocation invocation) throws Throwable {
         try (ObservationCaptureScope scope = ObservationCaptureScope.enter(((Obs) invocation.getArguments()[0]).getEncounter())) {
             Context.getService(EncounterSyncService.class).lockEncounterChanges();

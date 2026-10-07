@@ -20,7 +20,7 @@ import org.springframework.test.context.transaction.TestTransaction;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensitiveTest {
-
+	
 	@Test
 	public void importsCorrectedGroupAndItsMembersWithoutChangingHistoricalGrouping() {
 		Encounter e = sample();
@@ -43,7 +43,7 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
 		assertFalse(stored(newGroup.getUuid()).getVoided());
 		assertEquals(77.0, stored(newMember.getUuid()).getValueNumeric());
 	}
-
+	
 	@Test
 	public void capturesAndImportsNewMemberWithinCorrectedGroup() throws Exception {
 		Encounter e = sample();
@@ -82,7 +82,7 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
         assertTrue(receivedGroup.getGroupMembers().stream().anyMatch(o -> Double.valueOf(83).equals(o.getValueNumeric())));
         assertTrue(stored(groupId).getVoided());
 	}
-
+	
 	@Test
 	public void repeatedSaveAfterReceivingCorrectionDoesNotInventAnotherRevision() {
 		Encounter e = sample();
@@ -95,7 +95,7 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
 		Context.getObsService().saveObs(current, "Sin cambios");
 		assertEquals(before, sync().getHighestEncounterSequence("testServer_1"));
 	}
-
+	
 	@Test
 	public void rollbackOfReceptionRestoresOriginalReceiptAndHistory() {
 		Encounter e = sample();
@@ -118,7 +118,7 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
 		assertEquals(0, receive().getConfirmedEncounterSequence(prefix + "a"));
 		assertEquals(1, receive().receiveEncounter(json));
 	}
-
+	
 	@Test
 	public void preservesOrderLinkWhenOrderArrivesAfterCorrection() throws Exception {
 		Encounter e = sample();
@@ -143,7 +143,7 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
 		assertEquals(order.getUuid(), stored(corrected.getUuid()).getOrder().getUuid());
 		assertEquals(order.getUuid(), stored(original.getUuid()).getOrder().getUuid());
 	}
-
+	
 	@Test public void rejectsMissingVersionCyclesAndAlteredReplay() throws Exception {
         Encounter e=sample();Obs original=obs(e);e.addObs(original);create(e);
         Obs corrected=revision(original,76);String json=correction(e,"a",1,10,corrected);
@@ -159,17 +159,17 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
         assertThrows(APIException.class,()->receive().receiveEncounter(invalid.toString()));
         assertEquals(76.0,stored(corrected.getUuid()).getValueNumeric());
     }
-
+	
 	@Test
 	public void allowsTechnicalRoleWithEditObservations() throws Exception {
 		technicalRole(true);
 	}
-
+	
 	@Test
 	public void rejectsTechnicalRoleWithoutEditObservations() throws Exception {
 		technicalRole(false);
 	}
-
+	
 	private void technicalRole(boolean edit) throws Exception {
         Encounter e=sample();Obs original=obs(e);e.addObs(original);create(e);Obs corrected=revision(original,74);
         String json=correction(e,"a",1,10,corrected);
@@ -185,21 +185,21 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
         assertEquals(edit?1:0,receive().getConfirmedEncounterSequence(prefix+"a"));
         assertEquals(edit,stored(original.getUuid()).getVoided());
     }
-
+	
 	private final EncounterCreationAdvice encounterAdvice = new EncounterCreationAdvice();
-
+	
 	private final ObservationAdditionAdvice obsAdvice = new ObservationAdditionAdvice();
-
+	
 	private final EncounterCreationPayloadSerializer serializer = new EncounterCreationPayloadSerializer();
-
+	
 	private final ObjectMapper mapper = new ObjectMapper();
-
+	
 	private final String prefix = "cor_" + UUID.randomUUID().toString().replace("-", "") + "_";
-
+	
 	private static final Instant BASE = Instant.parse("2026-01-01T00:00:00Z");
-
+	
 	private long before;
-
+	
 	@BeforeEach
 	public void prepare() throws Exception {
 		new Liquibase("src/main/resources/liquibase.xml", new FileSystemResourceAccessor(), new JdbcConnection(
@@ -209,21 +209,21 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
 		Context.addAdvice(ObsService.class, obsAdvice);
 		before = sync().getHighestEncounterSequence("testServer_1");
 	}
-
+	
 	@AfterEach
 	public void cleanup() {
 		Context.removeAdvice(EncounterService.class, encounterAdvice);
 		Context.removeAdvice(ObsService.class, obsAdvice);
 	}
-
+	
 	private EncounterSyncService sync() {
 		return Context.getService(EncounterSyncService.class);
 	}
-
+	
 	private EncounterReceiveService receive() {
 		return Context.getService(EncounterReceiveService.class);
 	}
-
+	
 	private Encounter sample() {
 		Encounter e = new Encounter();
 		e.setPatient(Context.getPatientService().getPatient(2));
@@ -232,7 +232,7 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
 		e.setEncounterDatetime(java.util.Date.from(BASE));
 		return e;
 	}
-
+	
 	private Obs obs(Encounter e) {
 		Obs o = new Obs();
 		o.setPerson(e.getPatient());
@@ -243,7 +243,7 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
 		o.setValueNumeric(65.0);
 		return o;
 	}
-
+	
 	private Obs revision(Obs prior, double value) {
 		Obs o = Obs.newInstance(prior);
 		o.setPreviousVersion(prior);
@@ -251,28 +251,28 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
 		o.setValueNumeric(value);
 		return o;
 	}
-
+	
 	private String create(Encounter e) {
 		String json = serializer
 		        .serialize(e, prefix + "creator", 1, UUID.randomUUID().toString(), java.util.Date.from(BASE));
 		receive().receiveEncounter(json);
 		return json;
 	}
-
+	
 	private String correction(Encounter e,String origin,long seq,int seconds,Obs... versions){
         ArrayNode values=mapper.createArrayNode();Map<String,String> heads=new LinkedHashMap<>();
         for(Obs o:versions){Obs root=o;while(root.getPreviousVersion()!=null)root=root.getPreviousVersion();ObjectNode value=serializer.observationVersion(o);value.put("rootUuid",root.getUuid());values.add(value);heads.put(root.getUuid(),o.getUuid());}
         return ObservationCorrectionEvent.create(e,values,heads,prefix+origin,seq,BASE.plusSeconds(seconds));
     }
-
+	
 	private Obs stored(String uuid) {
 		Context.flushSession();
 		Context.clearSession();
 		return Context.getObsService().getObsByUuid(uuid);
 	}
-
+	
 	private long count(String sql)throws Exception{try(Statement q=getConnection().createStatement();ResultSet r=q.executeQuery(sql)){r.next();return r.getLong(1);}}
-
+	
 	@Test
 	public void directSaveCapturesCorrectionOnceAndKeepsOriginalValue() throws Exception {
 		Encounter e = sample();
@@ -294,7 +294,7 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
 		Context.getObsService().saveObs(current, "Sin cambios");
 		assertEquals(before + 2, sync().getHighestEncounterSequence("testServer_1"));
 	}
-
+	
 	@Test
 	public void receivesSequentialCorrectionsWithoutEchoAndKeepsNativeChain() {
 		Encounter e = sample();
@@ -314,7 +314,7 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
 		assertEquals(75.0, stored(third.getUuid()).getValueNumeric());
 		assertEquals(before, sync().getHighestEncounterSequence("testServer_1"));
 	}
-
+	
 	@Test
 	public void concurrentBranchesKeepBothValuesAndChooseNewestEvenWhenItArrivesFirst() throws Exception {
 		Encounter e = sample();
@@ -333,7 +333,7 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
 		assertEquals(1, count("select count(*) from synchronizationmr_obs_revision where obs_uuid='" + a.getUuid()
 		        + "' and previous_uuid='" + first.getUuid() + "'"));
 	}
-
+	
 	@Test
 	public void newerBranchReplacesNativeSuccessorWithoutDeletingOlderBranch() {
 		Encounter e = sample();
@@ -352,7 +352,7 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
 		assertEquals(b.getUuid(), next.getPreviousVersion().getUuid());
 		assertEquals(before + 1, sync().getHighestEncounterSequence("testServer_1"));
 	}
-
+	
 	@Test
 	public void correctsOnlyOneMemberOfExistingGroup() {
 		Encounter e = sample();
@@ -372,7 +372,7 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
 		assertEquals(90.0, stored(other.getUuid()).getValueNumeric());
 		assertEquals(2, stored(group.getUuid()).getGroupMembers().size());
 	}
-
+	
 	@Test
 	public void encounterDateEditCapturesMetadataAndObservationVersions() throws Exception {
 		Encounter e = sample();
@@ -388,7 +388,7 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
 		assertEquals(1, correction.heads.size());
 		assertTrue(stored(old.getUuid()).getVoided());
 	}
-
+	
 	@Test
 	public void preservesTextCorrection() {
 		Encounter e = sample();
@@ -405,7 +405,7 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
 		assertEquals("Nota ficticia inicial", stored(first.getUuid()).getValueText());
 		assertEquals("Nota ficticia corregida", stored(corrected.getUuid()).getValueText());
 	}
-
+	
 	@Test public void rejectsForeignPreviousVersionAndDoesNotAdvanceReceipt(){
         Encounter first=sample();Obs old=obs(first);first.addObs(old);create(first);
         Encounter other=sample();other.setUuid(UUID.randomUUID().toString());
@@ -414,7 +414,7 @@ public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensi
         assertThrows(APIException.class,()->receive().receiveEncounter(correction(other,"a",1,10,invalid)));
         assertEquals(0,receive().getConfirmedEncounterSequence(prefix+"a"));assertNull(Context.getObsService().getObsByUuid(invalid.getUuid()));
     }
-
+	
 	@Test
 	public void localRollbackUndoesVersionEventAndCounter() throws Exception {
 		Encounter e = sample();

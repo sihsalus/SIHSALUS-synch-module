@@ -14,9 +14,9 @@ import org.springframework.test.context.transaction.TestTransaction;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class LocalNodeServiceIntegrationTest extends BaseModuleContextSensitiveTest {
-
+	
 	private String patientSequence, encounterSequence;
-
+	
 	@BeforeEach
     public void prepareNode() throws Exception {
         new Liquibase("src/main/resources/liquibase.xml", new FileSystemResourceAccessor(),
@@ -28,21 +28,21 @@ public class LocalNodeServiceIntegrationTest extends BaseModuleContextSensitiveT
         encounterSequence = scalar("select encounter_sequence from synchronizationmr_local_node");
         configure("testServer_1");
     }
-
+	
 	private void configure(String value) {
 		Context.getAdministrationService().saveGlobalProperty(new GlobalProperty("server.id", value));
 	}
-
+	
 	private LocalNodeService service() {
 		return Context.getService(LocalNodeService.class);
 	}
-
+	
 	private String scalar(String query) throws Exception {
         try (java.sql.Statement s = getConnection().createStatement(); java.sql.ResultSet r = s.executeQuery(query)) {
             assertTrue(r.next()); return r.getString(1);
         }
     }
-
+	
 	@Test
     public void usesConfiguredIdWithoutGeneratingUuidOrAdvancingCounters() throws Exception {
         String patients = scalar("select count(*) from patient");
@@ -54,7 +54,7 @@ public class LocalNodeServiceIntegrationTest extends BaseModuleContextSensitiveT
         assertEquals(patients, scalar("select count(*) from patient"));
         assertThrows(java.sql.SQLException.class, () -> scalar("select node_uuid from synchronizationmr_local_node"));
     }
-
+	
 	@Test
     public void missingOrInvalidConfigurationDoesNotCreateIdentity() throws Exception {
         for (String value : new String[] { "", " ", "posta 1", "../posta", "a/b", new String(new char[101]).replace('\0', 'a') }) {
@@ -65,7 +65,7 @@ public class LocalNodeServiceIntegrationTest extends BaseModuleContextSensitiveT
         assertThrows(APIException.class, () -> service().getLocalServerId());
         assertNull(scalar("select server_id from synchronizationmr_local_node"));
     }
-
+	
 	@Test
     public void rejectsRenamingEstablishedOrigin() throws Exception {
         service().getLocalServerId();
@@ -73,7 +73,7 @@ public class LocalNodeServiceIntegrationTest extends BaseModuleContextSensitiveT
         assertThrows(APIException.class, () -> service().getLocalServerId());
         assertEquals("testServer_1", scalar("select server_id from synchronizationmr_local_node"));
     }
-
+	
 	@Test
 	public void persistsWithoutOuterTransaction() throws Exception {
 		TestTransaction.flagForCommit();
@@ -86,7 +86,7 @@ public class LocalNodeServiceIntegrationTest extends BaseModuleContextSensitiveT
 		}
 		assertEquals("testServer_1", scalar("select server_id from synchronizationmr_local_node"));
 	}
-
+	
 	@Test
 	public void identityRollsBackWithCaller() throws Exception {
 		TestTransaction.flagForCommit();
@@ -98,7 +98,7 @@ public class LocalNodeServiceIntegrationTest extends BaseModuleContextSensitiveT
 		TestTransaction.start();
 		assertNull(scalar("select server_id from synchronizationmr_local_node"));
 	}
-
+	
 	@Test
     public void simultaneousFirstCallsUseSameConfiguredId() throws Exception {
         Credentials credentials = getCredentials();

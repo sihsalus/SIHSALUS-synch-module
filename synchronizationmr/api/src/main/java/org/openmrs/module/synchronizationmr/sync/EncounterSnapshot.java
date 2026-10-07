@@ -19,9 +19,9 @@ import org.openmrs.api.APIException;
  * contenido de diagnÃ³sticos/condiciones no estÃ¡n representados.
  */
 public final class EncounterSnapshot {
-
+	
 	private final ObjectNode data;
-
+	
 	private EncounterSnapshot(ObjectNode data) {
 		this.data = data;
 		sortObjects((ArrayNode) data.get("encounterProviders"), false);
@@ -29,14 +29,14 @@ public final class EncounterSnapshot {
 		sortReferences((ArrayNode) data.get("orderUuids"));
 		sortReferences((ArrayNode) data.get("unsupportedContent"));
 	}
-
+	
 	public static EncounterSnapshot capture(Encounter encounter) {
 		if (encounter == null || encounter.getUuid() == null || encounter.getUuid().trim().isEmpty()) {
 			throw new APIException("Se requiere un encuentro con UUID para comparar modificaciones");
 		}
 		return new EncounterSnapshot(new EncounterCreationPayloadSerializer().snapshot(encounter));
 	}
-
+	
 	/**
 	 * Campos principales que difieren, incluidas incorporaciones, correcciones y anulaciones de
 	 * observaciones. Un cambio detectado no implica que su sincronizaciÃ³n estÃ© implementada.
@@ -56,12 +56,12 @@ public final class EncounterSnapshot {
         }
         return Collections.unmodifiableSet(changed);
     }
-
+	
 	/** Contiene informaciÃ³n clÃ­nica; devolver una copia no autoriza escribirla en los logs. */
 	public ObjectNode toJson() {
 		return data.deepCopy();
 	}
-
+	
 	private static void sortObjects(ArrayNode items, boolean observations) {
         Map<String, JsonNode> sorted = new TreeMap<>();
         for (JsonNode item : items) {
@@ -79,7 +79,7 @@ public final class EncounterSnapshot {
             items.add(item);
         }
     }
-
+	
 	private static void sortReferences(ArrayNode items) {
         Map<String, JsonNode> sorted = new TreeMap<>();
         for (JsonNode item : items) {

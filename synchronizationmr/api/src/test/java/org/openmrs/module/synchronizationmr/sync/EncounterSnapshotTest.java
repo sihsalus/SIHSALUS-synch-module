@@ -14,7 +14,7 @@ import org.openmrs.api.APIException;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class EncounterSnapshotTest {
-
+	
 	private Encounter encounter() {
 		Encounter encounter = new Encounter();
 		encounter.setPatient(new Patient());
@@ -22,7 +22,7 @@ public class EncounterSnapshotTest {
 		encounter.setEncounterDatetime(new Date(0));
 		return encounter;
 	}
-
+	
 	private Obs observation(String text) {
 		Obs obs = new Obs();
 		obs.setConcept(new Concept());
@@ -30,11 +30,11 @@ public class EncounterSnapshotTest {
 		obs.setValueText(text);
 		return obs;
 	}
-
+	
 	private Set<String> fields(String... fields) {
         return new LinkedHashSet<>(Arrays.asList(fields));
     }
-
+	
 	@Test
 	public void detectsMetadataChangesIncludingExplicitRemoval() {
 		Encounter encounter = encounter();
@@ -49,7 +49,7 @@ public class EncounterSnapshotTest {
 		    before.changedFields(EncounterSnapshot.capture(encounter)));
 		assertEquals("1970-01-01T00:00:00Z", before.toJson().path("encounterDatetime").asText());
 	}
-
+	
 	@Test
 	public void keepsNestedValuesIndependentOfLaterEdits() {
 		Encounter encounter = encounter();
@@ -65,7 +65,7 @@ public class EncounterSnapshotTest {
 		assertEquals("Texto inicial ficticio", oldMember.path("valueText").asText());
 		assertTrue(oldMember.path("valueNumeric").isNull());
 	}
-
+	
 	@Test
     public void ignoresIterationOrderAtEveryObservationLevelAndForOrderReferences() {
         Encounter encounter = encounter();
@@ -84,7 +84,7 @@ public class EncounterSnapshotTest {
         encounter.setOrders(new LinkedHashSet<>(Arrays.asList(secondOrder, firstOrder)));
         assertTrue(before.changedFields(EncounterSnapshot.capture(encounter)).isEmpty());
     }
-
+	
 	@Test
 	public void detectsMovingObservationBetweenGroups() {
 		Encounter encounter = encounter();
@@ -97,7 +97,7 @@ public class EncounterSnapshotTest {
 		second.addGroupMember(member);
 		assertEquals(fields("obs"), before.changedFields(EncounterSnapshot.capture(encounter)));
 	}
-
+	
 	@Test
 	public void preservesVoidedOriginalAndCorrectionLink() {
 		Encounter encounter = encounter();
@@ -123,7 +123,7 @@ public class EncounterSnapshotTest {
 		}
 		assertFalse(before.toJson().path("obs").get(0).path("voided").asBoolean());
 	}
-
+	
 	@Test
 	public void detectsObservationAdditionAndRemoval() {
 		Encounter encounter = encounter();
@@ -134,7 +134,7 @@ public class EncounterSnapshotTest {
 		encounter.setObs(Collections.emptySet());
 		assertEquals(fields("obs"), withObservation.changedFields(EncounterSnapshot.capture(encounter)));
 	}
-
+	
 	@Test
     public void detectsProviderRoleChangeAndRemoval() {
         Encounter encounter = encounter();
@@ -149,7 +149,7 @@ public class EncounterSnapshotTest {
         provider.setVoided(true);
         assertEquals(fields("encounterProviders"), changed.changedFields(EncounterSnapshot.capture(encounter)));
     }
-
+	
 	@Test
 	public void distinguishesVisitChangesFromEncounterAndObservationChanges() {
 		Encounter encounter = encounter();
@@ -164,7 +164,7 @@ public class EncounterSnapshotTest {
 		encounter.setVisit(null);
 		assertEquals(fields("visit", "visitUuid"), before.changedFields(EncounterSnapshot.capture(encounter)));
 	}
-
+	
 	@Test
     public void returnsDefensiveJsonAndImmutableChangedFields() {
         Encounter encounter = encounter();
@@ -179,7 +179,7 @@ public class EncounterSnapshotTest {
         assertEquals(fields("voided"), changed);
         assertThrows(UnsupportedOperationException.class, () -> changed.add("formUuid"));
     }
-
+	
 	@Test
     public void rejectsMissingIdentityAndMovingEncounterToAnotherPatient() {
         assertThrows(APIException.class, () -> EncounterSnapshot.capture(null));
@@ -192,7 +192,7 @@ public class EncounterSnapshotTest {
         encounter.setUuid(" ");
         assertThrows(APIException.class, () -> EncounterSnapshot.capture(encounter));
     }
-
+	
 	@Test
     public void rejectsRepeatedObservationUuidEvenInDifferentGroups() {
         Encounter encounter = encounter();
@@ -205,7 +205,7 @@ public class EncounterSnapshotTest {
         encounter.addObs(secondGroup);
         assertThrows(APIException.class, () -> EncounterSnapshot.capture(encounter));
     }
-
+	
 	@Test
 	public void keepsExistingCreationContract() throws Exception {
 		Encounter encounter = encounter();

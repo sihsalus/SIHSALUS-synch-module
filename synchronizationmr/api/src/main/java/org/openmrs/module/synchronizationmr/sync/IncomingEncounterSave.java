@@ -16,7 +16,7 @@ import java.util.function.Supplier;
 public final class IncomingEncounterSave {
     private static final ThreadLocal<Encounter> CURRENT = new ThreadLocal<>();
     private IncomingEncounterSave() { }
-    public static boolean isReceiving(Encounter patient) { return CURRENT.get() == patient; }
+    public static boolean isReceiving(Encounter patient) { return CURRENT.get() == patient || VisitAnnulmentScope.contains(patient); }
     public static Encounter save(Encounter patient, Supplier<Encounter> action) {
         Encounter previous = CURRENT.get();
         CURRENT.set(patient);

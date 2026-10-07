@@ -10,20 +10,20 @@ import org.openmrs.api.APIException;
 
 /** Versiones nuevas de observaciones; los valores de UUID ya publicados son inmutables. */
 public final class ObservationCorrectionEvent {
-
+	
 	private static final ObjectMapper MAPPER = new ObjectMapper().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
 	        .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
-
+	
 	public final String json, origin, eventUuid, encounterUuid, patientUuid;
-
+	
 	public final long sequence;
-
+	
 	public final Instant occurredAt;
-
+	
 	private final ObjectNode root;
-
+	
 	public final Map<String, String> heads;
-
+	
 	public ObservationCorrectionEvent(String json) {
         try {
             if (json == null || json.length() > 1000000) throw EventJson.invalid();
@@ -68,15 +68,15 @@ public final class ObservationCorrectionEvent {
         } catch (APIException e) { throw e; }
         catch (Exception e) { throw EventJson.invalid(); }
     }
-
+	
 	public ArrayNode observations() {
 		return ((ArrayNode) root.path("payload").get("obs")).deepCopy();
 	}
-
+	
 	public ObjectNode version() {
 		return PatientUpdateEvent.version(root);
 	}
-
+	
 	/** Reutiliza la validaciÃ³n de valores y catÃ¡logos; todos los UUID recibidos deben ser nuevos. */
 	public List<Obs> decode(Encounter target) {
         ObjectNode envelope = root.deepCopy();
@@ -97,7 +97,7 @@ public final class ObservationCorrectionEvent {
         for (Obs obs : result) obs.setEncounter(target);
         return result;
     }
-
+	
 	public static String create(Encounter encounter, ArrayNode obs, Map<String, String> heads, String origin, long sequence,
 	        Instant time) {
 		ObjectNode event = MAPPER.createObjectNode();

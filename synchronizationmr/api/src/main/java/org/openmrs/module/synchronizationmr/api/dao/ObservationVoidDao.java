@@ -15,15 +15,15 @@ import org.springframework.stereotype.Repository;
 /** Publica anulaciones pendientes; cada valor anterior permanece en la tabla nativa. */
 @Repository("synchronizationmr.ObservationVoidDao")
 public class ObservationVoidDao {
-
+	
 	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessions;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.LocalNodeDao")
 	private LocalNodeDao node;
-
+	
 	private static final ObjectMapper M = new ObjectMapper();
-
+	
 	public int capture(Encounter encounter){
         if(encounter==null || encounter.getId()==null || encounter.getVoided())return 0;
         String origin=node.getLocalServerId();sessions.getCurrentSession().flush();
@@ -67,7 +67,7 @@ public class ObservationVoidDao {
             return pending.size();
         });
     }
-
+	
 	private void collect(JsonNode items, Set<String> published, Set<String> voided) {
 		for (JsonNode item : items) {
 			String id = item.path("uuid").asText();
@@ -77,7 +77,7 @@ public class ObservationVoidDao {
 			collect(item.path("groupMembers"), published, voided);
 		}
 	}
-
+	
 	public void receive(Connection c, ObservationVoidEvent event) throws SQLException {
 		if (!Context.hasPrivilege("Edit Observations"))
 			throw new APIAuthenticationException("La anulacion requiere Edit Observations");
@@ -105,7 +105,7 @@ public class ObservationVoidDao {
 		}
 		sessions.getCurrentSession().refresh(encounter);
 	}
-
+	
 	private void remember(Connection c,Encounter encounter,ObservationVoidEvent event)throws SQLException{
         for(JsonNode item:event.observations()){
             String id=item.path("uuid").asText(), prior=null;
@@ -115,7 +115,7 @@ public class ObservationVoidDao {
             try(PreparedStatement q=c.prepareStatement(sql)){q.setString(1,item.path("reason").asText());q.setTimestamp(2,Timestamp.from(Instant.parse(item.path("dateVoided").asText())));q.setString(3,event.version().toString());q.setInt(4,encounter.getId());q.setString(5,id);q.executeUpdate();}
         }
     }
-
+	
 	/** Una reconciliacion de versiones no debe reactivar una anulacion explicita. */
 	public static void apply(Connection c,int encounterId)throws SQLException{
         try(PreparedStatement q=c.prepareStatement("select obs_uuid,reason,date_voided from synchronizationmr_obs_void where encounter_id=?")){
@@ -126,7 +126,7 @@ public class ObservationVoidDao {
             }}
         }
     }
-
+	
 	private void insert(Connection c,Encounter encounter,ObservationVoidEvent event)throws SQLException{
         try(PreparedStatement q=c.prepareStatement("insert into synchronizationmr_encounter_void (event_uuid,encounter_id,encounter_uuid,origin_server_id,entity_sequence,date_created,payload_json) values (?,?,?,?,?,?,?)")){
             q.setString(1,event.eventUuid);q.setInt(2,encounter.getId());q.setString(3,event.encounterUuid);q.setString(4,event.origin);q.setLong(5,event.sequence);q.setTimestamp(6,Timestamp.from(event.occurredAt));q.setString(7,event.json);q.executeUpdate();

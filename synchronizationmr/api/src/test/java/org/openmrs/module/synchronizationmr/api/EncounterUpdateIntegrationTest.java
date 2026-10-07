@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /** Guardados reales, migraciÃ³n H2 y recepciÃ³n transaccional de cambios de metadatos. */
 public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTest {
-
+	
 	@Test
 	public void receivesTypeFormAndNewProviderAndExplicitFormRemoval() {
 		Encounter source = sample();
@@ -44,7 +44,7 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
 		receive().receiveEncounter(update(source, "a", 3, 20, "formUuid"));
 		assertNull(stored(source).getForm());
 	}
-
+	
 	@Test public void concurrentReceiversConvergeAndConfirmBothOrigins() throws Exception {
         Encounter source = sample(); create(source, "creator");
         source.setLocation(null);
@@ -72,19 +72,19 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
         assertEquals(1, receive().getConfirmedEncounterSequence(prefix + "a"));
         assertEquals(1, receive().getConfirmedEncounterSequence(prefix + "b"));
     }
-
+	
 	private final EncounterCreationAdvice advice = new EncounterCreationAdvice();
-
+	
 	private final ObservationAdditionAdvice obsAdvice = new ObservationAdditionAdvice();
-
+	
 	private final ObjectMapper mapper = new ObjectMapper();
-
+	
 	private final String prefix = "enc_" + UUID.randomUUID().toString().replace("-", "") + "_";
-
+	
 	private static final Instant BASE = Instant.parse("2026-01-01T00:00:00Z");
-
+	
 	private long localBefore;
-
+	
 	@BeforeEach
 	public void prepare() throws Exception {
 		new Liquibase("src/main/resources/liquibase.xml", new FileSystemResourceAccessor(), new JdbcConnection(
@@ -94,21 +94,21 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
 		Context.addAdvice(ObsService.class, obsAdvice);
 		localBefore = sync().getHighestEncounterSequence("testServer_1");
 	}
-
+	
 	@AfterEach
 	public void cleanup() {
 		Context.removeAdvice(EncounterService.class, advice);
 		Context.removeAdvice(ObsService.class, obsAdvice);
 	}
-
+	
 	private EncounterSyncService sync() {
 		return Context.getService(EncounterSyncService.class);
 	}
-
+	
 	private EncounterReceiveService receive() {
 		return Context.getService(EncounterReceiveService.class);
 	}
-
+	
 	private Encounter sample() {
 		Encounter e = new Encounter();
 		e.setPatient(Context.getPatientService().getPatient(2));
@@ -117,7 +117,7 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
 		e.setEncounterDatetime(java.util.Date.from(BASE.minusSeconds(100)));
 		return e;
 	}
-
+	
 	private Obs observation(Encounter e) {
 		Obs obs = new Obs();
 		obs.setPerson(e.getPatient());
@@ -128,38 +128,38 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
 		obs.setValueNumeric(65.0);
 		return obs;
 	}
-
+	
 	private String create(Encounter source, String origin) {
 		String json = new EncounterCreationPayloadSerializer().serialize(source, prefix + origin, 1, UUID.randomUUID()
 		        .toString(), java.util.Date.from(BASE));
 		assertEquals(1, receive().receiveEncounter(json));
 		return json;
 	}
-
+	
 	private String update(Encounter source, String origin, long seq, int seconds, String... groups) {
         return EncounterUpdateEvent.create(EncounterUpdateEvent.capture(source), new LinkedHashSet<>(Arrays.asList(groups)), prefix + origin, seq, BASE.plusSeconds(seconds));
     }
-
+	
 	private Encounter stored(Encounter source) {
 		Context.flushSession();
 		Context.clearSession();
 		return Context.getEncounterService().getEncounterByUuid(source.getUuid());
 	}
-
+	
 	private long count(String sql) throws Exception {
         try (Statement q = getConnection().createStatement(); ResultSet rows = q.executeQuery(sql)) { rows.next(); return rows.getLong(1); }
     }
-
+	
 	@Test
 	public void acceptsTechnicalRoleWithEditPermission() throws Exception {
 		technicalRole(true);
 	}
-
+	
 	@Test
 	public void rejectsTechnicalRoleWithoutEditPermission() throws Exception {
 		technicalRole(false);
 	}
-
+	
 	private void technicalRole(boolean edit) throws Exception {
         Encounter source = sample(); create(source, "a");
         source.setLocation(Context.getLocationService().getLocation(2));
@@ -188,7 +188,7 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
         assertEquals(edit ? 2 : 1, receive().getConfirmedEncounterSequence(prefix + "a"));
         assertEquals(Integer.valueOf(edit ? 2 : 1), stored(source).getLocation().getLocationId());
     }
-
+	
 	@Test public void nativeValidationFailureRollsBackUpdateAndReceipt() throws Exception {
         Encounter source = sample(); create(source, "a");
         source.setEncounterDatetime(java.util.Date.from(Instant.now().plusSeconds(86400)));
@@ -202,7 +202,7 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
             assertEquals(0, count("select count(*) from synchronizationmr_encounter_update where origin_server_id='" + prefix + "a'"));
         } finally { if (!TestTransaction.isActive()) TestTransaction.start(); }
     }
-
+	
 	@Test public void rejectsProviderAssociationOwnedByAnotherEncounter() throws Exception {
         Encounter first = sample();
         EncounterProvider provider = new EncounterProvider();
@@ -217,7 +217,7 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
         assertEquals(1, receive().getConfirmedEncounterSequence(prefix + "b"));
         assertTrue(stored(second).getActiveEncounterProviders().isEmpty());
     }
-
+	
 	@Test
 	public void capturesLocalUpdateAndSkipsNoopAfterReloadWithoutChangingCreation() throws Exception {
 		Encounter e = Context.getEncounterService().saveEncounter(sample());
@@ -233,7 +233,7 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
 		Context.getEncounterService().saveEncounter(e);
 		assertEquals(localBefore + 2, sync().getHighestEncounterSequence("testServer_1"));
 	}
-
+	
 	@Test
 	public void interleavesCreateUpdateAndAdditionInOneStream() throws Exception {
 		Encounter e = Context.getEncounterService().saveEncounter(sample());
@@ -248,7 +248,7 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
 			assertEquals(operations[i], mapper.readTree(events.get(i).getPayloadJson()).path("operation").asText());
 		}
 	}
-
+	
 	@Test
 	public void receivesUpdateIdempotentlyWithoutEchoAndAllowsSubsequentLocalEdit() throws Exception {
 		Encounter source = sample();
@@ -268,7 +268,7 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
 		Context.getEncounterService().saveEncounter(saved);
 		assertEquals(localBefore + 1, sync().getHighestEncounterSequence("testServer_1"));
 	}
-
+	
 	@Test
 	public void preservesUneditedFieldsAndRejectsLateOverwrite() {
 		Encounter source = sample();
@@ -284,7 +284,7 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
 		assertEquals(2, receive().getConfirmedEncounterSequence(prefix + "a"));
 		assertEquals(1, receive().getConfirmedEncounterSequence(prefix + "b"));
 	}
-
+	
 	@Test
 	public void equalTimestampUsesOriginRegardlessOfArrivalOrder() {
 		Encounter first = sample(), second = sample();
@@ -305,7 +305,7 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
 		assertEquals(Integer.valueOf(2), stored(first).getLocation().getLocationId());
 		assertEquals(Integer.valueOf(2), stored(second).getLocation().getLocationId());
 	}
-
+	
 	@Test
 	public void metadataReceptionPreservesObservationUuidValueDateAndCount() throws Exception {
 		Encounter source = sample();
@@ -324,7 +324,7 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
 		assertFalse(actual.getVoided());
 		assertEquals(obsCount, count("select count(*) from obs"));
 	}
-
+	
 	@Test
 	public void receivesProviderRemovalWithoutDeletingHistoryAndRestoresSameUuid() {
 		Encounter source = sample();
@@ -346,7 +346,7 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
 		assertEquals(professional.getUuid(), saved.getActiveEncounterProviders().iterator().next().getUuid());
 		assertEquals(1, saved.getEncounterProviders().size());
 	}
-
+	
 	@Test public void rejectsWrongPatientGapsMissingDependenciesAndAlteredReplay() throws Exception {
         Encounter source = sample(); create(source, "a");
         source.setLocation(Context.getLocationService().getLocation(2));
@@ -365,7 +365,7 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
         ((ObjectNode) wrong.get("payload")).putNull("locationUuid");
         assertThrows(APIException.class, () -> receive().receiveEncounter(wrong.toString()));
     }
-
+	
 	@Test public void missingEncounterDefersOriginWithoutConfirmingIt() {
         Encounter source = sample();
         String event = update(source, "a", 1, 10, "locationUuid");
@@ -374,7 +374,7 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
         create(source, "b");
         assertEquals(1, receive().receiveEncounter(event));
     }
-
+	
 	@Test
 	public void localRollbackUndoesClinicalChangeEventStateAndCounter() throws Exception {
 		Encounter e = Context.getEncounterService().saveEncounter(sample());
@@ -395,7 +395,7 @@ public class EncounterUpdateIntegrationTest extends BaseModuleContextSensitiveTe
 		assertEquals(0,
 		    count("select count(*) from synchronizationmr_encounter_state where encounter_id=" + e.getEncounterId()));
 	}
-
+	
 	@Test
 	public void preparedHistoricalEncounterStartsWithLatestMetadataThenCapturesUpdate() throws Exception {
 		Encounter source = sample();

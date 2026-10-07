@@ -25,23 +25,23 @@ import org.openmrs.module.synchronizationmr.sync.ObservationCaptureScope;
  * clÃ­nica.
  */
 public class EncounterCreationAdvice implements MethodInterceptor {
-
+	
 	private EncounterSyncService service;
-
+	
 	private PlatformTransactionManager transactionManager;
-
+	
 	public void setTransactionManager(PlatformTransactionManager transactionManager) {
 		this.transactionManager = transactionManager;
 	}
-
+	
 	public void setService(EncounterSyncService service) {
 		this.service = service;
 	}
-
+	
 	private EncounterSyncService service() {
 		return service != null ? service : Context.getService(EncounterSyncService.class);
 	}
-
+	
 	@Override
 	public Object invoke(MethodInvocation invocation) throws Throwable {
 
@@ -75,7 +75,7 @@ public class EncounterCreationAdvice implements MethodInterceptor {
             }
         });
     }
-
+	
 	private Object capture(MethodInvocation invocation) throws Throwable {
 		if (!TransactionSynchronizationManager.isActualTransactionActive()
 		        || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {

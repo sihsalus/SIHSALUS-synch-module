@@ -2,6 +2,7 @@ C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\mai
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\advice\ObservationAdditionAdvice.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\advice\OrderCreationAdvice.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\advice\PatientCreationAdvice.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\advice\VisitChangeAdvice.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\EncounterReceiveDao.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\EncounterSyncDao.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\EncounterUpdateDao.java
@@ -18,6 +19,8 @@ C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\mai
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\PatientSyncDao.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\PatientUpdateDao.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\SynchronizationMRDao.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\VisitUpdateDao.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\VisitVoidDao.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\EncounterReceiveService.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\EncounterSyncService.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\impl\EncounterReceiveServiceImpl.java
@@ -74,6 +77,10 @@ C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\mai
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\PatientUpdateApply.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\PatientUpdateEvent.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\ServerId.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\VisitAnnulmentScope.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\VisitMetadata.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\VisitUpdateEvent.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\VisitVoidEvent.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\SynchronizationMR.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\SynchronizationMRActivator.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\SynchronizationMRConfig.java

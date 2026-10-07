@@ -348,5 +348,27 @@
     <changeSet id="synchronizationmr-20261006-encounter-annulments-collation" author="sihsalus" dbms="mysql,mariadb">
         <sql>ALTER TABLE synchronizationmr_encounter_annulment MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
     </changeSet>
+    <changeSet id="synchronizationmr-20261007-visit-updates" author="sihsalus">
+        <createTable tableName="synchronizationmr_visit_update">
+            <column name="event_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="encounter_id" type="int"><constraints nullable="false" /></column>
+            <column name="encounter_uuid" type="varchar(38)"><constraints nullable="false" /></column>
+            <column name="origin_server_id" type="varchar(100)"><constraints nullable="false" /></column>
+            <column name="entity_sequence" type="bigint"><constraints nullable="false" /></column>
+            <column name="date_created" type="datetime"><constraints nullable="false" /></column>
+            <column name="payload_json" type="clob"><constraints nullable="false" /></column>
+        </createTable>
+        <addUniqueConstraint tableName="synchronizationmr_visit_update" columnNames="origin_server_id,entity_sequence" constraintName="syncmr_visit_update_seq_uq" />
+        <addForeignKeyConstraint baseTableName="synchronizationmr_visit_update" baseColumnNames="encounter_id" referencedTableName="encounter" referencedColumnNames="encounter_id" constraintName="syncmr_visit_update_enc_fk" />
+        <createTable tableName="synchronizationmr_visit_state">
+            <column name="visit_id" type="int"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="snapshot_json" type="clob"><constraints nullable="false" /></column>
+            <column name="version_json" type="clob"><constraints nullable="false" /></column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="synchronizationmr_visit_state" baseColumnNames="visit_id" referencedTableName="visit" referencedColumnNames="visit_id" constraintName="syncmr_visit_state_fk" />
+    </changeSet>
+    <changeSet id="synchronizationmr-20261007-visit-updates-collation" author="sihsalus" dbms="mysql,mariadb">
+        <sql>ALTER TABLE synchronizationmr_visit_update MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
+    </changeSet>
 </databaseChangeLog>
  

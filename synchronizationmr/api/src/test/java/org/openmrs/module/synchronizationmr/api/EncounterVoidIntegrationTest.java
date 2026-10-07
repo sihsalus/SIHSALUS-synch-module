@@ -19,7 +19,7 @@ import org.springframework.test.context.transaction.TestTransaction;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class EncounterVoidIntegrationTest extends BaseModuleContextSensitiveTest {
-
+	
 	@Test
 	public void voidsGroupsAndPreservesPreviouslyVoidedValues() {
 		Encounter source = sample();
@@ -43,7 +43,7 @@ public class EncounterVoidIntegrationTest extends BaseModuleContextSensitiveTest
 		assertEquals(61, Context.getObsService().getObsByUuid(member.getUuid()).getValueNumeric());
 		assertEquals("Anulacion anterior", Context.getObsService().getObsByUuid(old.getUuid()).getVoidReason());
 	}
-
+	
 	@Test
 	public void nativeCascadeAlsoVoidsExistingOrderWithoutPurgingIt() {
 		Encounter e = imported();
@@ -66,17 +66,17 @@ public class EncounterVoidIntegrationTest extends BaseModuleContextSensitiveTest
 		assertTrue(saved.getVoided());
 		assertEquals("Orden ficticia para cascada", saved.getInstructions());
 	}
-
+	
 	private final EncounterCreationAdvice encounterAdvice = new EncounterCreationAdvice();
-
+	
 	private final ObservationAdditionAdvice obsAdvice = new ObservationAdditionAdvice();
-
+	
 	private final ObjectMapper m = new ObjectMapper();
-
+	
 	private final String origin = "annul_" + UUID.randomUUID().toString().replace("-", "");
-
+	
 	private final Instant base = Instant.parse("2026-01-01T00:00:00Z");
-
+	
 	@BeforeEach
 	public void prepare() throws Exception {
 		new Liquibase("src/main/resources/liquibase.xml", new FileSystemResourceAccessor(), new JdbcConnection(
@@ -85,21 +85,21 @@ public class EncounterVoidIntegrationTest extends BaseModuleContextSensitiveTest
 		Context.addAdvice(EncounterService.class, encounterAdvice);
 		Context.addAdvice(ObsService.class, obsAdvice);
 	}
-
+	
 	@AfterEach
 	public void clean() {
 		Context.removeAdvice(EncounterService.class, encounterAdvice);
 		Context.removeAdvice(ObsService.class, obsAdvice);
 	}
-
+	
 	private EncounterSyncService sync() {
 		return Context.getService(EncounterSyncService.class);
 	}
-
+	
 	private EncounterReceiveService receive() {
 		return Context.getService(EncounterReceiveService.class);
 	}
-
+	
 	private Encounter sample() {
 		Encounter e = new Encounter();
 		e.setPatient(Context.getPatientService().getPatient(2));
@@ -108,7 +108,7 @@ public class EncounterVoidIntegrationTest extends BaseModuleContextSensitiveTest
 		e.setEncounterDatetime(Date.from(base));
 		return e;
 	}
-
+	
 	private Obs obs(Encounter e, double value) {
 		Obs o = new Obs();
 		o.setPerson(e.getPatient());
@@ -119,7 +119,7 @@ public class EncounterVoidIntegrationTest extends BaseModuleContextSensitiveTest
 		o.setValueNumeric(value);
 		return o;
 	}
-
+	
 	private Encounter imported() {
 		Encounter e = sample();
 		e.addObs(obs(e, 62));
@@ -127,7 +127,7 @@ public class EncounterVoidIntegrationTest extends BaseModuleContextSensitiveTest
 		    new EncounterCreationPayloadSerializer().serialize(e, origin, 1, UUID.randomUUID().toString(), Date.from(base)));
 		return Context.getEncounterService().getEncounterByUuid(e.getUuid());
 	}
-
+	
 	private String event(Encounter encounter) {
 		Encounter snapshot = new Encounter();
 		snapshot.setUuid(encounter.getUuid());
@@ -136,13 +136,13 @@ public class EncounterVoidIntegrationTest extends BaseModuleContextSensitiveTest
 		snapshot.setDateVoided(Date.from(base.plusSeconds(20)));
 		return EncounterVoidEvent.create(snapshot, origin, 2, base.plusSeconds(20));
 	}
-
+	
 	private Encounter stored(String uuid) {
 		Context.flushSession();
 		Context.clearSession();
 		return Context.getEncounterService().getEncounterByUuid(uuid);
 	}
-
+	
 	@Test
 	public void localVoidPublishesOnceAndKeepsHistory() throws Exception {
 		Encounter e = imported();
@@ -160,7 +160,7 @@ public class EncounterVoidIntegrationTest extends BaseModuleContextSensitiveTest
 		assertTrue(Context.getObsService().getObsByUuid(obs).getVoided());
 		assertEquals(62, Context.getObsService().getObsByUuid(obs).getValueNumeric());
 	}
-
+	
 	@Test
 	public void neverPublishedEncounterRemainsLocalAndIsNotPrepared() {
 		Context.removeAdvice(EncounterService.class, encounterAdvice);
@@ -175,7 +175,7 @@ public class EncounterVoidIntegrationTest extends BaseModuleContextSensitiveTest
 		assertEquals(pending - 1, sync().countEncountersPendingPreparation());
 		assertTrue(stored(e.getUuid()).getVoided());
 	}
-
+	
 	@Test
 	public void receivesAndReplaysWithoutEchoOrDeletingValues() {
 		Encounter e = imported();
@@ -193,28 +193,28 @@ public class EncounterVoidIntegrationTest extends BaseModuleContextSensitiveTest
 		assertEquals(before, sync().getHighestEncounterSequence("testServer_1"));
 		assertEquals(json, sync().getEncounterEventsAfter(origin, 1, 100).get(0).getPayloadJson());
 	}
-
+	
 	@Test public void rejectsAlteredReplay() throws Exception {
         Encounter e=imported();String json=event(e);receive().receiveEncounter(json);
         ObjectNode altered=(ObjectNode)m.readTree(json);((ObjectNode)altered.path("payload")).put("reason","Otra razon");
         assertThrows(APIException.class,()->receive().receiveEncounter(altered.toString()));
         assertEquals(2,receive().getConfirmedEncounterSequence(origin));
     }
-
+	
 	@Test public void waitsForMissingEncounterWithoutAdvancingReceipt() throws Exception {
         Encounter e=imported();ObjectNode json=(ObjectNode)m.readTree(event(e));
         ((ObjectNode)json.path("payload")).put("encounterUuid",UUID.randomUUID().toString());
         assertThrows(EncounterDependencyException.class,()->receive().receiveEncounter(json.toString()));
         assertEquals(1,receive().getConfirmedEncounterSequence(origin));
     }
-
+	
 	@Test public void rejectsForeignPatientWithoutChangingEncounter() throws Exception {
         Encounter e=imported();ObjectNode json=(ObjectNode)m.readTree(event(e));
         ((ObjectNode)json.path("payload")).put("patientUuid",UUID.randomUUID().toString());
         assertThrows(APIException.class,()->receive().receiveEncounter(json.toString()));
         assertEquals(1,receive().getConfirmedEncounterSequence(origin));assertFalse(stored(e.getUuid()).getVoided());
     }
-
+	
 	@Test
 	public void localRollbackRestoresEncounterObservationsAndSequence() {
 		Encounter e = imported();
@@ -234,7 +234,7 @@ public class EncounterVoidIntegrationTest extends BaseModuleContextSensitiveTest
 		assertFalse(Context.getObsService().getObsByUuid(obs).getVoided());
 		assertEquals(before, sync().getHighestEncounterSequence("testServer_1"));
 	}
-
+	
 	@Test
 	public void receiveRollbackRestoresEncounterAndReceipt() {
 		Encounter e = imported();
@@ -252,7 +252,7 @@ public class EncounterVoidIntegrationTest extends BaseModuleContextSensitiveTest
 		assertEquals(1, receive().getConfirmedEncounterSequence(origin));
 		assertEquals(2, receive().receiveEncounter(json));
 	}
-
+	
 	@Test public void invalidContractNeverReachesNativeDeletion() throws Exception {
         Encounter e=imported();ObjectNode json=(ObjectNode)m.readTree(event(e));
         json.put("schemaVersion",Long.MAX_VALUE);
@@ -263,17 +263,17 @@ public class EncounterVoidIntegrationTest extends BaseModuleContextSensitiveTest
         assertThrows(APIException.class,()->new EncounterIncomingEvent(json.toString()));
         assertFalse(stored(e.getUuid()).getVoided());
     }
-
+	
 	@Test
 	public void receivesWithTechnicalRole() {
 		technicalRole(true);
 	}
-
+	
 	@Test
 	public void rejectsTechnicalRoleWithoutDeletePrivilege() {
 		technicalRole(false);
 	}
-
+	
 	private void technicalRole(boolean delete) {
         Encounter e=imported();String json=event(e);Role role=new Role(origin);
         List<String> privileges=new ArrayList<>(Arrays.asList("Receive Synchronization Records","View Synchronization Records","Get Encounters","Get Observations","Add Encounters","Add Observations","Edit Encounters","Edit Observations","Get Patients","Get People","Get Global Properties","Get Locations","Get Encounter Types","Get Forms","Get Providers","Get Encounter Roles","Get Concepts","Get Orders","Delete Observations","Delete Orders"));

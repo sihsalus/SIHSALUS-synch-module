@@ -11,13 +11,13 @@ import org.springframework.stereotype.Repository;
 /** Conserva el complemento por separado; ninguna preparación reescribe un CREATE. */
 @Repository("synchronizationmr.EncounterVisitSupplementDao")
 public class EncounterVisitSupplementDao {
-
+	
 	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessions;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.LocalNodeDao")
 	private LocalNodeDao node;
-
+	
 	public boolean prepare(String encounterUuid) {
         String local=node.getLocalServerId();
         return sessions.getCurrentSession().doReturningWork(c -> {
@@ -36,13 +36,13 @@ public class EncounterVisitSupplementDao {
             return true;
         });
     }
-
+	
 	public static String wire(Connection c,String eventUuid,String original)throws SQLException {
         try(PreparedStatement q=c.prepareStatement("select wire_json from synchronizationmr_visit_supplement where event_uuid=?")) {
             q.setString(1,eventUuid);try(ResultSet r=q.executeQuery()){return r.next()?r.getString(1):original;}
         }
     }
-
+	
 	public static void record(Connection c,EncounterIncomingEvent event)throws SQLException {
         if(event.wireJson.equals(event.json))return;
         try(PreparedStatement q=c.prepareStatement("insert into synchronizationmr_visit_supplement (event_uuid,wire_json) values (?,?)")) {

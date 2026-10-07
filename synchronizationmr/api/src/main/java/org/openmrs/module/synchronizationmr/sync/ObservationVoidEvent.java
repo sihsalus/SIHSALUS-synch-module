@@ -9,18 +9,18 @@ import org.openmrs.Encounter;
 
 /** Anula UUID concretos sin borrar valores ni inferir relaciones de versionado. */
 public final class ObservationVoidEvent {
-
+	
 	private static final ObjectMapper M = new ObjectMapper().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION).enable(
 	    DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
-
+	
 	public final String json, origin, eventUuid, encounterUuid, patientUuid;
-
+	
 	public final long sequence;
-
+	
 	public final Instant occurredAt;
-
+	
 	private final ObjectNode root;
-
+	
 	public ObservationVoidEvent(String json) {
         try {
             if (json == null || json.length() > 1000000) throw EventJson.invalid();
@@ -51,15 +51,15 @@ public final class ObservationVoidEvent {
             this.json=json;
         } catch(Exception ex) { throw EventJson.invalid(); }
     }
-
+	
 	public ArrayNode observations() {
 		return ((ArrayNode) root.path("payload").path("observations")).deepCopy();
 	}
-
+	
 	public ObjectNode version() {
 		return PatientUpdateEvent.version(root);
 	}
-
+	
 	public static String create(Encounter encounter, ArrayNode items, String origin, long sequence, Instant time) {
 		ObjectNode root = M.createObjectNode();
 		root.put("schemaVersion", 9);

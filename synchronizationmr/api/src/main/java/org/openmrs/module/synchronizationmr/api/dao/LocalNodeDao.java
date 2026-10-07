@@ -23,10 +23,10 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 /** Fija server.id bajo el mismo bloqueo que protege los contadores. No genera UUID. */
 @Repository("synchronizationmr.LocalNodeDao")
 public class LocalNodeDao {
-
+	
 	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessionFactory;
-
+	
 	public String getLocalServerId() {
         if (!TransactionSynchronizationManager.isActualTransactionActive()
                 || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {

@@ -18,7 +18,7 @@ import org.springframework.test.context.transaction.TestTransaction;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ObservationVoidIntegrationTest extends BaseModuleContextSensitiveTest {
-
+	
 	@Test
 	public void laterCorrectionReconciliationDoesNotReactivateExplicitlyVoidedHead() throws Exception {
 		Encounter e = imported();
@@ -50,7 +50,7 @@ public class ObservationVoidIntegrationTest extends BaseModuleContextSensitiveTe
 		assertTrue(stored(other.getUuid()).getVoided());
 		assertEquals(64, stored(first.getUuid()).getValueNumeric());
 	}
-
+	
 	@Test
 	public void localRollbackRestoresVoidAndSequence() {
 		Encounter e = imported();
@@ -67,17 +67,17 @@ public class ObservationVoidIntegrationTest extends BaseModuleContextSensitiveTe
 		assertFalse(stored(old.getUuid()).getVoided());
 		assertEquals(before, sync().getHighestEncounterSequence("testServer_1"));
 	}
-
+	
 	@Test
 	public void receivesWithTechnicalRole() {
 		technicalRole(true);
 	}
-
+	
 	@Test
 	public void rejectsTechnicalRoleWithoutEditPrivilege() {
 		technicalRole(false);
 	}
-
+	
 	private void technicalRole(boolean edit){
         Encounter e=imported();Obs old=e.getObs().iterator().next();String json=event(e,old);
         Role role=new Role(origin);
@@ -91,17 +91,17 @@ public class ObservationVoidIntegrationTest extends BaseModuleContextSensitiveTe
         }finally{Context.logout();Context.authenticate(admin);}
         assertEquals(edit?2:1,receive().getConfirmedEncounterSequence(origin));assertEquals(edit,stored(old.getUuid()).getVoided());
     }
-
+	
 	private final EncounterCreationAdvice encounterAdvice = new EncounterCreationAdvice();
-
+	
 	private final ObservationAdditionAdvice obsAdvice = new ObservationAdditionAdvice();
-
+	
 	private final ObjectMapper m = new ObjectMapper();
-
+	
 	private final String origin = "void_" + UUID.randomUUID().toString().replace("-", "");
-
+	
 	private final Instant base = Instant.parse("2026-01-01T00:00:00Z");
-
+	
 	@BeforeEach
 	public void prepare() throws Exception {
 		new Liquibase("src/main/resources/liquibase.xml", new FileSystemResourceAccessor(), new JdbcConnection(
@@ -110,21 +110,21 @@ public class ObservationVoidIntegrationTest extends BaseModuleContextSensitiveTe
 		Context.addAdvice(EncounterService.class, encounterAdvice);
 		Context.addAdvice(ObsService.class, obsAdvice);
 	}
-
+	
 	@AfterEach
 	public void clean() {
 		Context.removeAdvice(EncounterService.class, encounterAdvice);
 		Context.removeAdvice(ObsService.class, obsAdvice);
 	}
-
+	
 	private EncounterSyncService sync() {
 		return Context.getService(EncounterSyncService.class);
 	}
-
+	
 	private EncounterReceiveService receive() {
 		return Context.getService(EncounterReceiveService.class);
 	}
-
+	
 	private Encounter sample() {
 		Encounter e = new Encounter();
 		e.setPatient(Context.getPatientService().getPatient(2));
@@ -133,7 +133,7 @@ public class ObservationVoidIntegrationTest extends BaseModuleContextSensitiveTe
 		e.setEncounterDatetime(Date.from(base));
 		return e;
 	}
-
+	
 	private Obs obs(Encounter e, double value) {
 		Obs o = new Obs();
 		o.setPerson(e.getPatient());
@@ -144,7 +144,7 @@ public class ObservationVoidIntegrationTest extends BaseModuleContextSensitiveTe
 		o.setValueNumeric(value);
 		return o;
 	}
-
+	
 	private Encounter imported() {
 		Encounter e = sample();
 		e.addObs(obs(e, 62));
@@ -152,13 +152,13 @@ public class ObservationVoidIntegrationTest extends BaseModuleContextSensitiveTe
 		    new EncounterCreationPayloadSerializer().serialize(e, origin, 1, UUID.randomUUID().toString(), Date.from(base)));
 		return Context.getEncounterService().getEncounterByUuid(e.getUuid());
 	}
-
+	
 	private Obs stored(String id) {
 		Context.flushSession();
 		Context.clearSession();
 		return Context.getObsService().getObsByUuid(id);
 	}
-
+	
 	private String event(Encounter e, Obs... obs) {
 		ArrayNode items = m.createArrayNode();
 		for (Obs o : obs) {
@@ -169,7 +169,7 @@ public class ObservationVoidIntegrationTest extends BaseModuleContextSensitiveTe
 		}
 		return ObservationVoidEvent.create(e, items, origin, 2, base.plusSeconds(20));
 	}
-
+	
 	@Test
 	public void capturesVoidAndIndependentReplacementWithoutInventingPreviousVersion() throws Exception {
 		Encounter e = sample();
@@ -189,7 +189,7 @@ public class ObservationVoidIntegrationTest extends BaseModuleContextSensitiveTe
 		assertNull(stored(replacement.getUuid()).getPreviousVersion());
 		assertEquals(0, sync().prepareVoidedObservations(e.getUuid()));
 	}
-
+	
 	@Test public void receivesAndReplaysWithoutEchoOrLossOfValue()throws Exception{
         Encounter e=imported();Obs old=e.getObs().iterator().next();String json=event(e,old);
         long before=sync().getHighestEncounterSequence("testServer_1");
@@ -200,19 +200,19 @@ public class ObservationVoidIntegrationTest extends BaseModuleContextSensitiveTe
         ObjectNode changed=(ObjectNode)m.readTree(json);((ObjectNode)changed.path("payload").path("observations").get(0)).put("reason","Otra razon");
         assertThrows(APIException.class,()->receive().receiveEncounter(changed.toString()));
     }
-
+	
 	@Test public void rejectsForeignObservationWithoutAdvancingReceipt(){
         Encounter e=imported();Encounter other=sample();Obs foreign=obs(other,80);other.addObs(foreign);Context.getEncounterService().saveEncounter(other);
         assertThrows(APIException.class,()->receive().receiveEncounter(event(e,foreign)));
         assertEquals(1,receive().getConfirmedEncounterSequence(origin));assertFalse(stored(foreign.getUuid()).getVoided());
     }
-
+	
 	@Test public void waitsForMissingObservation(){
         Encounter e=imported();Obs missing=obs(e,70);
         assertThrows(EncounterDependencyException.class,()->receive().receiveEncounter(event(e,missing)));
         assertEquals(1,receive().getConfirmedEncounterSequence(origin));
     }
-
+	
 	@Test
 	public void rollbackRestoresObservationAndReceipt() {
 		Encounter e = imported();
@@ -230,7 +230,7 @@ public class ObservationVoidIntegrationTest extends BaseModuleContextSensitiveTe
 		assertEquals(1, receive().getConfirmedEncounterSequence(origin));
 		assertEquals(2, receive().receiveEncounter(json));
 	}
-
+	
 	@Test
 	public void preparesAlreadyVoidedPublishedObservationOnce() {
 		Encounter e = imported();
@@ -245,7 +245,7 @@ public class ObservationVoidIntegrationTest extends BaseModuleContextSensitiveTe
 		assertEquals(1, sync().prepareVoidedObservations(e.getUuid()));
 		assertEquals(0, sync().prepareVoidedObservations(e.getUuid()));
 	}
-
+	
 	@Test
 	public void capturesVoidedGroupMembers() {
 		Encounter e = sample();
@@ -262,7 +262,7 @@ public class ObservationVoidIntegrationTest extends BaseModuleContextSensitiveTe
 		assertEquals(1, events.size());
 		assertEquals(2, new ObservationVoidEvent(events.get(0).getPayloadJson()).observations().size());
 	}
-
+	
 	@Test public void strictContractRejectsDuplicatesAndUnexpectedFields()throws Exception{
         Encounter e=imported();Obs old=e.getObs().iterator().next();
         assertThrows(APIException.class,()->new ObservationVoidEvent(event(e,old,old)));

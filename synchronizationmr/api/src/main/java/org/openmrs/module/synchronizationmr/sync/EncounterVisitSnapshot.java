@@ -11,12 +11,12 @@ import static org.openmrs.module.synchronizationmr.sync.EventJson.*;
 
 /** Dependencia de visita transportada por CREATE, sin un flujo separado de eventos. */
 public final class EncounterVisitSnapshot {
-
+	
 	private static final String TEXT = "org.openmrs.customdatatype.datatype.FreeTextDatatype";
-
+	
 	private EncounterVisitSnapshot() {
 	}
-
+	
 	public static JsonNode serialize(Visit visit) {
 		if (visit == null)
 			return JsonNodeFactory.instance.nullNode();
@@ -37,7 +37,7 @@ public final class EncounterVisitSnapshot {
             sorted.sort(Comparator.comparing(VisitAttribute::getUuid));
             for (VisitAttribute attribute : sorted) {
                 VisitAttributeType type = attribute.getAttributeType();
-                if (type == null || !TEXT.equals(type.getDatatypeClassname())) { unsupported = true; continue; }
+                if (type == null || !VisitMetadata.supported(type.getDatatypeClassname())) { unsupported = true; continue; }
                 ObjectNode item = attributes.addObject();
                 item.put("uuid", id(attribute)); item.put("typeUuid", id(type));
                 item.put("datatype", type.getDatatypeClassname()); item.put("datatypeConfig", type.getDatatypeConfig());
@@ -48,7 +48,7 @@ public final class EncounterVisitSnapshot {
         data.put("unsupportedAttributes", unsupported);
 		return data;
 	}
-
+	
 	static Visit resolve(JsonNode payload, Patient patient, Date encounterDate) {
 		String visitId = text(payload, "visitUuid", false);
 		JsonNode data = payload.get("visit");
@@ -97,10 +97,11 @@ public final class EncounterVisitSnapshot {
                 VisitAttribute attribute = new VisitAttribute(); attribute.setUuid(unique(item, ids));
                 VisitAttributeType type = Context.getVisitService().getVisitAttributeTypeByUuid(reference(text(item, "typeUuid", true)));
                 if (type == null || Boolean.TRUE.equals(type.getRetired())) throw dependency("visit.attribute.typeUuid");
-                if (!TEXT.equals(text(item,"datatype",true)) || !TEXT.equals(type.getDatatypeClassname())
+                if (!VisitMetadata.supported(text(item,"datatype",true)) || !Objects.equals(text(item,"datatype",true),type.getDatatypeClassname())
                     || !Objects.equals(type.getDatatypeConfig(),text(item,"datatypeConfig",false))) throw invalid();
                 String value = text(item,"value",true);
                 if (value.length() > 65535) throw invalid();
+                VisitMetadata.validateConcept(type.getDatatypeClassname(),value);
                 attribute.setAttributeType(type); attribute.setValueReferenceInternal(value);
                 attribute.setVoided(flag(item,"voided")); attribute.setVoidReason(text(item,"voidReason",false));
                 if (attribute.getVoided()) {
@@ -123,24 +124,47 @@ public final class EncounterVisitSnapshot {
 			return expected;
         }
 		// CREATE no sobrescribe una visita existente ni cambia su paciente.
-		if (!comparisonSnapshot(existing).equals(comparisonSnapshot(expected))) {
+		ObjectNode actual=(ObjectNode)comparisonSnapshot(existing), original=(ObjectNode)comparisonSnapshot(expected);
+        if (Context.getRegisteredComponent("synchronizationmr.VisitVoidDao",
+            org.openmrs.module.synchronizationmr.api.dao.VisitVoidDao.class).isPublished(existing)) {
+            // La instantánea anterior no restaura una visita anulada. Los demás datos deben coincidir.
+            for (ObjectNode snapshot : new ObjectNode[]{actual,original}) {
+                snapshot.remove("voided"); snapshot.remove("voidReason");
+                for (JsonNode attribute : snapshot.path("attributes")) {
+                    ((ObjectNode)attribute).remove("voided"); ((ObjectNode)attribute).remove("voidReason");
+                }
+            }
+        }
+        if (!actual.equals(original) && Context.getRegisteredComponent("synchronizationmr.VisitUpdateDao",
+            org.openmrs.module.synchronizationmr.api.dao.VisitUpdateDao.class).hasCurrentInterval(existing)) {
+            // Un CREATE retrasado conserva su intervalo original, sin reabrir la visita versionada.
+            for (String field : new String[]{"startDatetime","stopDatetime"}) {actual.remove(field);original.remove(field);}
+        }
+        if (!actual.equals(original) && Context.getRegisteredComponent("synchronizationmr.VisitUpdateDao",
+            org.openmrs.module.synchronizationmr.api.dao.VisitUpdateDao.class).hasCurrentMetadata(existing)) {
+            // Un CREATE retrasado no revierte los metadatos ya versionados de la visita.
+            for(String field:new String[]{"visitTypeUuid","locationUuid","indicationUuid","attributes"}) {
+                actual.remove(field);original.remove(field);
+            }
+        }
+        if (!actual.equals(original)) {
 			throw new APIException("La visita existente difiere del evento; requiere conciliacion, no se sobrescribe");
 		}
 		return existing;
 	}
-
+	
 	private static Date nativeDate(Date value) {
 		return value == null ? null : new Date(Math.floorDiv(value.getTime(), 1000L) * 1000L);
 	}
-
+	
 	private static String id(OpenmrsObject value) {
 		return value == null ? null : reference(value.getUuid());
 	}
-
+	
 	private static String date(Date value) {
 		return value == null ? null : java.time.Instant.ofEpochMilli(value.getTime()).toString();
 	}
-
+	
 	private static JsonNode comparisonSnapshot(Visit visit) {
 		ObjectNode data = (ObjectNode) serialize(visit);
 		// Compara con la precisión nativa de la base sin cambiar el evento original.

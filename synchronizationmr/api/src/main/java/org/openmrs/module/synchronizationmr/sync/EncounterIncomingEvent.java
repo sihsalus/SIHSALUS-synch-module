@@ -11,30 +11,34 @@ import static org.openmrs.module.synchronizationmr.sync.EventJson.*;
 
 /** Valida eventos y reconstruye encuentros; una dependencia ausente impide la recepciÃ³n parcial. */
 public final class EncounterIncomingEvent {
-
+	
 	private static final ObjectMapper MAPPER = new ObjectMapper().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
 	        .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
-
+	
 	public final JsonNode root;
-
+	
 	public final String json, wireJson, origin, eventUuid, encounterUuid, patientUuid;
-
+	
 	private final JsonNode visitSupplement;
-
+	
 	public final long sequence;
-
+	
 	public final Date occurredAt;
-
+	
 	public final boolean addition;
-
+	
 	public final boolean update;
-
+	
 	public final boolean correction;
-
+	
 	public final boolean voidObservations;
-
+	
 	public final boolean voidEncounter;
-
+	
+	public final boolean visitUpdate;
+	
+	public final boolean visitVoid;
+	
 	public EncounterIncomingEvent(String json) {
 		if (json == null || json.length() > 1000000) {
 			throw invalid();
@@ -50,13 +54,39 @@ public final class EncounterIncomingEvent {
 		catch (Exception e) {
 			throw invalid();
 		}
-
+		
 		if (root == null || !root.isObject())
 			throw invalid();
+		visitVoid = "VOID_VISIT".equals(root.path("operation").asText());
+		visitUpdate = "UPDATE_VISIT".equals(root.path("operation").asText());
 		voidEncounter = "VOID_ENCOUNTER".equals(root.path("operation").asText());
 		voidObservations = "VOID_OBS".equals(root.path("operation").asText());
 		correction = "CORRECT_OBS".equals(root.path("operation").asText());
 		update = "UPDATE".equals(root.path("operation").asText());
+		if (visitVoid) {
+			VisitVoidEvent event = new VisitVoidEvent(json);
+			addition = false;
+			origin = event.origin;
+			eventUuid = event.eventUuid;
+			encounterUuid = event.encounterUuid;
+			patientUuid = event.patientUuid;
+			sequence = event.sequence;
+			occurredAt = Date.from(event.occurredAt);
+			this.json = json;
+			return;
+		}
+		if (visitUpdate) {
+			VisitUpdateEvent event = new VisitUpdateEvent(json);
+			addition = false;
+			origin = event.origin;
+			eventUuid = event.eventUuid;
+			encounterUuid = event.encounterUuid;
+			patientUuid = event.patientUuid;
+			sequence = event.sequence;
+			occurredAt = Date.from(event.occurredAt);
+			this.json = json;
+			return;
+		}
 		if (voidEncounter) {
 			EncounterVoidEvent event = new EncounterVoidEvent(json);
 			addition = false;
@@ -111,8 +141,9 @@ public final class EncounterIncomingEvent {
 		if (version == null
 		        || !version.isIntegralNumber()
 		        || !version.canConvertToInt()
-		        || (addition ? version.intValue() != 4 : (version.intValue() != 2 && version.intValue() != 3 && version
-		                .intValue() != 7)) || !"ENCOUNTER".equals(text(root, "entityType", true))
+		        || (addition ? version.intValue() != 4 : (version.intValue() != 2 && version.intValue() != 3
+		                && version.intValue() != 7 && version.intValue() != 14))
+		        || !"ENCOUNTER".equals(text(root, "entityType", true))
 		        || (!addition && !"CREATE".equals(text(root, "operation", true))) || number == null
 		        || !number.isIntegralNumber() || !number.canConvertToLong() || number.longValue() < 1) {
 			throw invalid();
@@ -129,12 +160,13 @@ public final class EncounterIncomingEvent {
 		    data,
 		    addition ? "encounterUuid,patientUuid,obs"
 		            : "encounterUuid,patientUuid,encounterDatetime,encounterTypeUuid,locationUuid,formUuid,visitUuid,voided,voidReason,encounterProviders,obs,orderUuids,unsupportedContent"
-		                    + ((version.intValue() == 3 || version.intValue() == 7) ? ",visit" : ""));
+		                    + ((version.intValue() == 3 || version.intValue() == 7 || version.intValue() == 14) ? ",visit"
+		                            : ""));
 		encounterUuid = reference(text(data, "encounterUuid", true));
 		patientUuid = reference(text(data, "patientUuid", true));
 		this.json = json;
 	}
-
+	
 	public boolean sameContent(String other) {
 		try {
 			return other != null && MAPPER.readTree(wireJson).equals(MAPPER.readTree(other));
@@ -143,9 +175,9 @@ public final class EncounterIncomingEvent {
 			return false;
 		}
 	}
-
+	
 	public Encounter toEncounter() {
-        if (addition || update || correction || voidObservations || voidEncounter) throw invalid();
+        if (addition || update || correction || voidObservations || voidEncounter || visitUpdate || visitVoid) throw invalid();
         JsonNode data = root.get("payload").deepCopy();
         if (visitSupplement != null) ((com.fasterxml.jackson.databind.node.ObjectNode)data).set("visit",visitSupplement);
         if (root.path("schemaVersion").intValue()==3 && visitSupplement==null && data.path("visit").has("attributes")) throw invalid();
@@ -164,17 +196,17 @@ public final class EncounterIncomingEvent {
         encounter.setUuid(encounterUuid);
         encounter.setPatient(patient);
         encounter.setEncounterDatetime(instant(text(data, "encounterDatetime", true)));
-        if ((root.path("schemaVersion").intValue() == 3 || root.path("schemaVersion").intValue() == 7)) {
+        if ((root.path("schemaVersion").intValue() == 3 || root.path("schemaVersion").intValue() == 7 || root.path("schemaVersion").intValue() == 14)) {
             // Ajusta la precisiÃ³n de fecha nativa antes de comprobar los lÃ­mites de la visita.
             encounter.setEncounterDatetime(new Date(Math.floorDiv(encounter.getEncounterDatetime().getTime(), 1000L) * 1000L));
         }
         encounter.setEncounterType(resolve(data, "encounterTypeUuid", true, Context.getEncounterService()::getEncounterTypeByUuid));
         encounter.setLocation(resolve(data, "locationUuid", false, Context.getLocationService()::getLocationByUuid));
         encounter.setForm(resolve(data, "formUuid", false, Context.getFormService()::getFormByUuid));
-        Visit visit = (root.path("schemaVersion").intValue() == 3 || root.path("schemaVersion").intValue() == 7)
+        Visit visit = (root.path("schemaVersion").intValue() == 3 || root.path("schemaVersion").intValue() == 7 || root.path("schemaVersion").intValue() == 14)
             ? EncounterVisitSnapshot.resolve(data, patient, encounter.getEncounterDatetime())
             : resolve(data, "visitUuid", false, Context.getVisitService()::getVisitByUuid);
-        if (visit != null && (Boolean.TRUE.equals(visit.getVoided()) || !patientUuid.equals(visit.getPatient().getUuid()))) { throw invalid(); }
+        if (visit != null && ((Boolean.TRUE.equals(visit.getVoided()) && !Context.getRegisteredComponent("synchronizationmr.VisitVoidDao", org.openmrs.module.synchronizationmr.api.dao.VisitVoidDao.class).isPublished(visit)) || !patientUuid.equals(visit.getPatient().getUuid()))) { throw invalid(); }
         encounter.setVisit(visit);
         encounter.setVoided(flag(data, "voided"));
         encounter.setVoidReason(text(data, "voidReason", false));
@@ -193,7 +225,7 @@ public final class EncounterIncomingEvent {
         for (JsonNode item : array(data, "obs", false)) { encounter.addObs(observation(item, encounter, seen, 0)); }
         return encounter;
     }
-
+	
 	/** Valida la adiciÃ³n completa antes de guardar cualquier observaciÃ³n. */
 	public List<Obs> addedObservations(Encounter encounter) {
         if (!addition || encounter == null
@@ -217,7 +249,7 @@ public final class EncounterIncomingEvent {
         if (result.isEmpty()) throw invalid();
         return result;
     }
-
+	
 	private Obs observation(JsonNode item, Encounter encounter, Set<String> seen, int depth) {
         if (depth > 50 || seen.size() >= 1000) { throw invalid(); }
         fields(item, "uuid,conceptUuid,obsDatetime,locationUuid,orderUuid,valueNumeric,valueText,valueDatetime,valueCodedUuid,valueCodedNameUuid,valueDrugUuid,valueModifier,comment,accessionNumber,status,interpretation,voided,voidReason,previousVersionUuid,valueComplex,complexDataIncluded,groupMembers"
@@ -263,7 +295,7 @@ public final class EncounterIncomingEvent {
         for (JsonNode child : array(item, "groupMembers", false)) { obs.addGroupMember(observation(child, encounter, seen, depth + 1)); }
         return obs;
     }
-
+	
 	private <T extends OpenmrsObject> T resolve(JsonNode node, String field, boolean required, Function<String, T> lookup) {
 		String id = text(node, field, required);
 		if (id == null) {

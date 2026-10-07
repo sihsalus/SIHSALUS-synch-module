@@ -15,18 +15,18 @@ import org.springframework.stereotype.Repository;
 /** Estado de metadatos y eventos inmutables dentro de la misma transacciÃ³n clÃ­nica. */
 @Repository("synchronizationmr.EncounterUpdateDao")
 public class EncounterUpdateDao {
-
+	
 	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessionFactory;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.LocalNodeDao")
 	private LocalNodeDao localNodeDao;
-
+	
 	@javax.annotation.Resource(name = "encounterDAO")
 	private org.openmrs.api.db.EncounterDAO encounterDao;
-
+	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
-
+	
 	public void lock() {
 		org.hibernate.Session session = sessionFactory.getCurrentSession();
 		org.hibernate.FlushMode previous = session.getHibernateFlushMode();
@@ -40,7 +40,7 @@ public class EncounterUpdateDao {
 			session.setHibernateFlushMode(previous);
 		}
 	}
-
+	
 	public void recordSaved(Encounter encounter) {
         if (Boolean.TRUE.equals(encounter.getVoided())) return; // VOID se implementa por separado.
         String origin = localNodeDao.getLocalServerId();
@@ -71,7 +71,7 @@ public class EncounterUpdateDao {
             }
         });
     }
-
+	
 	public void receive(Connection c, EncounterUpdateEvent event) throws SQLException {
         if (!Context.hasPrivilege(org.openmrs.util.PrivilegeConstants.EDIT_ENCOUNTERS)) {
             throw new org.openmrs.api.APIAuthenticationException("La recepciÃ³n de modificaciones requiere Edit Encounters");
@@ -108,13 +108,13 @@ public class EncounterUpdateDao {
         insert(c, target.getEncounterId(), event);
         saveState(c, target.getEncounterId(), EncounterUpdateEvent.capture(target), state.versions, state.persisted);
     }
-
+	
 	private void requireTypePermission(Encounter encounter) {
 		if (!Context.getEncounterService().canEditEncounter(encounter, null)) {
 			throw new org.openmrs.api.APIAuthenticationException("Falta el permiso de ediciÃ³n del tipo de encuentro");
 		}
 	}
-
+	
 	private void validateProviders(Connection c, Encounter target, Encounter incoming) throws SQLException {
         for (EncounterProvider provider : incoming.getActiveEncounterProviders()) {
             try (PreparedStatement q = c.prepareStatement("select encounter_id from encounter_provider where uuid=?")) {
@@ -125,7 +125,7 @@ public class EncounterUpdateDao {
             }
         }
     }
-
+	
 	private void apply(Encounter target, Encounter incoming, Set<String> groups) {
         if (groups.contains("encounterDatetime")) {
             java.util.Date date = new java.util.Date(Math.floorDiv(incoming.getEncounterDatetime().getTime(), 1000L) * 1000L);
@@ -163,14 +163,14 @@ public class EncounterUpdateDao {
             }
         }
     }
-
+	
 	private void requireIdentity(ObjectNode before, ObjectNode after) {
 		if (!before.path("encounterUuid").equals(after.path("encounterUuid"))
 		        || !before.path("patientUuid").equals(after.path("patientUuid"))) {
 			throw new APIException("No se puede cambiar la identidad ni el paciente de un encuentro sincronizado");
 		}
 	}
-
+	
 	private State state(Connection c, int id) throws SQLException {
         try (PreparedStatement q = c.prepareStatement("select snapshot_json,versions_json from synchronizationmr_encounter_state where encounter_id=? for update")) {
             q.setInt(1, id);
@@ -188,7 +188,7 @@ public class EncounterUpdateDao {
             }
         }
     }
-
+	
 	private ObjectNode object(String json) {
 		try {
 			JsonNode value = MAPPER.readTree(json);
@@ -200,7 +200,7 @@ public class EncounterUpdateDao {
 			throw new APIException("Falta el estado original vÃ¡lido del encuentro");
 		}
 	}
-
+	
 	private void insert(Connection c, int id, EncounterUpdateEvent event) throws SQLException {
         try (PreparedStatement q = c.prepareStatement("insert into synchronizationmr_encounter_update (event_uuid,encounter_id,encounter_uuid,origin_server_id,entity_sequence,date_created,payload_json) values (?,?,?,?,?,?,?)")) {
             q.setString(1, event.eventUuid); q.setInt(2, id); q.setString(3, event.encounterUuid);
@@ -208,7 +208,7 @@ public class EncounterUpdateDao {
             q.setTimestamp(6, Timestamp.from(event.occurredAt)); q.setString(7, event.json); q.executeUpdate();
         }
     }
-
+	
 	private void saveState(Connection c, int id, ObjectNode snapshot, ObjectNode versions, boolean exists) throws SQLException {
         String sql = exists ? "update synchronizationmr_encounter_state set snapshot_json=?,versions_json=? where encounter_id=?"
             : "insert into synchronizationmr_encounter_state (snapshot_json,versions_json,encounter_id) values (?,?,?)";
@@ -216,13 +216,13 @@ public class EncounterUpdateDao {
             q.setString(1, snapshot.toString()); q.setString(2, versions.toString()); q.setInt(3, id); q.executeUpdate();
         }
     }
-
+	
 	private static final class State {
-
+		
 		final ObjectNode snapshot, versions;
-
+		
 		final boolean persisted;
-
+		
 		State(ObjectNode snapshot, ObjectNode versions, boolean persisted) {
 			this.snapshot = snapshot;
 			this.versions = versions;

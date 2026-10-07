@@ -18,7 +18,7 @@ import org.springframework.test.context.transaction.TestTransaction;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class EncounterConflictIntegrationTest extends BaseModuleContextSensitiveTest {
-
+	
 	@Test
 	public void textReplacementIsCapturedWithoutDiscardingOriginalNote() throws Exception {
 		Concept text = new Concept();
@@ -48,7 +48,7 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		assertEquals("Nota inicial", Context.getObsService().getObsByUuid(old.getUuid()).getValueText());
 		assertEquals("Nota corregida", stored(e.getUuid()).getObs().iterator().next().getValueText());
 	}
-
+	
 	@Test
 	public void differentFormFieldDoesNotInventReplacement() {
 		Encounter e = sample();
@@ -64,7 +64,7 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		Context.getEncounterService().saveEncounter(e);
 		assertNull(Context.getObsService().getObsByUuid(next.getUuid()).getPreviousVersion());
 	}
-
+	
 	@Test
 	public void sameFormFieldReplacementKeepsItsLineage() {
 		Encounter e = sample();
@@ -80,24 +80,24 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		Context.getEncounterService().saveEncounter(e);
 		assertEquals(old.getUuid(), Context.getObsService().getObsByUuid(next.getUuid()).getPreviousVersion().getUuid());
 	}
-
+	
 	@Test public void foreignLateAdditionDoesNotAdvanceReceipt() throws Exception {
         Encounter e=imported();receive().receiveEncounter(annulment(e));Obs next=obs(e,70);
         ObjectNode bad=(ObjectNode)m.readTree(addition(e,next,origin+"edit",1));((ObjectNode)bad.path("payload")).put("patientUuid",UUID.randomUUID().toString());
         assertThrows(APIException.class,()->receive().receiveEncounter(bad.toString()));
         assertTrue(stored(e.getUuid()).getVoided());assertNull(Context.getObsService().getObsByUuid(next.getUuid()));assertEquals(0,receive().getConfirmedEncounterSequence(origin+"edit"));
     }
-
+	
 	private final EncounterCreationAdvice encounterAdvice = new EncounterCreationAdvice();
-
+	
 	private final ObservationAdditionAdvice obsAdvice = new ObservationAdditionAdvice();
-
+	
 	private final ObjectMapper m = new ObjectMapper();
-
+	
 	private final String origin = "void_" + UUID.randomUUID().toString().replace("-", "");
-
+	
 	private final Instant base = Instant.parse("2026-01-01T00:00:00Z");
-
+	
 	@BeforeEach
 	public void prepare() throws Exception {
 		new Liquibase("src/main/resources/liquibase.xml", new FileSystemResourceAccessor(), new JdbcConnection(
@@ -106,21 +106,21 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		Context.addAdvice(EncounterService.class, encounterAdvice);
 		Context.addAdvice(ObsService.class, obsAdvice);
 	}
-
+	
 	@AfterEach
 	public void clean() {
 		Context.removeAdvice(EncounterService.class, encounterAdvice);
 		Context.removeAdvice(ObsService.class, obsAdvice);
 	}
-
+	
 	private EncounterSyncService sync() {
 		return Context.getService(EncounterSyncService.class);
 	}
-
+	
 	private EncounterReceiveService receive() {
 		return Context.getService(EncounterReceiveService.class);
 	}
-
+	
 	private Encounter sample() {
 		Encounter e = new Encounter();
 		e.setPatient(Context.getPatientService().getPatient(2));
@@ -129,7 +129,7 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		e.setEncounterDatetime(Date.from(base));
 		return e;
 	}
-
+	
 	private Obs obs(Encounter e, double value) {
 		Obs o = new Obs();
 		o.setPerson(e.getPatient());
@@ -140,7 +140,7 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		o.setValueNumeric(value);
 		return o;
 	}
-
+	
 	private Encounter imported() {
 		Encounter e = sample();
 		e.addObs(obs(e, 62));
@@ -148,15 +148,15 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		    new EncounterCreationPayloadSerializer().serialize(e, origin, 1, UUID.randomUUID().toString(), Date.from(base)));
 		return Context.getEncounterService().getEncounterByUuid(e.getUuid());
 	}
-
+	
 	private final EncounterCreationPayloadSerializer serializer = new EncounterCreationPayloadSerializer();
-
+	
 	private Encounter stored(String id) {
 		Context.flushSession();
 		Context.clearSession();
 		return Context.getEncounterService().getEncounterByUuid(id);
 	}
-
+	
 	private Obs replacement(Encounter e, Obs prior, double value) {
 		prior.setVoided(true);
 		prior.setVoidReason("Correccion del formulario");
@@ -167,7 +167,7 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		Context.getEncounterService().saveEncounter(e);
 		return next;
 	}
-
+	
 	private String correction(Encounter e, Obs prior, double value, String source, Instant time) {
 		Obs next = Obs.newInstance(prior);
 		next.setVoided(false);
@@ -179,12 +179,12 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		return ObservationCorrectionEvent.create(e, m.createArrayNode().add(item),
 		    Collections.singletonMap(prior.getUuid(), next.getUuid()), source, 1, time);
 	}
-
+	
 	private String addition(Encounter e, Obs next, String source, long seq) {
 		return serializer.serializeAddition(e, Collections.singletonList(next), Collections.singleton(next.getUuid()),
 		    source, seq, UUID.randomUUID().toString(), Date.from(base.plusSeconds(30)));
 	}
-
+	
 	private String annulment(Encounter e) {
 		Encounter copy = new Encounter();
 		copy.setUuid(e.getUuid());
@@ -193,7 +193,7 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		copy.setDateVoided(Date.from(base.plusSeconds(20)));
 		return EncounterVoidEvent.create(copy, origin + "void", 1, base.plusSeconds(20));
 	}
-
+	
 	@Test
 	public void formReplacementBecomesOneCorrectionWithExplicitLineage() throws Exception {
 		Encounter e = imported();
@@ -212,17 +212,17 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		Context.getEncounterService().saveEncounter(e);
 		assertEquals(before + 1, sync().getHighestEncounterSequence("testServer_1"));
 	}
-
+	
 	@Test
 	public void threeBranchesChooseNewestRegardlessOfDeliveryOrderFirst() throws Exception {
 		threeBranchesChooseNewestRegardlessOfDeliveryOrder(true);
 	}
-
+	
 	@Test
 	public void threeBranchesChooseNewestRegardlessOfDeliveryOrderLast() throws Exception {
 		threeBranchesChooseNewestRegardlessOfDeliveryOrder(false);
 	}
-
+	
 	private void threeBranchesChooseNewestRegardlessOfDeliveryOrder(boolean newestFirst) throws Exception {
 		Encounter e = imported();
 		Obs old = e.getObs().iterator().next();
@@ -242,7 +242,7 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		assertEquals(1, receive().getConfirmedEncounterSequence(origin + "a"));
 		assertEquals(1, receive().getConfirmedEncounterSequence(origin + "b"));
 	}
-
+	
 	@Test
 	public void genuineAdditionDoesNotBecomeCorrection() {
 		Encounter e = imported();
@@ -253,7 +253,7 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		assertEquals(2, e.getObs().size());
 		assertNull(Context.getObsService().getObsByUuid(next.getUuid()).getPreviousVersion());
 	}
-
+	
 	@Test
 	public void ambiguousPairingDoesNotInventLineage() {
 		Encounter e = imported();
@@ -263,7 +263,7 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		Obs next = replacement(e, old, 70);
 		assertNull(Context.getObsService().getObsByUuid(next.getUuid()).getPreviousVersion());
 	}
-
+	
 	@Test
 	public void separateVoidAndAdditionAreNotPairedByTime() {
 		Encounter e = imported();
@@ -274,7 +274,7 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		Context.getEncounterService().saveEncounter(e);
 		assertNull(Context.getObsService().getObsByUuid(next.getUuid()).getPreviousVersion());
 	}
-
+	
 	@Test
 	public void changedMeasurementDateIsNotMatched() {
 		Encounter e = imported();
@@ -287,7 +287,7 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		Context.getEncounterService().saveEncounter(e);
 		assertNull(Context.getObsService().getObsByUuid(next.getUuid()).getPreviousVersion());
 	}
-
+	
 	@Test
 	public void replacementRollbackRestoresNativeHistoryAndCounter() {
 		Encounter e = imported();
@@ -306,17 +306,17 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		assertEquals(62, e.getObs().iterator().next().getValueNumeric());
 		assertEquals(before, sync().getHighestEncounterSequence("testServer_1"));
 	}
-
+	
 	@Test
 	public void additionAndVoidConvergeWithoutBlockingFollowingEventFirst() {
 		additionAndVoidConvergeWithoutBlockingFollowingEvent(true);
 	}
-
+	
 	@Test
 	public void additionAndVoidConvergeWithoutBlockingFollowingEventLast() {
 		additionAndVoidConvergeWithoutBlockingFollowingEvent(false);
 	}
-
+	
 	private void additionAndVoidConvergeWithoutBlockingFollowingEvent(boolean voidFirst) {
 		Encounter e = imported();
 		String id = e.getUuid();
@@ -337,17 +337,17 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		assertTrue(stored(id).getVoided());
 		assertTrue(Context.getObsService().getObsByUuid(other.getUuid()).getVoided());
 	}
-
+	
 	@Test
 	public void correctionAndVoidConvergeKeepingValueAsHistoryFirst() {
 		correctionAndVoidConvergeKeepingValueAsHistory(true);
 	}
-
+	
 	@Test
 	public void correctionAndVoidConvergeKeepingValueAsHistoryLast() {
 		correctionAndVoidConvergeKeepingValueAsHistory(false);
 	}
-
+	
 	private void correctionAndVoidConvergeKeepingValueAsHistory(boolean voidFirst) {
         Encounter e=imported();Obs old=e.getObs().iterator().next();String del=annulment(e),edit=correction(e,old,70,origin+"edit",base.plusSeconds(30));
         receive().receiveEncounter(voidFirst?del:edit);receive().receiveEncounter(voidFirst?edit:del);
@@ -355,17 +355,17 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
         assertTrue(e.getAllObs(true).stream().anyMatch(o->Double.valueOf(70).equals(o.getValueNumeric())));
         assertEquals(1,receive().getConfirmedEncounterSequence(origin+"edit"));
     }
-
+	
 	@Test
 	public void metadataAndVoidConvergeWithoutReactivationFirst() {
 		metadataAndVoidConvergeWithoutReactivation(true);
 	}
-
+	
 	@Test
 	public void metadataAndVoidConvergeWithoutReactivationLast() {
 		metadataAndVoidConvergeWithoutReactivation(false);
 	}
-
+	
 	private void metadataAndVoidConvergeWithoutReactivation(boolean voidFirst) {
 		Encounter e = imported();
 		String del = annulment(e);
@@ -380,7 +380,7 @@ public class EncounterConflictIntegrationTest extends BaseModuleContextSensitive
 		assertEquals(2, e.getLocation().getId());
 		assertEquals(1, receive().getConfirmedEncounterSequence(origin + "edit"));
 	}
-
+	
 	@Test
 	public void lateEditRollbackDoesNotAdvanceReceiptOrLoseAnnulment() {
 		Encounter e = imported();

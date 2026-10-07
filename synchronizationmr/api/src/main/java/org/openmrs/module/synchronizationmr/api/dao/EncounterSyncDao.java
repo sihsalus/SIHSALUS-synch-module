@@ -14,10 +14,10 @@ import org.openmrs.module.synchronizationmr.sync.EncounterEventStream;
 /** Solo escribe en tablas del mÃ³dulo. Comparte la transacciÃ³n del encuentro clÃ­nico. */
 @Repository("synchronizationmr.EncounterSyncDao")
 public class EncounterSyncDao {
-
+	
 	private static final String PENDING = " from encounter c left join synchronizationmr_encounter_event e on e.encounter_id = c.encounter_id"
 	        + " where c.voided = false and (e.event_uuid is null or e.payload_json is null or trim(e.payload_json) = '')";
-
+	
 	public java.util.List<Integer> lockAndFindPending(int limit) {
         sessionFactory.getCurrentSession().flush();
         localNodeDao.getLocalServerId();
@@ -30,7 +30,7 @@ public class EncounterSyncDao {
             return ids;
         });
     }
-
+	
 	public long countPending() {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             try (PreparedStatement query = connection.prepareStatement("select count(*)" + PENDING); ResultSet rows = query.executeQuery()) {
@@ -38,7 +38,7 @@ public class EncounterSyncDao {
             }
         });
     }
-
+	
 	public void requirePayload(int id) {
         sessionFactory.getCurrentSession().doWork(connection -> {
             try (PreparedStatement query = connection.prepareStatement("select payload_json from synchronizationmr_encounter_event where encounter_id = ?")) {
@@ -51,7 +51,7 @@ public class EncounterSyncDao {
             }
         });
     }
-
+	
 	public java.util.List<String> findEncounterOrigins(String afterOrigin, int limit) {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             java.util.List<String> origins = new java.util.ArrayList<>();
@@ -65,7 +65,7 @@ public class EncounterSyncDao {
             return java.util.Collections.unmodifiableList(origins);
         });
     }
-
+	
 	public long findHighestEncounterSequence(String origin) {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             try (PreparedStatement query = connection.prepareStatement(
@@ -78,7 +78,7 @@ public class EncounterSyncDao {
             }
         });
     }
-
+	
 	public java.util.List<org.openmrs.module.synchronizationmr.sync.EncounterSyncEvent> findEncounterEventsAfter(
             String origin, long afterSequence, int limit) {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
@@ -113,16 +113,16 @@ public class EncounterSyncDao {
             return java.util.Collections.unmodifiableList(events);
         });
     }
-
+	
 	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessionFactory;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.LocalNodeDao")
 	private LocalNodeDao localNodeDao;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.EncounterCreationPayloadSerializer")
 	private org.openmrs.module.synchronizationmr.sync.EncounterCreationPayloadSerializer serializer;
-
+	
 	public boolean exists(Integer id) {
         if (id == null) { return false; }
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
@@ -132,7 +132,7 @@ public class EncounterSyncDao {
             }
         });
     }
-
+	
 	public void capture(Encounter encounter) {
         sessionFactory.getCurrentSession().flush();
         sessionFactory.getCurrentSession().doWork(connection -> {
@@ -174,7 +174,7 @@ public class EncounterSyncDao {
             }
         });
     }
-
+	
 	public java.util.List<Integer> findPublishedEncountersAfter(int after, int limit) {
         sessionFactory.getCurrentSession().flush();
         localNodeDao.getLocalServerId();
@@ -189,11 +189,11 @@ public class EncounterSyncDao {
             return ids;
         });
     }
-
+	
 	public void captureAdditions(Encounter encounter) {
 		captureAdditions(encounter, false);
 	}
-
+	
 	/** Only previously unpublished observations are added. Existing values are never overwritten. */
 	public boolean captureAdditions(Encounter encounter, boolean strict) {
         sessionFactory.getCurrentSession().flush();
@@ -271,7 +271,7 @@ public class EncounterSyncDao {
             return true;
         });
     }
-
+	
 	private void collectObservationIds(com.fasterxml.jackson.databind.JsonNode items, java.util.Set<String> ids) {
 		for (com.fasterxml.jackson.databind.JsonNode item : items) {
 			ids.add(item.path("uuid").asText());

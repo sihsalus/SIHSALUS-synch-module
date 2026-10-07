@@ -13,36 +13,39 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 /** El contenido clÃ­nico, el evento original y el recibo se confirman en la misma transacciÃ³n. */
 @Repository("synchronizationmr.EncounterReceiveDao")
 public class EncounterReceiveDao {
-
+	
+	@javax.annotation.Resource(name = "synchronizationmr.VisitUpdateDao")
+	private VisitUpdateDao visits;
+	
 	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessionFactory;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.LocalNodeDao")
 	private LocalNodeDao localNodeDao;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.OrderLinkDao")
 	private OrderLinkDao orderLinks;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.EncounterUpdateDao")
 	private EncounterUpdateDao updates;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.ObservationCorrectionDao")
 	private ObservationCorrectionDao corrections;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.ObservationVoidDao")
 	private ObservationVoidDao voids;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.EncounterVoidDao")
 	private EncounterVoidDao annulments;
-
+	
 	public long confirmed(String origin) {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> confirmed(connection, origin));
     }
-
+	
 	private long confirmed(Connection connection, String origin) throws SQLException {
 		return confirmed(connection, origin, false);
 	}
-
+	
 	private long confirmed(Connection connection, String origin, boolean lock) throws SQLException {
         try (PreparedStatement query = connection.prepareStatement(
                 "select confirmed_sequence from synchronizationmr_encounter_receipt where origin_server_id = ?" + (lock ? " for update" : ""))) {
@@ -50,7 +53,7 @@ public class EncounterReceiveDao {
             try (ResultSet rows = query.executeQuery()) { return rows.next() ? rows.getLong(1) : 0; }
         }
     }
-
+	
 	public long receive(EncounterIncomingEvent event) {
         if (!TransactionSynchronizationManager.isActualTransactionActive()
                 || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) { throw new APIException("La recepciÃ³n requiere transacciÃ³n de escritura"); }
@@ -69,7 +72,7 @@ public class EncounterReceiveDao {
                 throw new APIException("El evento no coincide con la secuencia ya confirmada");
             }
             if (confirmed == Long.MAX_VALUE || event.sequence != confirmed + 1) { throw new APIException("Falta una secuencia anterior de encuentros"); }
-            for (String table : new String[]{"synchronizationmr_encounter_event", "synchronizationmr_encounter_addition", "synchronizationmr_encounter_update", "synchronizationmr_encounter_correction", "synchronizationmr_encounter_void", "synchronizationmr_encounter_annulment"}) {
+            for (String table : new String[]{"synchronizationmr_encounter_event", "synchronizationmr_encounter_addition", "synchronizationmr_encounter_update", "synchronizationmr_encounter_correction", "synchronizationmr_encounter_void", "synchronizationmr_encounter_annulment", "synchronizationmr_visit_update"}) {
             try (PreparedStatement query = connection.prepareStatement(
                     "select event_uuid from " + table + " where event_uuid = ? for update")) {
                 query.setString(1, event.eventUuid);
@@ -78,7 +81,11 @@ public class EncounterReceiveDao {
                 }
             }
             }
-            if (event.voidEncounter) {
+            if (event.visitVoid) {
+                Context.getRegisteredComponent("synchronizationmr.VisitVoidDao",VisitVoidDao.class).receive(connection,new VisitVoidEvent(event.json));
+            } else if (event.visitUpdate) {
+                visits.receive(connection,new VisitUpdateEvent(event.json));
+            } else if (event.voidEncounter) {
                 annulments.receive(connection,new EncounterVoidEvent(event.json));
             } else if (event.voidObservations) {
                 voids.receive(connection,new ObservationVoidEvent(event.json));
@@ -109,6 +116,7 @@ public class EncounterReceiveDao {
             }
             // Una edicion tardia se conserva, pero no reactiva un encuentro anulado.
             Encounter affected = Context.getEncounterService().getEncounterByUuid(event.encounterUuid);
+            Context.getRegisteredComponent("synchronizationmr.VisitVoidDao",VisitVoidDao.class).preserve(affected);
             annulments.preserveAnnulment(connection,affected);
             EncounterVisitSupplementDao.record(connection,event);
             if (confirmed == 0) {
@@ -123,7 +131,7 @@ public class EncounterReceiveDao {
             return event.sequence;
         });
     }
-
+	
 	private void receiveAddition(Connection connection, EncounterIncomingEvent event) throws SQLException {
         Encounter encounter = Context.getEncounterService().getEncounterByUuid(event.encounterUuid);
         if (encounter == null) throw new EncounterDependencyException("ENCOUNTER_NOT_AVAILABLE: falta el encuentro de los resultados");

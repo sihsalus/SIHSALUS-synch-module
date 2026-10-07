@@ -10,23 +10,23 @@ import org.openmrs.api.APIException;
 
 /** UPDATE v5 de metadatos. No transporta cambios de visita, Ã³rdenes ni valores de observaciones. */
 public final class EncounterUpdateEvent {
-
+	
 	public static final List<String> GROUPS = Collections.unmodifiableList(Arrays.asList("encounterDatetime",
 	    "encounterTypeUuid", "locationUuid", "formUuid", "encounterProviders"));
-
+	
 	private static final ObjectMapper MAPPER = new ObjectMapper().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
 	        .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
-
+	
 	public final String json, origin, eventUuid, encounterUuid, patientUuid;
-
+	
 	public final long sequence;
-
+	
 	public final Instant occurredAt;
-
+	
 	public final Set<String> changedGroups;
-
+	
 	private final ObjectNode root;
-
+	
 	public EncounterUpdateEvent(String json) {
         try {
             if (json == null || json.length() > 1000000) throw EventJson.invalid();
@@ -69,7 +69,7 @@ public final class EncounterUpdateEvent {
         } catch (APIException e) { throw e; }
         catch (Exception e) { throw EventJson.invalid(); }
     }
-
+	
 	/** Reutiliza las comprobaciones de catÃ¡logos de CREATE, sin resolver visitas ni observaciones. */
 	public Encounter toMetadata() {
 		ObjectNode copy = root.deepCopy();
@@ -85,15 +85,15 @@ public final class EncounterUpdateEvent {
 		data.putArray("unsupportedContent");
 		return new EncounterIncomingEvent(copy.toString()).toEncounter();
 	}
-
+	
 	public ObjectNode version() {
 		return PatientUpdateEvent.version(root);
 	}
-
+	
 	public static ObjectNode capture(Encounter encounter) {
 		return project(EncounterSnapshot.capture(encounter).toJson());
 	}
-
+	
 	/** TambiÃ©n normaliza CREATE histÃ³ricos y la precisiÃ³n de DATETIME utilizada por OpenMRS. */
 	public static ObjectNode project(JsonNode payload) {
         ObjectNode data = MAPPER.createObjectNode();
@@ -112,13 +112,13 @@ public final class EncounterUpdateEvent {
         for (JsonNode item : providers.values()) sorted.add(item);
         return data;
     }
-
+	
 	public static Set<String> changes(ObjectNode before, ObjectNode after) {
         Set<String> result = new LinkedHashSet<>();
         for (String group : GROUPS) if (!Objects.equals(before.get(group), after.get(group))) result.add(group);
         return result;
     }
-
+	
 	public static String create(ObjectNode payload, Set<String> groups, String origin, long sequence, Instant time) {
 		ObjectNode event = MAPPER.createObjectNode();
 		event.put("schemaVersion", 5);

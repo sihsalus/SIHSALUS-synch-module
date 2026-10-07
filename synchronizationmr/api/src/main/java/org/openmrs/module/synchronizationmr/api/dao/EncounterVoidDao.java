@@ -13,13 +13,13 @@ import org.springframework.stereotype.Repository;
 /** Conserva el evento de anulacion en la misma transaccion que el cambio clinico. */
 @Repository("synchronizationmr.EncounterVoidDao")
 public class EncounterVoidDao {
-
+	
 	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessions;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.LocalNodeDao")
 	private LocalNodeDao node;
-
+	
 	public void capture(Encounter encounter) {
         if (encounter == null || encounter.getId() == null || !encounter.getVoided()) return;
         String origin = node.getLocalServerId();
@@ -46,7 +46,7 @@ public class EncounterVoidDao {
             }
         });
     }
-
+	
 	public void receive(Connection c, EncounterVoidEvent event) throws SQLException {
         if (!Context.hasPrivilege("Delete Encounters")) throw new APIAuthenticationException("La anulacion requiere Delete Encounters");
         Encounter encounter=Context.getEncounterService().getEncounterByUuid(event.encounterUuid);
@@ -62,7 +62,7 @@ public class EncounterVoidDao {
         }
         insert(c,encounter,event);
     }
-
+	
 	/** La anulacion prevalece; los valores recibidos despues permanecen como historial. */
 	public void preserveAnnulment(Connection c,Encounter encounter) throws SQLException {
         if(encounter==null || !encounter.getVoided()) return;
@@ -80,7 +80,7 @@ public class EncounterVoidDao {
         }
         sessions.getCurrentSession().refresh(encounter);
     }
-
+	
 	private void insert(Connection c, Encounter encounter, EncounterVoidEvent event) throws SQLException {
         try (PreparedStatement q=c.prepareStatement("insert into synchronizationmr_encounter_annulment (event_uuid,encounter_id,encounter_uuid,origin_server_id,entity_sequence,date_created,payload_json) values (?,?,?,?,?,?,?)")) {
             q.setString(1,event.eventUuid);q.setInt(2,encounter.getId());q.setString(3,event.encounterUuid);
