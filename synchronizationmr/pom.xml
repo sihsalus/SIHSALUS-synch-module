@@ -13,7 +13,7 @@
 	<version>1.0.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>SynchronizationMR</name>
-	<description>no description</description>
+	<description>Sincroniza pacientes, encuentros, observaciones y órdenes entre el maestro y las postas, incluso con conectividad intermitente.</description>
 
 	<url>https://wiki.openmrs.org/x/FQ4z</url>
 

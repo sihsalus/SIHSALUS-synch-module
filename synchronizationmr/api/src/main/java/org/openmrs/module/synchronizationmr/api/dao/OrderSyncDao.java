@@ -14,6 +14,10 @@ import org.springframework.stereotype.Repository;
 @Repository("synchronizationmr.OrderSyncDao")
 public class OrderSyncDao {
 	
+	// Altas y cambios comparten la secuencia ORDER, sin reescribir el evento original.
+	public static final String EVENTS = "(select event_uuid,order_uuid,origin_server_id,entity_sequence,payload_json from synchronizationmr_order_event"
+	        + " union all select event_uuid,order_uuid,origin_server_id,entity_sequence,payload_json from synchronizationmr_order_update)";
+
 	private static final String PENDING = " from orders c left join synchronizationmr_order_event e on e.order_id = c.order_id"
 	        + " where c.voided = false and (e.event_uuid is null or e.payload_json is null or trim(e.payload_json) = '')";
 	
@@ -58,7 +62,7 @@ public class OrderSyncDao {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             java.util.List<String> origins = new java.util.ArrayList<>();
             try (PreparedStatement query = connection.prepareStatement(
-                    "select distinct origin_server_id from synchronizationmr_order_event where origin_server_id > ? order by origin_server_id")) {
+                    "select distinct origin_server_id from " + EVENTS + " e where origin_server_id > ? order by origin_server_id")) {
                 query.setString(1, afterOrigin); query.setMaxRows(limit);
                 try (ResultSet rows = query.executeQuery()) {
                     while (rows.next()) { origins.add(rows.getString(1)); }
@@ -71,7 +75,7 @@ public class OrderSyncDao {
 	public long findHighestOrderSequence(String origin) {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> {
             try (PreparedStatement query = connection.prepareStatement(
-                    "select coalesce(max(entity_sequence), 0) from synchronizationmr_order_event where origin_server_id = ?")) {
+                    "select coalesce(max(entity_sequence), 0) from " + EVENTS + " e where origin_server_id = ?")) {
                 query.setString(1, origin);
                 try (ResultSet rows = query.executeQuery()) {
                     rows.next();
@@ -88,7 +92,7 @@ public class OrderSyncDao {
             // No filtramos por estado global: otro destino podría necesitar un evento ya entregado.
             try (PreparedStatement query = connection.prepareStatement(
                     "select i.entity_sequence, i.order_uuid, i.event_uuid, i.payload_json"
-                    + " from synchronizationmr_order_event i"
+                    + " from " + EVENTS + " i"
                     + " where i.origin_server_id = ? and i.entity_sequence > ?"
                     + " order by i.entity_sequence asc")) {
                 query.setString(1, origin);

@@ -76,6 +76,21 @@ public class OrderSyncServiceImpl extends BaseOpenmrsService implements OrderSyn
 	
 	private OrderSyncDao dao;
 	
+	@javax.annotation.Resource(name = "synchronizationmr.OrderFulfillmentDao")
+	private org.openmrs.module.synchronizationmr.api.dao.OrderFulfillmentDao fulfillment;
+
+	@Override
+	public String beforeOrderChange(Order order) {
+		requireTransaction();
+		return fulfillment.before(order);
+	}
+
+	@Override
+	public void recordOrderFulfillment(Order order, String before) {
+		requireTransaction();
+		fulfillment.capture(order, before);
+	}
+
 	public void setDao(OrderSyncDao dao) {
 		this.dao = dao;
 	}

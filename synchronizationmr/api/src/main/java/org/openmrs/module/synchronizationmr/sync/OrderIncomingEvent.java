@@ -22,6 +22,8 @@ public final class OrderIncomingEvent {
 	
 	public final long sequence;
 	
+	public final boolean fulfillmentUpdate;
+
 	public final java.util.Date occurredAt;
 	
 	public OrderIncomingEvent(String json) {
@@ -35,15 +37,27 @@ public final class OrderIncomingEvent {
 		}
 		fields(root, "schemaVersion,eventUuid,originServerId,entityType,entitySequence,operation,occurredAt,payload");
 		JsonNode v = root.get("schemaVersion"), n = root.get("entitySequence");
-		if (v == null || !v.isIntegralNumber() || !v.canConvertToInt() || v.intValue() != 1
-		        || !"ORDER".equals(text(root, "entityType", true)) || !"CREATE".equals(text(root, "operation", true))
-		        || n == null || !n.isIntegralNumber() || !n.canConvertToLong() || n.longValue() < 1)
+		if (v == null || !v.isIntegralNumber() || !v.canConvertToInt() || (v.intValue() != 1 && v.intValue() != 2)
+		        || !"ORDER".equals(text(root, "entityType", true)) || n == null || !n.isIntegralNumber()
+		        || !n.canConvertToLong() || n.longValue() < 1)
+			throw invalid();
+		fulfillmentUpdate = v.intValue() == 2;
+		if (!(fulfillmentUpdate ? "UPDATE_FULFILLMENT" : "CREATE").equals(text(root, "operation", true)))
 			throw invalid();
 		sequence = n.longValue();
 		origin = ServerId.requireValid(text(root, "originServerId", true));
 		eventUuid = uuid(text(root, "eventUuid", true));
 		occurredAt = instant(text(root, "occurredAt", true));
 		JsonNode data = root.get("payload");
+		if (fulfillmentUpdate) {
+			fields(data, "orderUuid,patientUuid,encounterUuid,fulfillerStatus,fulfillerComment,accessionNumber");
+			orderUuid = reference(text(data, "orderUuid", true));
+			patientUuid = reference(text(data, "patientUuid", true));
+			reference(text(data, "encounterUuid", true));
+			OrderFulfillment.validate(data);
+			this.json = json;
+			return;
+		}
 		String kind = text(data, "kind", true);
 		String specific = "DRUG".equals(kind) ? DRUG + "," + DRUG_REFS : "TEST".equals(kind) ? TEST + "," + TEST_REFS : "";
 		if (!"DRUG".equals(kind) && !"TEST".equals(kind) && !"ORDER".equals(kind))
@@ -66,6 +80,15 @@ public final class OrderIncomingEvent {
 	}
 	
 	public Order toOrder() {
+		return toOrder(false);
+	}
+
+	public Order toOrder(boolean allowSupersededPrevious) {
+		return toOrder(allowSupersededPrevious, false);
+	}
+
+	public Order toOrder(boolean allowSupersededPrevious, boolean allowAnnulledEncounter) {
+        if (fulfillmentUpdate) throw invalid();
         JsonNode d=root.get("payload"); String kind=text(d,"kind",true);
         Order o="DRUG".equals(kind) ? new DrugOrder() : "TEST".equals(kind) ? new TestOrder() : new Order();
         o.setUuid(orderUuid); read(d,o,COMMON);
@@ -73,7 +96,7 @@ public final class OrderIncomingEvent {
         if (Boolean.TRUE.equals(patient.getVoided())) throw dependency("patientUuid");
         o.setPatient(patient);
         Encounter encounter=resolve(d,"encounterUuid",true,Context.getEncounterService()::getEncounterByUuid);
-        if (Boolean.TRUE.equals(encounter.getVoided()) || !patientUuid.equals(encounter.getPatient().getUuid())) throw invalid();
+        if ((Boolean.TRUE.equals(encounter.getVoided()) && !allowAnnulledEncounter) || !patientUuid.equals(encounter.getPatient().getUuid())) throw invalid();
         o.setEncounter(encounter);
         o.setOrderType(resolve(d,"orderTypeUuid",true,Context.getOrderService()::getOrderTypeByUuid));
         o.setConcept(resolve(d,"conceptUuid",true,Context.getConceptService()::getConceptByUuid));
@@ -81,7 +104,7 @@ public final class OrderIncomingEvent {
         o.setOrderReason(resolve(d,"orderReasonUuid",false,Context.getConceptService()::getConceptByUuid));
         o.setCareSetting(resolve(d,"careSettingUuid",true,Context.getOrderService()::getCareSettingByUuid));
         Order previous=resolve(d,"previousOrderUuid",false,Context.getOrderService()::getOrderByUuid);
-        if (previous!=null && (!patientUuid.equals(previous.getPatient().getUuid()) || Boolean.TRUE.equals(previous.getVoided()))) throw invalid();
+        if (previous!=null && (!patientUuid.equals(previous.getPatient().getUuid()) || (Boolean.TRUE.equals(previous.getVoided()) && !allowSupersededPrevious))) throw invalid();
         o.setPreviousOrder(previous);
         if (o.getAction()!=Order.Action.NEW && previous==null) throw dependency("previousOrderUuid");
         if (text(d,"orderGroupUuid",false)!=null) {

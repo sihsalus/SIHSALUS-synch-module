@@ -12,6 +12,7 @@ package org.openmrs.module.synchronizationmr.web;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.*;
 import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.api.APIException;
@@ -227,5 +228,23 @@ public class OrderSyncHttpServletTest {
 		request.setContent(new byte[1048577]);
 		assertEquals(413, call(request).getStatus());
 		verifyNoInteractions(receiver);
+	}
+
+	@Test
+	public void acceptsFulfillmentEnvelopeAndAuthorizesItsOrigin() throws Exception {
+		ObjectNode event = (ObjectNode) new ObjectMapper().readTree(event());
+		event.put("schemaVersion", 2).put("operation", "UPDATE_FULFILLMENT");
+		ObjectNode data = (ObjectNode) event.get("payload");
+		data.remove("kind");
+		data.put("encounterUuid", UUID.randomUUID().toString()).put("fulfillerStatus", "COMPLETED");
+		data.putNull("fulfillerComment").putNull("accessionNumber");
+		when(node.getLocalServerId()).thenReturn("maestro");
+		when(receiver.receiveOrder(event.toString())).thenReturn(1L);
+		MockHttpServletRequest request = request("POST", "receive");
+		request.setContentType("application/json");
+		request.setContent(event.toString().getBytes(StandardCharsets.UTF_8));
+		assertEquals(200, call(request).getStatus());
+		verify(peer).authorizeOrderReceive(origin);
+		verify(receiver).receiveOrder(event.toString());
 	}
 }

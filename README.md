@@ -6,7 +6,7 @@ SynchronizationMR es un módulo de OpenMRS desarrollado para el proyecto **SIH.S
 
 El componente se distribuye como un archivo **OMOD** y se ejecuta dentro de OpenMRS. Trabaja con sus entidades nativas —pacientes, encuentros, observaciones y órdenes— y utiliza eventos persistentes para conservar los datos pendientes de transmisión.
 
-> **Estado:** en desarrollo. La integración se valida en un laboratorio con tres instancias de OpenMRS, bases independientes y datos ficticios. La instalación en establecimientos reales corresponde a una etapa posterior del proyecto.
+> **Estado al 08/10/2026:** flujos clínicos implementados y probados dentro de los contratos admitidos; continúan la auditoría y las validaciones finales. La integración se valida en un laboratorio con tres instancias de OpenMRS, bases independientes y datos ficticios. La instalación en establecimientos reales corresponde a una etapa posterior del proyecto.
 
 ## Propósito
 
@@ -37,13 +37,18 @@ Cada instalación conserva su base de datos. El intercambio ocurre mediante los 
 | **Anulación de visitas** | `VOID_VISIT` para visitas publicadas mediante encuentros; cascada nativa sobre encuentros, observaciones y órdenes ya presentes, conservando historial. Verificado automáticamente y comprobado en tres nodos con encuentro y observaciones, con conexión y tras restablecer HTTPS. También comprobada la cascada sobre una orden de hemograma ya sincronizada y sus resultados, conservando valores y relaciones como historial anulado. También se verificó en los tres nodos que un encuentro pendiente de B, recibido por el maestro después de anular la visita, queda anulado con sus observaciones sin reactivar la visita. |
 | **Datos y atributos de visita** | Actualización de tipo, ubicación, indicación y atributos de texto o conceptos con catálogos compatibles. Conserva el historial de atributos sustituidos y aplica la versión más reciente de la visita. Verificado automáticamente y en tres nodos para tipo, ubicación, incorporación, modificación y retirada de póliza y puntualidad por concepto; conflicto de puntualidad entre A y B sin conexión resuelto en tres nodos con la versión más reciente. |
 | **Modificaciones de encuentros** | UPDATE de fecha, tipo, ubicación, formulario y profesionales asociados, con resolución de conflictos por campo. Validado automáticamente; pendiente de ensayo multinodo. |
-| **Órdenes** | Creación de órdenes de examen y medicamento admitidas, con referencias a paciente, encuentro y metadatos clínicos. |
-| **Resultados y notas** | Incorporación mediante `ADD_OBS`, corrección de versiones mediante `CORRECT_OBS` y anulación de observaciones publicadas mediante `VOID_OBS`, conservando valores anteriores. Falta completar la validación multinodo de ediciones. |
+| **Órdenes** | Creación de órdenes de examen y medicamento, revisiones, renovaciones y suspensiones mediante nuevas órdenes vinculadas. Comprobadas en laboratorio revisiones y suspensiones tras cortes HTTPS. Actualización del estado de cumplimiento, comentario y referencia mediante `UPDATE_FULFILLMENT`; comprobada en tres nodos al registrar resultados de hemograma con HTTPS disponible y de hemoglobina durante un corte, con entrega posterior al reconectar. |
+| **Resultados y notas** | Incorporación mediante `ADD_OBS`, corrección de versiones mediante `CORRECT_OBS` y anulación de observaciones publicadas mediante `VOID_OBS`, conservando valores anteriores. Ediciones de Vitals y SOAP, conflictos entre cambios desconectados y corrección frente a anulación comprobados en tres nodos. |
 | **Anulación de encuentros** | `VOID_ENCOUNTER` para encuentros publicados: anulación lógica con historial, cascada nativa y reintentos sin duplicados. Validado automáticamente y comprobado con notas SOAP entre tres nodos, con conexión disponible y entrega tras restablecer HTTPS. |
-| **Datos existentes** | Preparación explícita por lotes de pacientes, encuentros, órdenes y resultados anteriores que aún no tienen eventos publicados. |
+| **Datos existentes** | Preparación explícita por lotes de pacientes, encuentros, órdenes y resultados anteriores que aún no tienen eventos publicados. Comprobados pacientes y encuentros modificados antes de activar el módulo, y una orden creada y revisada con el módulo inactivo: se conserva su cadena y queda vigente la revisión. |
 | **Interrupciones** | Persistencia local de eventos, intercambio periódico y reintentos al recuperar la comunicación. |
+| **Consulta de sincronización (RF-14)** | Consulta entre nodos por tipo de entidad, origen y secuencia para identificar y recuperar los registros pendientes. |
 | **Integridad** | Identidad de origen, secuencias por flujo, confirmaciones consecutivas y recepción idempotente. |
 | **Comunicación** | JSON versionado sobre HTTPS, autenticación y comprobación de permisos e identidad del nodo remoto. |
+
+Las revisiones y suspensiones concurrentes de una orden sobre el mismo predecesor se resuelven por la marca temporal más reciente, con desempate por origen, secuencia y UUID del evento. Las alternativas se conservan anuladas como historial. Se comprobaron entre nodos revisión frente a revisión y revisión frente a suspensión durante un corte HTTPS. Las renovaciones independientes no se concilian mediante esta regla.
+
+Las órdenes pendientes recibidas después de una anulación publicada de su encuentro o visita se conservan como historial anulado, sin reactivar el contexto clínico. Este caso también se comprobó en las tres instancias.
 
 Estas capacidades cubren los contratos y escenarios admitidos por esta versión. No equivalen a la sincronización de todas las entidades o de todos los cambios posibles en OpenMRS.
 
@@ -141,13 +146,20 @@ Se utilizan dos niveles complementarios:
 - **Pruebas automatizadas:** casos aislados con dobles, integración con servicios OpenMRS y H2, migraciones y pruebas web con solicitudes simuladas. Comprueban captura, transacciones, contratos, dependencias, autorizaciones y reintentos.
 - **Laboratorio con tres instancias:** un maestro y dos postas, bases MariaDB independientes y canal HTTPS con Nginx. Se han comprobado creación y distribución de datos, preparación de registros existentes y recuperación después de interrupciones controladas.
 
-La ejecución documentada del **27/09/2026** completó **226 casos: 186 de API y 40 de OMOD**, sin fallos, errores ni omisiones. Este resultado corresponde a esa versión y batería; no representa cobertura del 100 % del código ni cumplimiento integral de todos los requisitos.
+La última ejecución completa, del **08/10/2026**, terminó con **491 pruebas: 441 de API y 50 de OMOD**, sin fallos, errores ni omisiones. Incluye captura y recepción, conflictos, permisos, rollback, reintentos, datos históricos y órdenes recibidas después de una anulación. El conteo corresponde al paquete validado; no representa cobertura del 100 % del código ni aceptación de todos los requisitos.
 
-El incremento de modificaciones de pacientes del **05/10/2026**, incluida la corrección de direcciones con igual contenido y UUID distintos, completó **262 casos: 221 de API y 41 de OMOD**, sin fallos, errores ni omisiones. Incluye resolución de conflictos, reintentos, permisos, rollback y migración del esquema. En laboratorio se verificaron modificaciones desde ambas postas, descarga de un cambio del maestro tras restablecer HTTPS y un conflicto entre ediciones desconectadas: prevaleció el nombre más reciente de B y se conservó el nacimiento modificado por A. Estas comprobaciones no cubren todos los campos, empates de marcas de tiempo ni relojes desajustados.
+En el laboratorio se comprobaron:
 
-El incremento de metadatos de encuentros del **06/10/2026** completó **297 casos: 255 de API y 42 de OMOD**, sin fallos, errores ni omisiones. Incluye comparación de estados, captura y recepción de UPDATE, conservación del CREATE, conflictos y recepciones concurrentes, permisos, rollback, reintentos y contrato HTTP. Su validación entre las tres instancias continúa pendiente.
+- Altas y modificaciones de pacientes; recuperación tras desconexión y conflictos entre ediciones.
+- Preparación de pacientes y encuentros existentes con cambios anteriores a la activación del módulo.
+- Registro, corrección y anulación de observaciones; conflictos de temperatura y notas SOAP, y cambios recibidos después de anular un encuentro.
+- Cierre, reapertura, metadatos y atributos de visitas; conflictos de puntualidad y anulación con sus encuentros, observaciones y órdenes.
+- Creación, revisión, renovación y suspensión de órdenes de medicamento; revisión y suspensión de órdenes de examen con desconexión.
+- Resultados de hemograma y hemoglobina, junto con el estado de cumplimiento de la orden, con conexión y tras reconectar.
+- Conflictos entre revisiones y suspensiones, y recepción de una orden pendiente cuya visita se había anulado.
+- Preparación de una orden creada y revisada con el módulo inactivo: las tres bases conservan la original como historial y la revisión como vigente.
 
-El incremento posterior del mismo día para correcciones de observaciones completó **315 casos: 272 de API y 43 de OMOD**, sin fallos, errores ni omisiones. Los 18 casos añadidos comprueban captura y recepción de versiones, resultados numéricos y notas, grupos, conflictos en distinto orden de llegada, permisos, rollback, vínculos pendientes con órdenes e idempotencia. Su prueba entre instancias y la migración en MariaDB siguen pendientes.
+Las modificaciones de fecha, tipo, ubicación, formulario y profesionales del encuentro tienen cobertura automatizada; no se presentan como ensayos multinodo. Las pruebas de laboratorio no abarcan todos los formularios, combinaciones de conflictos ni desfases de reloj.
 
 Para ejecutar las pruebas desde `synchronizationmr`:
 
@@ -159,12 +171,15 @@ Los reportes se generan en `api/target/surefire-reports` y `omod/target/surefire
 
 ## Alcance y evolución
 
-El desarrollo actual incluye creación, preparación de datos existentes, adición y corrección de resultados/notas, modificaciones de pacientes y modificaciones de metadatos de encuentros. Para UPDATE de pacientes se requiere actualizar los nodos y añadir los permisos `Edit Patients` y `Edit People` a las cuentas técnicas receptoras. Los cambios del paciente se comparan por grupos (datos demográficos, nombres, direcciones, identificadores y atributos), con desempate determinista y conservación de eventos anteriores. Entre los trabajos pendientes se encuentran:
+Los flujos implementados abarcan pacientes, encuentros, observaciones, visitas asociadas y órdenes dentro de los contratos descritos. La consulta interna por tipo de entidad, origen y secuencia cubre RF-14. La siguiente etapa de trabajo es **RF-15: auditoría por transacción**; los eventos y recibos existentes proporcionan trazabilidad básica, pero falta completar el registro por destino, fecha, entidad y resultado de la operación.
 
-- Validación multinodo de los metadatos de encuentros y las correcciones de observaciones; modificaciones de órdenes, validación multinodo de metadatos y reapertura de visitas, y otros cambios posteriores de estado.
-- Auditoría completa por destino y resultado de operación, y consulta exacta por identidad de sincronización.
+También quedan pendientes:
+
 - Evaluación de desempeño y volumen bajo criterios definidos.
-- Ampliación de contratos para contenidos clínicos que todavía no están admitidos.
+- Revisión final de seguridad, permisos y configuración de comunicación.
+- Validación de instalación y actualización del OMOD desde Manage Modules y de su configuración operativa.
+
+Los diagnósticos estructurados, Conditions, imágenes y otros contenidos no admitidos por los contratos actuales quedan fuera del alcance implementado. La anulación es lógica y conserva historial; no se ofrece borrado físico ni restauración de registros anulados. Las visitas se publican mediante sus encuentros, no como un flujo independiente de visitas vacías.
 
 La conciliación automática de pacientes creados de forma independiente y la distribución de profesionales o catálogos no están implementadas. Estos aspectos deben distinguirse de la recepción de registros que ya comparten una identidad compatible.
 
@@ -179,23 +194,3 @@ La integración desarrollada en el marco de la tesis se valida en **laboratorio*
 ## Licencia
 
 Consultar [LICENSE](LICENSE) y los avisos de licencia incluidos en los archivos fuente.
-
-
-El incremento de anulación de encuentros del **06/10/2026** completó **353 pruebas: 307 API y 46 OMOD**, sin fallos, errores ni omisiones. La cuenta receptora necesita `Delete Encounters` y los permisos de la cascada nativa (`Delete Observations` y `Delete Orders`), además de los de lectura, edición y recepción correspondientes. Los encuentros nunca publicados se anulan solo localmente. No se incluye restauración. La anulación frente a cambios pendientes de encuentros y observaciones tiene el tratamiento descrito a continuación. Las órdenes que lleguen después de anular su encuentro siguen pendientes.
-
-El incremento de conflictos del **06/10/2026** completó **372 pruebas: 326 API y 46 OMOD**, sin fallos, errores ni omisiones. Reconoce reemplazos inequívocos de una observación publicada dentro del mismo guardado de encuentro y los incorpora a `CORRECT_OBS`, conservando el historial y la regla de último cambio gana. Exige coincidencia del contexto de medición y una única pareja anterior/nueva; no enlaza adiciones independientes, casos ambiguos ni operaciones separadas por mera proximidad temporal. No modifica los formularios ni reclasifica eventos históricos.
-
-Si llega una edición después de la anulación de su encuentro, se conserva como historial sin reactivar el encuentro ni bloquear los eventos válidos siguientes. Las pruebas cubren ambos órdenes de entrega para adiciones, correcciones y metadatos. **Validación multinodo:** se comprobó el conflicto de una temperatura de Vitals editada sin conexión en los tres nodos: tras reconectar quedó un único valor activo, correspondiente al último cambio, y las alternativas se conservaron anuladas. También se comprobó el conflicto del campo Subjective Findings de SOAP Note Template entre A y B: prevaleció el texto más reciente de B en los tres nodos, aunque el maestro recibió después el cambio anterior de A. También se validó en laboratorio la anulación en A frente a una corrección de texto posterior en B durante la desconexión: al reconectar, los tres nodos conservaron el encuentro anulado y el texto tardío como historial, con los eventos confirmados. Estas comprobaciones no acreditan todos los formularios ni la llegada tardía de órdenes.
-
-
-El incremento de fechas y cierre de visitas del **07/10/2026** completó **397 pruebas: 350 API y 47 OMOD**, sin fallos, errores ni omisiones. Requiere `Edit Visits` y los permisos de lectura utilizados por el validador, incluido `Get Visit Attribute Types`, además de los permisos existentes de recepción. Deben actualizarse todos los nodos para admitir `UPDATE_VISIT` (esquema 11). En laboratorio se comprobó cierre conectado, cierre desconectado y recepción de un encuentro anterior al cierre sin reabrir la visita. En el entorno con Queue, el validador nativo requiere además `Get Queue Entries`.
-
-Un encuentro retrasado con una instantánea anterior no reabre una visita cuyo intervalo ya está versionado. Se conserva la validación nativa de fechas: un encuentro fuera del intervalo cerrado, o un cierre que excluya encuentros existentes, se rechaza sin confirmar y requiere conciliación antes de que avance ese origen. No se implementan aquí visitas independientes sin encuentros, cambios posteriores de otros campos de visita ni restauración de visitas. La anulación se describe en el incremento siguiente.
-
-
-El incremento de anulación de visitas del **07/10/2026** completó **416 pruebas: 368 API y 48 OMOD**, sin fallos, errores ni omisiones. `VOID_VISIT` (esquema 12) comparte el flujo de encuentros y requiere actualizar todos los nodos, `Delete Visits` y los permisos nativos de la cascada. Anula lógicamente los encuentros de la visita, sus observaciones y las órdenes ya presentes; no elimina el historial. Un encuentro pendiente compatible recibido después queda conservado como anulado, sin restaurar la visita. No incluye restauración ni borrado físico. Las órdenes que lleguen después de la anulación siguen pendientes del flujo de órdenes. La captura puede incluir eventos de anulación de encuentros de la cascada; no se presupone un único evento total. Las anulaciones independientes concurrentes conservan sus eventos, sin conciliación del motivo/fecha ya aplicado. **Validación multinodo:** comprobada la anulación conectada de una visita con su encuentro y diez observaciones en los tres nodos, con eventos y valores históricos coincidentes. También comprobada la anulación guardada durante un corte HTTPS y entregada automáticamente al reconectar. También comprobada la cascada sobre una orden de hemograma ya sincronizada y sus resultados, conservando valores y relaciones como historial anulado.
-
-
-El incremento de metadatos de visita del **07/10/2026** completó **439 pruebas: 390 API y 49 OMOD**, sin fallos, errores ni omisiones. Amplía `UPDATE_VISIT` con el esquema 13 y mantiene la lectura del esquema 11. Incluye tipo, ubicación, indicación y atributos de texto o conceptos; `CREATE` con atributos de conceptos utiliza el esquema 14. Es necesario actualizar todos los nodos. La validación nativa de conceptos requiere también `Get Concept Attribute Types`, además de los permisos existentes.
-
-La versión más reciente de la visita determina la instantánea completa de sus datos; no se combinan automáticamente campos de instantáneas concurrentes. Los atributos sustituidos se conservan anulados y un encuentro tardío no revierte metadatos versionados. Se mantienen las validaciones nativas, la anulación y la compatibilidad con eventos históricos. No incorpora facturación, catálogos ni restauración de visitas anuladas. **Validación manual multinodo:** comprobados tipo, ubicación, reapertura, incorporación, modificación y retirada de póliza de texto, e incorporación de puntualidad por concepto. También se comprobó un conflicto de puntualidad entre A y B con HTTPS detenido: tras reconectar, los tres nodos conservaron la versión más reciente como único valor activo y ambos eventos. No representa validación de todas las combinaciones de conflictos.

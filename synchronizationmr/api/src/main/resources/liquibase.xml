@@ -370,5 +370,33 @@
     <changeSet id="synchronizationmr-20261007-visit-updates-collation" author="sihsalus" dbms="mysql,mariadb">
         <sql>ALTER TABLE synchronizationmr_visit_update MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
     </changeSet>
+    <changeSet id="synchronizationmr-20261008-order-fulfillment" author="sihsalus">
+        <createTable tableName="synchronizationmr_order_update">
+            <column name="event_uuid" type="varchar(38)"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="order_id" type="int"><constraints nullable="false" /></column>
+            <column name="order_uuid" type="varchar(38)"><constraints nullable="false" /></column>
+            <column name="origin_server_id" type="varchar(100)"><constraints nullable="false" /></column>
+            <column name="entity_sequence" type="bigint"><constraints nullable="false" /></column>
+            <column name="date_created" type="datetime"><constraints nullable="false" /></column>
+            <column name="payload_json" type="clob"><constraints nullable="false" /></column>
+        </createTable>
+        <addUniqueConstraint tableName="synchronizationmr_order_update" columnNames="origin_server_id,entity_sequence" constraintName="syncmr_order_update_seq_uq" />
+        <addForeignKeyConstraint baseTableName="synchronizationmr_order_update" baseColumnNames="order_id" referencedTableName="orders" referencedColumnNames="order_id" constraintName="syncmr_order_update_order_fk" />
+        <createTable tableName="synchronizationmr_order_state">
+            <column name="order_id" type="int"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="version_json" type="clob"><constraints nullable="false" /></column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="synchronizationmr_order_state" baseColumnNames="order_id" referencedTableName="orders" referencedColumnNames="order_id" constraintName="syncmr_order_state_order_fk" />
+    </changeSet>
+    <changeSet id="synchronizationmr-20261008-order-fulfillment-collation" author="sihsalus" dbms="mysql,mariadb">
+        <sql>ALTER TABLE synchronizationmr_order_update MODIFY origin_server_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL</sql>
+    </changeSet>
+    <changeSet id="synchronizationmr-20261008-order-conflicts" author="sihsalus">
+        <createTable tableName="synchronizationmr_order_conflict">
+            <column name="order_id" type="int"><constraints primaryKey="true" nullable="false" /></column>
+            <column name="winner_uuid" type="varchar(38)"><constraints nullable="false" /></column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="synchronizationmr_order_conflict" baseColumnNames="order_id" referencedTableName="orders" referencedColumnNames="order_id" constraintName="syncmr_order_conflict_fk" />
+    </changeSet>
 </databaseChangeLog>
  

@@ -21,6 +21,12 @@ public class OrderLinkDao {
 	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessionFactory;
 	
+	@javax.annotation.Resource(name = "synchronizationmr.OrderConflictDao")
+	private OrderConflictDao conflicts;
+
+	@javax.annotation.Resource(name = "synchronizationmr.OrderAnnulledEncounterDao")
+	private OrderAnnulledEncounterDao annulled;
+
 	public void record(EncounterIncomingEvent event) {
 		JsonNode payload = event.root.get("payload");
 		for (JsonNode id : payload.path("orderUuids")) {
@@ -62,7 +68,7 @@ public class OrderLinkDao {
             }return result;
         });
         for(String[] link:links) {
-            if(!link[2].equals(order.getPatient().getUuid()) || Boolean.TRUE.equals(order.getVoided())) throw new APIException("Order link patient mismatch or voided order");
+            if(!link[2].equals(order.getPatient().getUuid()) || (Boolean.TRUE.equals(order.getVoided()) && !conflicts.isSuperseded(order) && !annulled.isPublished(order.getEncounter()))) throw new APIException("Order link patient mismatch or voided order");
             if(link[3]==null) {
                 if(order.getEncounter()==null || !link[1].equals(order.getEncounter().getUuid()))throw new APIException("Order belongs to another encounter");
             } else {

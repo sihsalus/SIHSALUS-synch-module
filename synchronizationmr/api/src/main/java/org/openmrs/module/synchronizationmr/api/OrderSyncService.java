@@ -35,4 +35,10 @@ public interface OrderSyncService extends OpenmrsService {
 	
 	@Transactional(propagation = Propagation.MANDATORY)
 	void recordCreatedOrder(Order order);
+
+	@Transactional(propagation = Propagation.MANDATORY)
+	String beforeOrderChange(Order order);
+
+	@Transactional(propagation = Propagation.MANDATORY)
+	void recordOrderFulfillment(Order order, String before);
 }

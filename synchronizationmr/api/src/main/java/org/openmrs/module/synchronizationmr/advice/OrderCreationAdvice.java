@@ -19,7 +19,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** Registra la creación de órdenes; no captura ediciones, fusiones ni órdenes anteriores. */
+/** Registra nuevas órdenes y cambios de cumplimiento dentro de la transacción nativa. */
 public class OrderCreationAdvice implements MethodInterceptor {
 	
 	private OrderSyncService service;
@@ -44,7 +44,9 @@ public class OrderCreationAdvice implements MethodInterceptor {
         String method = invocation.getMethod().getName();
         boolean save = ("saveOrder".equals(method) || "saveRetrospectiveOrder".equals(method)) && invocation.getArguments().length==2;
         boolean discontinue = "discontinueOrder".equals(method) && invocation.getArguments().length==5;
-        if ((!save && !discontinue) || !(invocation.getArguments()[0] instanceof Order)) return invocation.proceed();
+        boolean fulfillment = "updateOrderFulfillerStatus".equals(method)
+            && (invocation.getArguments().length == 3 || invocation.getArguments().length == 4);
+        if ((!save && !discontinue && !fulfillment) || !(invocation.getArguments()[0] instanceof Order)) return invocation.proceed();
 
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             return capture(invocation);
@@ -76,11 +78,14 @@ public class OrderCreationAdvice implements MethodInterceptor {
 		if (org.openmrs.module.synchronizationmr.sync.IncomingOrderSave.isReceiving(order)) {
 			return invocation.proceed();
 		}
+		String before = service().beforeOrderChange(order);
 		boolean creation = "discontinueOrder".equals(invocation.getMethod().getName())
 		        || !service().orderExists(order.getOrderId());
 		Object result = invocation.proceed();
 		if (creation) {
 			service().recordCreatedOrder((Order) result);
+		} else {
+			service().recordOrderFulfillment((Order) result, before);
 		}
 		return result;
 	}

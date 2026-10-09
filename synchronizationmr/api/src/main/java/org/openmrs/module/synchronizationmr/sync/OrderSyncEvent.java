@@ -35,7 +35,7 @@ public final class OrderSyncEvent {
 	}
 	
 	public String getEntityType() {
-		return "PATIENT";
+		return "ORDER";
 	}
 	
 	public long getSequence() {

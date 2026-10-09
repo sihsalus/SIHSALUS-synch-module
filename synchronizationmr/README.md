@@ -1,9 +1,9 @@
-${moduleName}
+SynchronizationMR
 ==========================
 
 Description
 -----------
-This is a very basic module which can be used as a starting point in creating a new module.
+SynchronizationMR es un módulo de OpenMRS desarrollado para el proyecto SIH.SALUS. Sincroniza pacientes, encuentros, observaciones y órdenes entre un servidor maestro y las postas de una microrred de salud. Conserva los cambios registrados sin conexión y los transmite al restablecerse la comunicación, manteniendo la identidad de origen y el historial de las operaciones admitidas.
 
 Building from Source
 --------------------
