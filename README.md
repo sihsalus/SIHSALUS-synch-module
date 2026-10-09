@@ -6,7 +6,7 @@ SynchronizationMR es un módulo de OpenMRS desarrollado para el proyecto **SIH.S
 
 El componente se distribuye como un archivo **OMOD** y se ejecuta dentro de OpenMRS. Trabaja con sus entidades nativas —pacientes, encuentros, observaciones y órdenes— y utiliza eventos persistentes para conservar los datos pendientes de transmisión.
 
-> **Estado al 08/10/2026:** flujos clínicos implementados y probados dentro de los contratos admitidos; continúan la auditoría y las validaciones finales. La integración se valida en un laboratorio con tres instancias de OpenMRS, bases independientes y datos ficticios. La instalación en establecimientos reales corresponde a una etapa posterior del proyecto.
+> **Estado al 09/10/2026:** flujos clínicos implementados y probados dentro de los contratos admitidos; auditoría implementada con pruebas automatizadas y ensayos de pacientes, encuentros y órdenes entre tres instancias, con conexión y recuperación tras un corte HTTPS. La integración se valida en un laboratorio con tres instancias de OpenMRS, bases independientes y datos ficticios. La instalación en establecimientos reales corresponde a una etapa posterior del proyecto.
 
 ## Propósito
 
@@ -44,6 +44,7 @@ Cada instalación conserva su base de datos. El intercambio ocurre mediante los 
 | **Interrupciones** | Persistencia local de eventos, intercambio periódico y reintentos al recuperar la comunicación. |
 | **Consulta de sincronización (RF-14)** | Consulta entre nodos por tipo de entidad, origen y secuencia para identificar y recuperar los registros pendientes. |
 | **Integridad** | Identidad de origen, secuencias por flujo, confirmaciones consecutivas y recepción idempotente. |
+| **Auditoría (RF-15)** | Tabla local persistente por intento, con origen, destino, fecha, flujo de entidad y resultado. Conserva fallos y reintentos sin copiar datos clínicos ni credenciales. Validada automáticamente y mediante altas de pacientes, encuentros y órdenes y modificación de pacientes entre tres nodos, incluida recuperación tras desconexión. |
 | **Comunicación** | JSON versionado sobre HTTPS, autenticación y comprobación de permisos e identidad del nodo remoto. |
 
 Las revisiones y suspensiones concurrentes de una orden sobre el mismo predecesor se resuelven por la marca temporal más reciente, con desempate por origen, secuencia y UUID del evento. Las alternativas se conservan anuladas como historial. Se comprobaron entre nodos revisión frente a revisión y revisión frente a suspensión durante un corte HTTPS. Las renovaciones independientes no se concilian mediante esta regla.
@@ -146,7 +147,7 @@ Se utilizan dos niveles complementarios:
 - **Pruebas automatizadas:** casos aislados con dobles, integración con servicios OpenMRS y H2, migraciones y pruebas web con solicitudes simuladas. Comprueban captura, transacciones, contratos, dependencias, autorizaciones y reintentos.
 - **Laboratorio con tres instancias:** un maestro y dos postas, bases MariaDB independientes y canal HTTPS con Nginx. Se han comprobado creación y distribución de datos, preparación de registros existentes y recuperación después de interrupciones controladas.
 
-La última ejecución completa, del **08/10/2026**, terminó con **491 pruebas: 441 de API y 50 de OMOD**, sin fallos, errores ni omisiones. Incluye captura y recepción, conflictos, permisos, rollback, reintentos, datos históricos y órdenes recibidas después de una anulación. El conteo corresponde al paquete validado; no representa cobertura del 100 % del código ni aceptación de todos los requisitos.
+La última ejecución completa, del **09/10/2026**, terminó con **511 pruebas: 457 de API y 54 de OMOD**, sin fallos, errores ni omisiones. Incluye captura y recepción, conflictos, permisos, rollback, reintentos, datos históricos, órdenes recibidas después de una anulación y auditoría persistente de intercambios. El conteo corresponde al paquete validado; no representa cobertura del 100 % del código ni aceptación de todos los requisitos.
 
 En el laboratorio se comprobaron:
 
@@ -171,7 +172,7 @@ Los reportes se generan en `api/target/surefire-reports` y `omod/target/surefire
 
 ## Alcance y evolución
 
-Los flujos implementados abarcan pacientes, encuentros, observaciones, visitas asociadas y órdenes dentro de los contratos descritos. La consulta interna por tipo de entidad, origen y secuencia cubre RF-14. La siguiente etapa de trabajo es **RF-15: auditoría por transacción**; los eventos y recibos existentes proporcionan trazabilidad básica, pero falta completar el registro por destino, fecha, entidad y resultado de la operación.
+Los flujos implementados abarcan pacientes, encuentros, observaciones, visitas asociadas y órdenes dentro de los contratos descritos. La consulta interna por tipo de entidad, origen y secuencia cubre RF-14. La auditoría de **RF-15** ya registra los intentos en `synchronizationmr_audit`; su instalación, las altas de pacientes, encuentros y órdenes y la recuperación de una modificación de paciente tras desconexión están verificados en los tres nodos del laboratorio. Requiere el permiso `Record Synchronization Audit` en las cuentas técnicas. Cada reintento genera otra fila. Un envío sin confirmación queda como `UNCONFIRMED`; la entrega de una página (`SERVED`) no afirma que el receptor haya guardado sus datos. La auditoría comienza al activar esta versión, sin reconstruir operaciones pasadas, y se consulta mediante SQL.
 
 También quedan pendientes:
 

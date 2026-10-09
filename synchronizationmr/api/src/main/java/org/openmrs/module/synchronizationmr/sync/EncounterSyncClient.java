@@ -22,6 +22,25 @@ public class EncounterSyncClient {
 	
 	private final String masterServerId;
 	
+	private SyncAudit audit;
+
+	public EncounterSyncClient(LocalNodeService node, EncounterSyncService records, EncounterReceiveService receiver,
+	    PatientRemoteTransport remote, String masterServerId, SyncAudit audit) {
+		this(node, records, receiver, remote, masterServerId);
+		this.audit = java.util.Objects.requireNonNull(audit);
+	}
+
+	private SyncAudit audit() {
+		if (audit == null) {
+			audit = SyncAudit.local();
+		}
+		return audit;
+	}
+
+	private JsonNode query(String local, String query, String action) throws IOException {
+        return audit().run(local,masterServerId,"ENCOUNTER",action,null,"SUCCEEDED",() -> remote.get(query));
+    }
+
 	/**
 	 * Construye el cliente con los servicios transaccionales de OpenMRS. Las credenciales remotas
 	 * se proporcionan en memoria, sin escribirlas en propiedades globales.
@@ -52,12 +71,12 @@ public class EncounterSyncClient {
 			throw new IllegalStateException("El ciclo no debe envolver la red en una transacción de base de datos");
 		}
 		String local = ServerId.requireValid(node.getLocalServerId());
-		JsonNode identity = remote.get("resource=node");
+		JsonNode identity = query(local,"resource=node","QUERY_NODE");
 		require(
 		    masterServerId.equals(identity.path("serverId").asText()) && !masterServerId.equals(local)
 		            && "MASTER".equals(identity.path("role").asText()) && identity.path("protocolVersion").asInt() == 2,
 		    "Identidad del maestro inesperada");
-		JsonNode status = remote.get("resource=status&origin=" + local);
+		JsonNode status = query(local,"resource=status&origin=" + local,"QUERY_STATUS");
 		checkOrigin(status, local);
 		long acknowledged = sequence(status, "confirmedSequence");
 		long highest = records.getHighestEncounterSequence(local);
@@ -69,16 +88,22 @@ public class EncounterSyncClient {
 			checkInterrupted();
 			List<EncounterSyncEvent> page = records.getEncounterEventsAfter(local, acknowledged, 1);
 			require(page.size() == 1 && page.get(0).getSequence() == acknowledged + 1, "Falta un evento local consecutivo");
-			JsonNode confirmation = remote.receive(page.get(0).getPayloadJson());
-			checkOrigin(confirmation, local);
-			require(sequence(confirmation, "confirmedSequence") == acknowledged + 1, "Confirmación remota inesperada");
+			final long expected = acknowledged + 1;
+            String payload = page.get(0).getPayloadJson();
+            audit().run(local,masterServerId,"ENCOUNTER","SEND",SyncAudit.metadata(payload),
+                    "CONFIRMED",() -> {
+                JsonNode confirmation = remote.receive(payload);
+                checkOrigin(confirmation,local);
+                require(sequence(confirmation,"confirmedSequence") == expected,"Confirmación remota inesperada");
+                return confirmation;
+            });
 			acknowledged++;
 			sent++;
 		}
 		String cursor = null;
 		while (true) {
 			checkInterrupted();
-			JsonNode origins = remote.get("resource=origins&limit=100" + (cursor == null ? "" : "&afterOrigin=" + cursor))
+			JsonNode origins = query(local,"resource=origins&limit=100" + (cursor == null ? "" : "&afterOrigin=" + cursor),"QUERY_ORIGINS")
 			        .path("origins");
 			require(origins.isArray() && origins.size() <= 100, "Lista de orígenes inválida");
 			for (JsonNode entry : origins) {
@@ -99,7 +124,7 @@ public class EncounterSyncClient {
 				// Un origen muy activo no impide atender a los demás en este ciclo.
 				for (int count = 0; count < 100; count++) {
 					checkInterrupted();
-					JsonNode page = remote.get("resource=events&origin=" + origin + "&after=" + after + "&limit=1");
+					JsonNode page = query(local,"resource=events&origin=" + origin + "&after=" + after + "&limit=1","QUERY_EVENTS");
 					checkOrigin(page, origin);
 					JsonNode events = page.path("events");
 					require(events.isArray() && events.size() <= 1, "Página de eventos inválida");
@@ -112,7 +137,12 @@ public class EncounterSyncClient {
 					    "El evento recibido no es el siguiente");
 					long confirmed;
 					try {
-						confirmed = receiver.receiveEncounter(event.toString());
+						final long expected = after + 1;
+                        confirmed = audit().run(masterServerId,local,"ENCOUNTER","RECEIVE",event,"RECEIVED",() -> {
+                            long value = receiver.receiveEncounter(event.toString());
+                            require(value == expected,"Confirmación local inesperada");
+                            return value;
+                        });
 					}
 					catch (EncounterDependencyException dependency) {
 						// A's result may refer to an encounter created by B, whose origin

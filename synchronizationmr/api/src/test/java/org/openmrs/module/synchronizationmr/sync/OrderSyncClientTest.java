@@ -29,7 +29,10 @@ public class OrderSyncClientTest {
 	
 	private final PatientRemoteTransport remote = mock(PatientRemoteTransport.class);
 	
-	private final OrderSyncClient client = new OrderSyncClient(node, records, receiver, remote, MASTER);
+	private final org.openmrs.module.synchronizationmr.api.SyncAuditService auditService = mock(org.openmrs.module.synchronizationmr.api.SyncAuditService.class);
+
+	private final OrderSyncClient client = new OrderSyncClient(node, records, receiver, remote, MASTER, new SyncAudit(
+	        auditService));
 	
 	private ObjectNode envelope(String origin) {
 		return mapper.createObjectNode().put("originServerId", origin).put("entityType", "ORDER");
@@ -180,5 +183,18 @@ public class OrderSyncClientTest {
         assertThrows(IllegalArgumentException.class, () -> new PatientHttpsTransport("http://localhost/sync", "posta", "clave"));
         assertThrows(IllegalArgumentException.class, () -> new PatientHttpsTransport("https://user:secret@localhost/sync", "posta", "clave"));
         assertThrows(IllegalArgumentException.class, () -> new PatientHttpsTransport("https://localhost/sync?x=1", "posta", "clave"));
+    }
+
+	@Test public void auditsConnectionFailureWithoutInventingAnEvent() throws Exception {
+        prepare(1,0);
+        when(auditService.begin(any())).thenReturn("connection");
+        when(remote.get("resource=node")).thenThrow(new IOException("sin conexión"));
+        assertThrows(IOException.class,client::synchronizeOnce);
+        org.mockito.ArgumentCaptor<SyncAuditRecord> capture=org.mockito.ArgumentCaptor.forClass(SyncAuditRecord.class);
+        verify(auditService).begin(capture.capture());
+        assertEquals("QUERY_NODE",capture.getValue().action);
+        assertNull(capture.getValue().eventUuid);
+        verify(auditService).finish("connection","FAILED","COMMUNICATION");
+        verify(remote,never()).receive(anyString());
     }
 }

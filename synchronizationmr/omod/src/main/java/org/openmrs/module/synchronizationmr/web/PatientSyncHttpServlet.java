@@ -29,6 +29,10 @@ public class PatientSyncHttpServlet extends HttpServlet {
 	
 	private final ObjectMapper mapper = new ObjectMapper();
 	
+	protected SyncAudit audit() {
+		return SyncAudit.local();
+	}
+
 	protected PatientSyncPeerSession openPeer(String user, String password) {
 		return new PatientSyncPeerSession(user, password);
 	}
@@ -108,31 +112,57 @@ public class PatientSyncHttpServlet extends HttpServlet {
             // Ninguna operación remota elude la configuración de identidad local.
             String serverId = node().getLocalServerId();
             String resource = request.getParameter("resource");
+            SyncAudit trail = audit();
+            String peerId = authenticated.getPeerServerId();
+            String requestId = trail.begin(peerId,serverId,entityType(),"REQUEST",null);
+            List<String> deliveries = new ArrayList<>();
+            boolean responseWritten = false;
+            try {
             ObjectNode result;
             if ("POST".equals(request.getMethod())) {
-                if (!"receive".equals(resource)) { error(response, 404, "RESOURCE_NOT_FOUND"); return; }
+                if (!"receive".equals(resource)) { trail.finish(requestId,"FAILED","INVALID"); error(response, 404, "RESOURCE_NOT_FOUND"); return; }
                 String contentType = request.getContentType();
                 if (contentType == null || !"application/json".equalsIgnoreCase(contentType.split(";", 2)[0].trim())) {
-                    error(response, 415, "JSON_REQUIRED"); return;
+                    trail.finish(requestId,"FAILED","INVALID"); error(response, 415, "JSON_REQUIRED"); return;
                 }
                 if (TransactionSynchronizationManager.isActualTransactionActive()) {
-                    error(response, 503, "OUTER_TRANSACTION_NOT_SUPPORTED"); return;
+                    trail.finish(requestId,"FAILED","INVALID"); error(response, 503, "OUTER_TRANSACTION_NOT_SUPPORTED"); return;
                 }
                 String json = readBody(request);
                 String incomingOrigin;
                 try { incomingOrigin = incomingOrigin(json); }
-                catch (APIException invalid) { error(response, 400, "INVALID_EVENT"); return; }
-                authorizeReceive(authenticated, incomingOrigin);
-                long confirmed = receiveEvent(json);
+                catch (APIException invalid) { trail.finish(requestId,"FAILED","INVALID"); error(response, 400, "INVALID_EVENT"); return; }
+                long confirmed = trail.run(peerId,serverId,entityType(),"RECEIVE",mapper.readTree(json),"RECEIVED",() -> {
+                    authorizeReceive(authenticated,incomingOrigin);
+                    return receiveEvent(json);
+                });
                 result = mapper.createObjectNode();
                 result.put("originServerId", incomingOrigin); result.put("entityType", entityType());
                 result.put("confirmedSequence", confirmed);
             } else {
                 result = get(request, authenticated, serverId);
-                if (result == null) { error(response, 404, "RESOURCE_NOT_FOUND"); return; }
+                if (result == null) { trail.finish(requestId,"FAILED","INVALID"); error(response, 404, "RESOURCE_NOT_FOUND"); return; }
+            }
+            // Servir una página no demuestra que el otro nodo haya almacenado sus eventos.
+            if (result.has("events")) {
+                for (JsonNode event : result.path("events")) {
+                    deliveries.add(trail.begin(serverId,peerId,entityType(),"SERVE_EVENT",event));
+                }
             }
             response.setStatus(200);
             mapper.writeValue(response.getWriter(), result);
+            if (response.getWriter().checkError()) { throw new IOException("No se completó la respuesta"); }
+            responseWritten = true;
+            for (String delivery : deliveries) { trail.finish(delivery,"SERVED","OK"); }
+            deliveries.clear();
+            trail.finish(requestId,"SUCCEEDED","OK");
+            } catch (IOException | RuntimeException failure) {
+                if (!responseWritten) {
+                    for (String delivery : deliveries) { trail.failure(delivery,"SERVE_EVENT",failure); }
+                    trail.failure(requestId,"REQUEST",failure);
+                }
+                throw failure;
+            }
         } catch (BodyTooLarge failure) { error(response, 413, "BODY_TOO_LARGE"); }
         catch (IllegalArgumentException failure) { error(response, 400, "INVALID_PARAMETERS"); }
         catch (APIAuthenticationException failure) { error(response, 403, "FORBIDDEN"); }

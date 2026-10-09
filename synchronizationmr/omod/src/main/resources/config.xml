@@ -67,6 +67,10 @@
         <class>org.openmrs.module.synchronizationmr.advice.ObservationAdditionAdvice</class>
     </advice>
     <privilege>
+        <name>Record Synchronization Audit</name>
+        <description>Registrar los intentos de intercambio y sus resultados en la auditoría local.</description>
+    </privilege>
+    <privilege>
         <name>Receive Synchronization Records</name>
         <description>Recibir eventos de sincronización de pacientes y encuentros de otros nodos.</description>
     </privilege>
