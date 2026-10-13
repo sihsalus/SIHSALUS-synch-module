@@ -35,6 +35,78 @@
         <point>org.openmrs.api.OrderService</point>
         <class>org.openmrs.module.synchronizationmr.advice.OrderCreationAdvice</class>
     </advice>
+
+    <!-- Operational settings are read once when the module starts. No secrets here. -->
+    <globalProperty>
+        <property>synchronizationmr.enabled</property>
+        <defaultValue>false</defaultValue>
+        <description>Activa el intercambio periodico solo en una POSTA. true o false. Aplicar reiniciando el modulo.</description>
+    </globalProperty>
+    <globalProperty>
+        <property>synchronizationmr.intervalSeconds</property>
+        <defaultValue>60</defaultValue>
+        <description>Espera despues de terminar cada ciclo. De 10 a 86400 segundos. Aplicar reiniciando el modulo.</description>
+    </globalProperty>
+    <globalProperty>
+        <property>synchronizationmr.eventsPerCycle</property>
+        <defaultValue>100</defaultValue>
+        <description>Maximo de eventos enviados por flujo y descargados por origen y flujo en cada ciclo. De 1 a 100. Aplicar reiniciando el modulo.</description>
+    </globalProperty>
+    <globalProperty>
+        <property>synchronizationmr.originsPageSize</property>
+        <defaultValue>100</defaultValue>
+        <description>Numero de origenes por pagina de consulta; no limita el total de origenes atendidos. De 1 a 100. Aplicar reiniciando el modulo.</description>
+    </globalProperty>
+    <globalProperty>
+        <property>synchronizationmr.masterBaseUrl</property>
+        <defaultValue></defaultValue>
+        <description>Direccion HTTPS de OpenMRS en el maestro, por ejemplo https://maestro.example/openmrs. No incluir login, spa ni moduleServlet. El modulo construye las rutas de pacientes, encuentros y ordenes. Obligatoria al activar sincronizacion en una posta. Aplicar reiniciando el modulo.</description>
+    </globalProperty>
+    <globalProperty>
+        <property>synchronizationmr.masterServerId</property>
+        <defaultValue></defaultValue>
+        <description>Identificador server.id del maestro esperado por esta posta. Aplicar reiniciando el modulo.</description>
+    </globalProperty>
+    <globalProperty>
+        <property>synchronizationmr.localUsername</property>
+        <defaultValue></defaultValue>
+        <description>Cuenta tecnica local para ejecutar sincronizacion y preparacion con sus permisos asignados. Aplicar reiniciando el modulo.</description>
+    </globalProperty>
+    <globalProperty>
+        <property>synchronizationmr.remoteUsername</property>
+        <defaultValue></defaultValue>
+        <description>Cuenta tecnica en el maestro, autorizada para esta posta. Aplicar reiniciando el modulo.</description>
+    </globalProperty>
+    <globalProperty>
+        <property>synchronizationmr.prepareExistingEnabled</property>
+        <defaultValue>false</defaultValue>
+        <description>Activa preparacion de pacientes existentes en MASTER o POSTA. true o false. Aplicar reiniciando el modulo.</description>
+    </globalProperty>
+    <globalProperty>
+        <property>synchronizationmr.prepareEncountersEnabled</property>
+        <defaultValue>false</defaultValue>
+        <description>Prepara encuentros existentes; requiere preparacion de pacientes. Aplicar reiniciando el modulo.</description>
+    </globalProperty>
+    <globalProperty>
+        <property>synchronizationmr.prepareOrdersEnabled</property>
+        <defaultValue>false</defaultValue>
+        <description>Prepara ordenes existentes; requiere preparacion de encuentros. Aplicar reiniciando el modulo.</description>
+    </globalProperty>
+    <globalProperty>
+        <property>synchronizationmr.prepareResultsEnabled</property>
+        <defaultValue>false</defaultValue>
+        <description>Prepara observaciones historicas admitidas; requiere preparacion de ordenes. Aplicar reiniciando el modulo.</description>
+    </globalProperty>
+    <globalProperty>
+        <property>synchronizationmr.prepareBatchSize</property>
+        <defaultValue>25</defaultValue>
+        <description>Tamano de lote de preparacion de entidades existentes. De 1 a 100. Aplicar reiniciando el modulo.</description>
+    </globalProperty>
+    <globalProperty>
+        <property>synchronizationmr.prepareIntervalSeconds</property>
+        <defaultValue>60</defaultValue>
+        <description>Espera entre ciclos de preparacion. De 10 a 86400 segundos. Aplicar reiniciando el modulo.</description>
+    </globalProperty>
     <globalProperty>
         <property>synchronizationmr.nodeRole</property>
         <defaultValue>UNCONFIGURED</defaultValue>

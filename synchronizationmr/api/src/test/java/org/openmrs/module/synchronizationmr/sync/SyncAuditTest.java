@@ -11,16 +11,16 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 public class SyncAuditTest {
-
+	
 	private final SyncAuditService service = mock(SyncAuditService.class);
-
+	
 	private final SyncAudit audit = new SyncAudit(service);
-
+	
 	private ObjectNode event() {
 		return new ObjectMapper().createObjectNode().put("entityType", "ORDER").put("originServerId", "posta_b")
 		        .put("entitySequence", 12).put("eventUuid", UUID.randomUUID().toString()).put("secret", "No guardar");
 	}
-
+	
 	@Test
 	public void capturesEventOriginSeparatelyFromTransportSource() {
 		ObjectNode e = event();
@@ -30,7 +30,7 @@ public class SyncAuditTest {
 		assertEquals(12L, r.sequence.longValue());
 		assertEquals(e.path("eventUuid").asText(), r.eventUuid);
 	}
-
+	
 	@Test
 	public void invalidMetadataDoesNotBecomeAnEventIdentity() {
 		ObjectNode e = event().put("eventUuid", "texto clínico");
@@ -39,7 +39,7 @@ public class SyncAuditTest {
 		assertNull(r.sequence);
 		assertNull(r.eventOrigin);
 	}
-
+	
 	@Test public void failedSendAndSuccessfulRetryHaveSeparateAttempts() throws Exception {
         when(service.begin(any())).thenReturn("first","second");
         ObjectNode e=event();
@@ -49,23 +49,22 @@ public class SyncAuditTest {
         verify(service).finish("first","UNCONFIRMED","COMMUNICATION");
         verify(service).finish("second","CONFIRMED","OK");
     }
-
-	@Test public void connectionFailureHasNoEvent() {
-        when(service.begin(any())).thenReturn("query");
-        assertThrows(IOException.class,() -> audit.run("posta_a","maestro","PATIENT","QUERY_NODE",null,"SUCCEEDED",
-                () -> { throw new IOException(); }));
-        org.mockito.ArgumentCaptor<SyncAuditRecord> capture=org.mockito.ArgumentCaptor.forClass(SyncAuditRecord.class);
-        verify(service).begin(capture.capture()); assertNull(capture.getValue().eventUuid);
-        verify(service).finish("query","FAILED","COMMUNICATION");
+	
+	@Test public void rejectsNonExchangeAuditActions() {
+        for (String action : new String[] {"QUERY_NODE","QUERY_STATUS","QUERY_ORIGINS","QUERY_EVENTS","REQUEST"}) {
+            assertThrows(IllegalArgumentException.class,
+                    () -> audit.begin("posta_a","maestro","ORDER",action,null));
+        }
+        verifyNoInteractions(service);
     }
-
+	
 	@Test public void receiverFailureIsRetainedWithoutExceptionText() {
         when(service.begin(any())).thenReturn("receive");
         assertThrows(APIException.class,() -> audit.run("maestro","posta_a","ORDER","RECEIVE",event(),"RECEIVED",
                 () -> { throw new APIException("nombre y contraseña"); }));
         verify(service).finish("receive","FAILED","REJECTED");
     }
-
+	
 	@Test public void operationDoesNotRunIfInitialAuditCannotBeStored() {
         when(service.begin(any())).thenThrow(new APIException("base indisponible"));
         java.util.concurrent.atomic.AtomicBoolean ran=new java.util.concurrent.atomic.AtomicBoolean();
@@ -73,14 +72,14 @@ public class SyncAuditTest {
                 () -> { ran.set(true); return 1; }));
         assertFalse(ran.get());
     }
-
+	
 	@Test public void auditCloseFailureDoesNotRewriteSuccessfulOperationAsFailed() {
         when(service.begin(any())).thenReturn("attempt");
         doThrow(new APIException("base indisponible")).when(service).finish("attempt","RECEIVED","OK");
         assertThrows(APIException.class,() -> audit.run("m","a","ORDER","RECEIVE",event(),"RECEIVED",() -> 1));
         verify(service,times(1)).finish(any(),any(),any());
     }
-
+	
 	@Test public void originalFailureSurvivesFailureToCloseAudit() {
         when(service.begin(any())).thenReturn("attempt");
         doThrow(new APIException("base indisponible")).when(service).finish(any(),any(),any());

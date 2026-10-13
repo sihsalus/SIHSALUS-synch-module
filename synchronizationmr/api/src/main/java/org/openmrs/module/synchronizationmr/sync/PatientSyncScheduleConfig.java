@@ -9,6 +9,8 @@ public final class PatientSyncScheduleConfig {
 	
 	final long intervalSeconds;
 	
+	final SyncCycleLimits limits;
+	
 	final String encounterEndpoint;
 	
 	final String orderEndpoint;
@@ -21,6 +23,7 @@ public final class PatientSyncScheduleConfig {
 			throw new IllegalArgumentException("SYNCMR_ENABLED debe ser true o false");
 		}
 		enabled = Boolean.parseBoolean(flag);
+		limits = enabled ? SyncCycleLimits.from(environment) : SyncCycleLimits.DEFAULT;
 		orderEndpoint = enabled ? environment.get("SYNCMR_MASTER_ORDER_ENDPOINT") : null;
 		encounterEndpoint = enabled ? environment.get("SYNCMR_MASTER_ENCOUNTER_ENDPOINT") : null;
 		if (encounterEndpoint != null && encounterEndpoint.trim().isEmpty()) {

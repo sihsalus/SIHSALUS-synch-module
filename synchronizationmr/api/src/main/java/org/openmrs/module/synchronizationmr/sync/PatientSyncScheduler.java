@@ -44,20 +44,23 @@ public class PatientSyncScheduler {
 		Context.openSession();
 		try {
 			Context.authenticate(new UsernamePasswordCredentials(config.localUser, config.localPassword));
-			int[] result = PatientSyncClient.forLocalPosta(config.endpoint, config.masterServerId, config.remoteUser,
-			    config.remotePassword).synchronizeOnce();
+			int[] result = PatientSyncClient
+			        .forLocalPosta(config.endpoint, config.masterServerId, config.remoteUser, config.remotePassword)
+			        .withLimits(config.limits).synchronizeOnce();
 			log.info("Ciclo de pacientes completado: envíos confirmados=" + result[0] + ", recepciones confirmadas="
 			        + result[1]);
 			if (config.encounterEndpoint != null) {
-				int[] encounters = EncounterSyncClient.forLocalPosta(config.encounterEndpoint, config.masterServerId,
-				    config.remoteUser, config.remotePassword).synchronizeOnce();
+				int[] encounters = EncounterSyncClient
+				        .forLocalPosta(config.encounterEndpoint, config.masterServerId, config.remoteUser,
+				            config.remotePassword).withLimits(config.limits).synchronizeOnce();
 				log.info("Ciclo de encuentros completado: envíos confirmados=" + encounters[0]
 				        + ", recepciones confirmadas=" + encounters[1]);
 			}
 			
 			if (config.orderEndpoint != null) {
-				int[] orders = OrderSyncClient.forLocalPosta(config.orderEndpoint, config.masterServerId, config.remoteUser,
-				    config.remotePassword).synchronizeOnce();
+				int[] orders = OrderSyncClient
+				        .forLocalPosta(config.orderEndpoint, config.masterServerId, config.remoteUser, config.remotePassword)
+				        .withLimits(config.limits).synchronizeOnce();
 				log.info("Orders confirmed: sent=" + orders[0] + ", received=" + orders[1]);
 			}
 			

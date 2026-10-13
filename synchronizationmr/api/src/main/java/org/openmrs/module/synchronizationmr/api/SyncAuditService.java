@@ -8,11 +8,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 /** Transacciones independientes: el rechazo de datos clínicos no borra la auditoría. */
 public interface SyncAuditService extends OpenmrsService {
-
+	
 	@Authorized("Record Synchronization Audit")
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	String begin(SyncAuditRecord record);
-
+	
 	@Authorized("Record Synchronization Audit")
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	void finish(String attemptUuid, String result, String code);

@@ -5,17 +5,16 @@ import java.util.UUID;
 
 /** Metadatos de un intento; nunca conserva el contenido clínico ni mensajes de excepción. */
 public final class SyncAuditRecord {
-
+	
 	public final String source, destination, entityType, action, eventOrigin, eventUuid;
-
+	
 	public final Long sequence;
-
+	
 	public SyncAuditRecord(String source, String destination, String entityType, String action, JsonNode event) {
 		this.source = ServerId.requireValid(source);
 		this.destination = ServerId.requireValid(destination);
 		if (!java.util.Arrays.asList("PATIENT", "ENCOUNTER", "ORDER").contains(entityType)
-		        || !java.util.Arrays.asList("SEND", "RECEIVE", "SERVE_EVENT", "QUERY_NODE", "QUERY_STATUS", "QUERY_ORIGINS",
-		            "QUERY_EVENTS", "REQUEST").contains(action)) {
+		        || !java.util.Arrays.asList("SEND", "RECEIVE", "SERVE_EVENT").contains(action)) {
 			throw new IllegalArgumentException("Tipo de auditoría inválido");
 		}
 		this.entityType = entityType;

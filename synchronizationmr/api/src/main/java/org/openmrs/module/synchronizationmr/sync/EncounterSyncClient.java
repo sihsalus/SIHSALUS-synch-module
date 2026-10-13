@@ -22,25 +22,29 @@ public class EncounterSyncClient {
 	
 	private final String masterServerId;
 	
+	private SyncCycleLimits limits = SyncCycleLimits.DEFAULT;
+	
+	// Applied before the client is used by its single scheduler thread.
+	EncounterSyncClient withLimits(SyncCycleLimits configured) {
+		limits = java.util.Objects.requireNonNull(configured);
+		return this;
+	}
+	
 	private SyncAudit audit;
-
+	
 	public EncounterSyncClient(LocalNodeService node, EncounterSyncService records, EncounterReceiveService receiver,
 	    PatientRemoteTransport remote, String masterServerId, SyncAudit audit) {
 		this(node, records, receiver, remote, masterServerId);
 		this.audit = java.util.Objects.requireNonNull(audit);
 	}
-
+	
 	private SyncAudit audit() {
 		if (audit == null) {
 			audit = SyncAudit.local();
 		}
 		return audit;
 	}
-
-	private JsonNode query(String local, String query, String action) throws IOException {
-        return audit().run(local,masterServerId,"ENCOUNTER",action,null,"SUCCEEDED",() -> remote.get(query));
-    }
-
+	
 	/**
 	 * Construye el cliente con los servicios transaccionales de OpenMRS. Las credenciales remotas
 	 * se proporcionan en memoria, sin escribirlas en propiedades globales.
@@ -71,12 +75,12 @@ public class EncounterSyncClient {
 			throw new IllegalStateException("El ciclo no debe envolver la red en una transacción de base de datos");
 		}
 		String local = ServerId.requireValid(node.getLocalServerId());
-		JsonNode identity = query(local,"resource=node","QUERY_NODE");
+		JsonNode identity = remote.get("resource=node");
 		require(
 		    masterServerId.equals(identity.path("serverId").asText()) && !masterServerId.equals(local)
 		            && "MASTER".equals(identity.path("role").asText()) && identity.path("protocolVersion").asInt() == 2,
 		    "Identidad del maestro inesperada");
-		JsonNode status = query(local,"resource=status&origin=" + local,"QUERY_STATUS");
+		JsonNode status = remote.get("resource=status&origin=" + local);
 		checkOrigin(status, local);
 		long acknowledged = sequence(status, "confirmedSequence");
 		long highest = records.getHighestEncounterSequence(local);
@@ -84,7 +88,7 @@ public class EncounterSyncClient {
 		int sent = 0;
 		int received = 0;
 		// Límite por ciclo: evita que nuevas altas mantengan el envío indefinidamente.
-		while (acknowledged < highest && sent < 100) {
+		while (acknowledged < highest && sent < limits.eventsPerCycle) {
 			checkInterrupted();
 			List<EncounterSyncEvent> page = records.getEncounterEventsAfter(local, acknowledged, 1);
 			require(page.size() == 1 && page.get(0).getSequence() == acknowledged + 1, "Falta un evento local consecutivo");
@@ -103,9 +107,9 @@ public class EncounterSyncClient {
 		String cursor = null;
 		while (true) {
 			checkInterrupted();
-			JsonNode origins = query(local,"resource=origins&limit=100" + (cursor == null ? "" : "&afterOrigin=" + cursor),"QUERY_ORIGINS")
+			JsonNode origins = remote.get("resource=origins&limit=" + limits.originsPageSize + (cursor == null ? "" : "&afterOrigin=" + cursor))
 			        .path("origins");
-			require(origins.isArray() && origins.size() <= 100, "Lista de orígenes inválida");
+			require(origins.isArray() && origins.size() <= limits.originsPageSize, "Lista de orígenes inválida");
 			for (JsonNode entry : origins) {
 				checkInterrupted();
 				String origin;
@@ -122,9 +126,9 @@ public class EncounterSyncClient {
 				}
 				long after = receiver.getConfirmedEncounterSequence(origin);
 				// Un origen muy activo no impide atender a los demás en este ciclo.
-				for (int count = 0; count < 100; count++) {
+				for (int count = 0; count < limits.eventsPerCycle; count++) {
 					checkInterrupted();
-					JsonNode page = query(local,"resource=events&origin=" + origin + "&after=" + after + "&limit=1","QUERY_EVENTS");
+					JsonNode page = remote.get("resource=events&origin=" + origin + "&after=" + after + "&limit=1");
 					checkOrigin(page, origin);
 					JsonNode events = page.path("events");
 					require(events.isArray() && events.size() <= 1, "Página de eventos inválida");
@@ -156,7 +160,7 @@ public class EncounterSyncClient {
 					received++;
 				}
 			}
-			if (origins.size() < 100) {
+			if (origins.size() < limits.originsPageSize) {
 				break;
 			}
 		}

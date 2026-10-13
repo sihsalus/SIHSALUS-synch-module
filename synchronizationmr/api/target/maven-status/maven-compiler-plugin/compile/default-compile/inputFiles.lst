@@ -12,6 +12,9 @@ C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\mai
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\ObservationCorrectionDao.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\ObservationReplacementDao.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\ObservationVoidDao.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\OrderAnnulledEncounterDao.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\OrderConflictDao.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\OrderFulfillmentDao.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\OrderLinkDao.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\OrderReceiveDao.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\dao\OrderSyncDao.java
@@ -30,12 +33,14 @@ C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\mai
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\impl\OrderSyncServiceImpl.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\impl\PatientReceiveServiceImpl.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\impl\PatientSyncServiceImpl.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\impl\SyncAuditServiceImpl.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\impl\SynchronizationMRServiceImpl.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\LocalNodeService.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\OrderReceiveService.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\OrderSyncService.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\PatientReceiveService.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\PatientSyncService.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\SyncAuditService.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\api\SynchronizationMRService.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterCreationPayloadSerializer.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\EncounterDependencyException.java
@@ -58,6 +63,7 @@ C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\mai
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\ObservationPreparationBatch.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\ObservationVoidEvent.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\OrderCreationPayloadSerializer.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\OrderFulfillment.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\OrderIncomingEvent.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\OrderPayload.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\OrderSyncClient.java
@@ -77,6 +83,10 @@ C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\mai
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\PatientUpdateApply.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\PatientUpdateEvent.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\ServerId.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\SyncAudit.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\SyncAuditRecord.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\SyncCycleLimits.java
+C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\SyncOperationalConfig.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\VisitAnnulmentScope.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\VisitMetadata.java
 C:\Users\PC\Documents\GitHub\SIHSALUS-synch-module\synchronizationmr\api\src\main\java\org\openmrs\module\synchronizationmr\sync\VisitUpdateEvent.java

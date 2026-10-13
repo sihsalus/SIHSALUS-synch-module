@@ -13,28 +13,28 @@ import org.springframework.test.context.transaction.TestTransaction;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class SyncAuditIntegrationTest extends BaseModuleContextSensitiveTest {
-
+	
 	@BeforeEach
 	public void prepare() throws Exception {
 		new Liquibase("src/main/resources/liquibase.xml", new FileSystemResourceAccessor(), new JdbcConnection(
 		        getConnection())).update("");
 	}
-
+	
 	private SyncAuditService service() {
 		return Context.getService(SyncAuditService.class);
 	}
-
+	
 	private SyncAuditRecord record() {
 		return new SyncAuditRecord("posta_a", "maestro", "ORDER", "SEND", null);
 	}
-
+	
 	private String result(String id) throws Exception {
         try (PreparedStatement q=getConnection().prepareStatement("select result from synchronizationmr_audit where attempt_uuid=?")) {
             q.setString(1,id);
             try (ResultSet rows=q.executeQuery()) { assertTrue(rows.next()); return rows.getString(1); }
         }
     }
-
+	
 	@Test
 	public void survivesRollbackOfOuterTransactionAndPreservesRetryHistory() throws Exception {
 		String first = service().begin(record());
@@ -49,13 +49,13 @@ public class SyncAuditIntegrationTest extends BaseModuleContextSensitiveTest {
 		assertEquals("UNCONFIRMED", result(first));
 		assertEquals("CONFIRMED", result(next));
 	}
-
+	
 	@Test public void cannotOverwriteCompletedAttempt() throws Exception {
         String id=service().begin(record()); service().finish(id,"FAILED","REJECTED");
         assertThrows(APIException.class,() -> service().finish(id,"CONFIRMED","OK"));
         assertEquals("FAILED",result(id));
     }
-
+	
 	@Test
 	public void interruptedAttemptRemainsVisible() throws Exception {
 		String id = service().begin(record());
@@ -64,13 +64,13 @@ public class SyncAuditIntegrationTest extends BaseModuleContextSensitiveTest {
 		TestTransaction.start();
 		assertEquals("IN_PROGRESS", result(id));
 	}
-
+	
 	@Test public void rejectsArbitraryExceptionTextAsResultCode() throws Exception {
         String id=service().begin(record());
         assertThrows(IllegalArgumentException.class,() -> service().finish(id,"FAILED","datos privados"));
         assertEquals("IN_PROGRESS",result(id));
     }
-
+	
 	@Test public void requiresAuditPrivilegeAndAllowsTechnicalRole() throws Exception {
         String name="audit"+java.util.UUID.randomUUID().toString().substring(0,8);
         org.openmrs.Privilege privilege=new org.openmrs.Privilege("Record Synchronization Audit","Auditoría");

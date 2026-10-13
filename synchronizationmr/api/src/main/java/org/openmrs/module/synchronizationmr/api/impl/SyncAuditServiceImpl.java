@@ -11,13 +11,13 @@ import org.openmrs.module.synchronizationmr.sync.SyncAuditRecord;
 
 /** Una fila por intento; solo permite cerrar una fila que todavía está en curso. */
 public class SyncAuditServiceImpl extends BaseOpenmrsService implements SyncAuditService {
-
+	
 	private SessionFactory sessionFactory;
-
+	
 	public void setSessionFactory(SessionFactory value) {
 		sessionFactory = value;
 	}
-
+	
 	public String begin(SyncAuditRecord r) {
         if (r == null) { throw new IllegalArgumentException("Faltan metadatos de auditoría"); }
         String id = UUID.randomUUID().toString();
@@ -35,7 +35,7 @@ public class SyncAuditServiceImpl extends BaseOpenmrsService implements SyncAudi
         });
         return id;
     }
-
+	
 	public void finish(String id, String result, String code) {
         UUID.fromString(id);
         if (!java.util.Arrays.asList("CONFIRMED", "RECEIVED", "SERVED", "SUCCEEDED", "FAILED", "UNCONFIRMED").contains(result)

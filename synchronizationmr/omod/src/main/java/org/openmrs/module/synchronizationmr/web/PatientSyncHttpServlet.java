@@ -32,7 +32,7 @@ public class PatientSyncHttpServlet extends HttpServlet {
 	protected SyncAudit audit() {
 		return SyncAudit.local();
 	}
-
+	
 	protected PatientSyncPeerSession openPeer(String user, String password) {
 		return new PatientSyncPeerSession(user, password);
 	}
@@ -114,24 +114,23 @@ public class PatientSyncHttpServlet extends HttpServlet {
             String resource = request.getParameter("resource");
             SyncAudit trail = audit();
             String peerId = authenticated.getPeerServerId();
-            String requestId = trail.begin(peerId,serverId,entityType(),"REQUEST",null);
             List<String> deliveries = new ArrayList<>();
             boolean responseWritten = false;
             try {
             ObjectNode result;
             if ("POST".equals(request.getMethod())) {
-                if (!"receive".equals(resource)) { trail.finish(requestId,"FAILED","INVALID"); error(response, 404, "RESOURCE_NOT_FOUND"); return; }
+                if (!"receive".equals(resource)) { error(response, 404, "RESOURCE_NOT_FOUND"); return; }
                 String contentType = request.getContentType();
                 if (contentType == null || !"application/json".equalsIgnoreCase(contentType.split(";", 2)[0].trim())) {
-                    trail.finish(requestId,"FAILED","INVALID"); error(response, 415, "JSON_REQUIRED"); return;
+                    error(response, 415, "JSON_REQUIRED"); return;
                 }
                 if (TransactionSynchronizationManager.isActualTransactionActive()) {
-                    trail.finish(requestId,"FAILED","INVALID"); error(response, 503, "OUTER_TRANSACTION_NOT_SUPPORTED"); return;
+                    error(response, 503, "OUTER_TRANSACTION_NOT_SUPPORTED"); return;
                 }
                 String json = readBody(request);
                 String incomingOrigin;
                 try { incomingOrigin = incomingOrigin(json); }
-                catch (APIException invalid) { trail.finish(requestId,"FAILED","INVALID"); error(response, 400, "INVALID_EVENT"); return; }
+                catch (APIException invalid) { error(response, 400, "INVALID_EVENT"); return; }
                 long confirmed = trail.run(peerId,serverId,entityType(),"RECEIVE",mapper.readTree(json),"RECEIVED",() -> {
                     authorizeReceive(authenticated,incomingOrigin);
                     return receiveEvent(json);
@@ -141,7 +140,7 @@ public class PatientSyncHttpServlet extends HttpServlet {
                 result.put("confirmedSequence", confirmed);
             } else {
                 result = get(request, authenticated, serverId);
-                if (result == null) { trail.finish(requestId,"FAILED","INVALID"); error(response, 404, "RESOURCE_NOT_FOUND"); return; }
+                if (result == null) { error(response, 404, "RESOURCE_NOT_FOUND"); return; }
             }
             // Servir una página no demuestra que el otro nodo haya almacenado sus eventos.
             if (result.has("events")) {
@@ -155,11 +154,9 @@ public class PatientSyncHttpServlet extends HttpServlet {
             responseWritten = true;
             for (String delivery : deliveries) { trail.finish(delivery,"SERVED","OK"); }
             deliveries.clear();
-            trail.finish(requestId,"SUCCEEDED","OK");
             } catch (IOException | RuntimeException failure) {
                 if (!responseWritten) {
                     for (String delivery : deliveries) { trail.failure(delivery,"SERVE_EVENT",failure); }
-                    trail.failure(requestId,"REQUEST",failure);
                 }
                 throw failure;
             }

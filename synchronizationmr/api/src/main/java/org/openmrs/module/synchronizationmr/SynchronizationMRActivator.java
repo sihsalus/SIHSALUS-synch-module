@@ -30,15 +30,23 @@ public class SynchronizationMRActivator extends BaseModuleActivator {
 	 * @see #started()
 	 */
 	public void started() {
+		final java.util.Map<String, String> settings;
 		try {
-			preparationScheduler.start(System.getenv());
+			settings = org.openmrs.module.synchronizationmr.sync.SyncOperationalConfig.load();
+		}
+		catch (RuntimeException invalid) {
+			log.error("No se pudo leer la configuracion operativa; trabajadores desactivados");
+			return;
+		}
+		try {
+			preparationScheduler.start(settings);
 		}
 		catch (RuntimeException invalid) {
 			log.error("No se pudo iniciar la preparación de pacientes; revise su configuración");
 		}
 		log.info("Módulo SynchronizationMR iniciado");
 		try {
-			patientScheduler.start(new PatientSyncScheduleConfig(System.getenv()));
+			patientScheduler.start(new PatientSyncScheduleConfig(settings));
 		}
 		catch (RuntimeException invalid) {
 			log.error("No se pudo iniciar la sincronización periódica; revise su configuración");

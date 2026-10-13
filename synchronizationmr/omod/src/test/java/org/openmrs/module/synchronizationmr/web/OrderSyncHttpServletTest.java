@@ -38,7 +38,7 @@ public class OrderSyncHttpServletTest {
 	private final String origin = "testServer_1";
 	
 	private final SyncAuditService auditService = mock(SyncAuditService.class);
-
+	
 	private boolean authenticationFails;
 	
 	private final OrderSyncHttpServlet servlet = new OrderSyncHttpServlet() {
@@ -48,7 +48,7 @@ public class OrderSyncHttpServletTest {
 			when(peer.getPeerServerId()).thenReturn("posta_test");
 			return new org.openmrs.module.synchronizationmr.sync.SyncAudit(auditService);
 		}
-
+		
 		@Override
 		protected PatientSyncPeerSession openPeer(String user, String password) {
 			assertEquals("posta", user);
@@ -80,7 +80,7 @@ public class OrderSyncHttpServletTest {
 		when(node.getLocalServerId()).thenReturn("maestro");
 		when(peer.getPeerServerId()).thenReturn("posta_test");
 	}
-
+	
 	private MockHttpServletRequest request(String method, String resource) {
 		MockHttpServletRequest request = new MockHttpServletRequest(method, "/moduleServlet/synchronizationmr/orderSync");
 		request.setSecure(true);
@@ -243,7 +243,7 @@ public class OrderSyncHttpServletTest {
 		assertEquals(413, call(request).getStatus());
 		verifyNoInteractions(receiver);
 	}
-
+	
 	@Test
 	public void acceptsFulfillmentEnvelopeAndAuthorizesItsOrigin() throws Exception {
 		ObjectNode event = (ObjectNode) new ObjectMapper().readTree(event());
@@ -261,11 +261,11 @@ public class OrderSyncHttpServletTest {
 		verify(peer).authorizeOrderReceive(origin);
 		verify(receiver).receiveOrder(event.toString());
 	}
-
+	
 	@Test
 	public void auditsReceiverRejectionAndSuccessfulRetrySeparately() throws Exception {
 		String json = event();
-		when(auditService.begin(any())).thenReturn("request1", "receive1", "request2", "receive2");
+		when(auditService.begin(any())).thenReturn("receive1", "receive2");
 		when(receiver.receiveOrder(json)).thenThrow(new APIException("datos privados")).thenReturn(1L);
 		MockHttpServletRequest request = request("POST", "receive");
 		request.setContentType("application/json");
@@ -278,10 +278,10 @@ public class OrderSyncHttpServletTest {
 		verify(auditService).finish("receive1", "FAILED", "REJECTED");
 		verify(auditService).finish("receive2", "RECEIVED", "OK");
 	}
-
+	
 	@Test
 	public void pageDeliveryDoesNotClaimRemoteStorage() throws Exception {
-		when(auditService.begin(any())).thenReturn("request", "delivery");
+		when(auditService.begin(any())).thenReturn("delivery");
 		when(sync.getOrderEventsAfter(origin, 0, 2)).thenReturn(
 		    Collections.singletonList(new OrderSyncEvent(origin, 1, "evento", "orden", event())));
 		MockHttpServletRequest request = request("GET", "events");
@@ -292,14 +292,14 @@ public class OrderSyncHttpServletTest {
 		verify(auditService, never()).finish(any(), eq("CONFIRMED"), any());
 		org.mockito.ArgumentCaptor<org.openmrs.module.synchronizationmr.sync.SyncAuditRecord> c = org.mockito.ArgumentCaptor
 		        .forClass(org.openmrs.module.synchronizationmr.sync.SyncAuditRecord.class);
-		verify(auditService, times(2)).begin(c.capture());
-		assertEquals("SERVE_EVENT", c.getAllValues().get(1).action);
-		assertEquals("posta_test", c.getAllValues().get(1).destination);
+		verify(auditService).begin(c.capture());
+		assertEquals("SERVE_EVENT", c.getValue().action);
+		assertEquals("posta_test", c.getValue().destination);
 	}
-
-	@Test public void lostResponsePreservesSuccessfulReceptionAndAuditsCommunicationFailure() throws Exception {
+	
+	@Test public void lostResponsePreservesSuccessfulReceptionWithoutGenericRequestAudit() throws Exception {
         String json=event();
-        when(auditService.begin(any())).thenReturn("request","reception");
+        when(auditService.begin(any())).thenReturn("reception");
         when(receiver.receiveOrder(json)).thenReturn(1L);
         MockHttpServletRequest request=request("POST","receive");
         request.setContentType("application/json"); request.setContent(json.getBytes(StandardCharsets.UTF_8));
@@ -312,13 +312,14 @@ public class OrderSyncHttpServletTest {
         };
         assertThrows(java.io.IOException.class,() -> servlet.service(request,response));
         verify(auditService).finish("reception","RECEIVED","OK");
-        verify(auditService).finish("request","FAILED","COMMUNICATION");
+        verify(auditService, times(1)).begin(any());
+        verify(auditService, times(1)).finish(any(),any(),any());
         verify(peer).close();
     }
-
+	
 	@Test
 	public void auditClosureFailureDoesNotLabelServedPageAsFailed() throws Exception {
-		when(auditService.begin(any())).thenReturn("request", "delivery");
+		when(auditService.begin(any())).thenReturn("delivery");
 		when(sync.getOrderEventsAfter(origin, 0, 2)).thenReturn(
 		    Collections.singletonList(new OrderSyncEvent(origin, 1, "evento", "orden", event())));
 		doThrow(new APIException("base indisponible")).when(auditService).finish("delivery", "SERVED", "OK");
@@ -327,6 +328,19 @@ public class OrderSyncHttpServletTest {
 		request.setParameter("limit", "2");
 		call(request);
 		verify(auditService, never()).finish(any(), eq("FAILED"), any());
-		verify(auditService, never()).finish(eq("request"), eq("SUCCEEDED"), any());
+		verify(auditService, times(1)).begin(any());
 	}
+	
+	@Test
+	public void queriesAndEmptyPagesDoNotCreateAuditRows() throws Exception {
+		when(sync.getOrderOrigins(null, 25)).thenReturn(Collections.emptyList());
+		when(sync.getOrderEventsAfter(origin, 0, 25)).thenReturn(Collections.emptyList());
+		for (String resource : new String[] { "node", "status", "origins", "events" }) {
+			MockHttpServletRequest request = request("GET", resource);
+			request.setParameter("origin", origin);
+			assertEquals(200, call(request).getStatus());
+		}
+		verifyNoInteractions(auditService);
+	}
+	
 }

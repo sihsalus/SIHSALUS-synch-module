@@ -37,7 +37,7 @@ public class PatientSyncHttpServletTest {
 	private final String origin = "testServer_1";
 	
 	private final SyncAuditService auditService = mock(SyncAuditService.class);
-
+	
 	private boolean authenticationFails;
 	
 	private final PatientSyncHttpServlet servlet = new PatientSyncHttpServlet() {
@@ -47,7 +47,7 @@ public class PatientSyncHttpServletTest {
 			when(peer.getPeerServerId()).thenReturn("posta_test");
 			return new org.openmrs.module.synchronizationmr.sync.SyncAudit(auditService);
 		}
-
+		
 		@Override
 		protected PatientSyncPeerSession openPeer(String user, String password) {
 			assertEquals("posta", user);
@@ -79,7 +79,7 @@ public class PatientSyncHttpServletTest {
 		when(node.getLocalServerId()).thenReturn("maestro");
 		when(peer.getPeerServerId()).thenReturn("posta_test");
 	}
-
+	
 	private MockHttpServletRequest request(String method, String resource) {
 		MockHttpServletRequest request = new MockHttpServletRequest(method, "/moduleServlet/synchronizationmr/patientSync");
 		request.setSecure(true);

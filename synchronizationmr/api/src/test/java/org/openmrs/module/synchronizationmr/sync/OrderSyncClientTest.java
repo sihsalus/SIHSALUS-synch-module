@@ -30,7 +30,7 @@ public class OrderSyncClientTest {
 	private final PatientRemoteTransport remote = mock(PatientRemoteTransport.class);
 	
 	private final org.openmrs.module.synchronizationmr.api.SyncAuditService auditService = mock(org.openmrs.module.synchronizationmr.api.SyncAuditService.class);
-
+	
 	private final OrderSyncClient client = new OrderSyncClient(node, records, receiver, remote, MASTER, new SyncAudit(
 	        auditService));
 	
@@ -127,6 +127,7 @@ public class OrderSyncClientTest {
     }
 	
 	@Test public void failureBeforeDeliveryRetriesTheSameOriginalEvent() throws Exception {
+        when(auditService.begin(any())).thenReturn("failed-send","successful-send");
         prepare(1, 0);
         when(records.getOrderEventsAfter(LOCAL, 0, 1)).thenReturn(Collections.singletonList(
                 new OrderSyncEvent(LOCAL, 1, "evento", "paciente", "json-original")));
@@ -135,6 +136,9 @@ public class OrderSyncClientTest {
         assertThrows(IOException.class, client::synchronizeOnce);
         assertArrayEquals(new int[] {1, 0}, client.synchronizeOnce());
         verify(remote, times(2)).receive("json-original");
+        verify(auditService).finish("failed-send","UNCONFIRMED","COMMUNICATION");
+        verify(auditService).finish("successful-send","CONFIRMED","OK");
+        verify(auditService,times(2)).begin(any());
     }
 	
 	@Test public void receptionResumesFromLocallyCommittedSequence() throws Exception {
@@ -184,17 +188,63 @@ public class OrderSyncClientTest {
         assertThrows(IllegalArgumentException.class, () -> new PatientHttpsTransport("https://user:secret@localhost/sync", "posta", "clave"));
         assertThrows(IllegalArgumentException.class, () -> new PatientHttpsTransport("https://localhost/sync?x=1", "posta", "clave"));
     }
-
-	@Test public void auditsConnectionFailureWithoutInventingAnEvent() throws Exception {
+	
+	@Test public void connectionFailureBeforeExchangeDoesNotCreateAuditRows() throws Exception {
         prepare(1,0);
-        when(auditService.begin(any())).thenReturn("connection");
-        when(remote.get("resource=node")).thenThrow(new IOException("sin conexión"));
+        when(remote.get("resource=node")).thenThrow(new IOException("sin conexi�n"));
         assertThrows(IOException.class,client::synchronizeOnce);
-        org.mockito.ArgumentCaptor<SyncAuditRecord> capture=org.mockito.ArgumentCaptor.forClass(SyncAuditRecord.class);
-        verify(auditService).begin(capture.capture());
-        assertEquals("QUERY_NODE",capture.getValue().action);
-        assertNull(capture.getValue().eventUuid);
-        verify(auditService).finish("connection","FAILED","COMMUNICATION");
+        verifyNoInteractions(auditService);
         verify(remote,never()).receive(anyString());
     }
+	
+	@Test
+	public void repeatedIdleCyclesDoNotCreateAuditRows() throws Exception {
+		prepare(0, 0);
+		for (int i = 0; i < 3; i++) {
+			assertArrayEquals(new int[] { 0, 0 }, client.synchronizeOnce());
+		}
+		verifyNoInteractions(auditService);
+	}
+	
+	@Test
+	public void configuredLimitStopsBothDirectionsAndResumesNextCycle() throws Exception {
+		prepare(2, 0);
+		client.withLimits(new SyncCycleLimits(1, 100));
+		when(records.getOrderEventsAfter(LOCAL, 0, 1)).thenReturn(
+		    Collections.singletonList(new OrderSyncEvent(LOCAL, 1, "event-one", "patient", "first-payload")));
+		when(remote.receive("first-payload")).thenReturn(envelope(LOCAL).put("confirmedSequence", 1));
+		when(remote.get(events(0))).thenReturn(page(1));
+		when(receiver.receiveOrder(anyString())).thenReturn(1L);
+		assertArrayEquals(new int[] { 1, 1 }, client.synchronizeOnce());
+		verify(records, never()).getOrderEventsAfter(LOCAL, 1, 1);
+		verify(remote, never()).get(events(1));
+		when(remote.get("resource=status&origin=" + LOCAL)).thenReturn(envelope(LOCAL).put("confirmedSequence", 1));
+		when(records.getOrderEventsAfter(LOCAL, 1, 1)).thenReturn(
+		    Collections.singletonList(new OrderSyncEvent(LOCAL, 2, "event-two", "patient", "second-payload")));
+		when(remote.receive("second-payload")).thenReturn(envelope(LOCAL).put("confirmedSequence", 2));
+		when(receiver.getConfirmedOrderSequence(MASTER)).thenReturn(1L);
+		when(remote.get(events(1))).thenReturn(page(2));
+		when(receiver.receiveOrder(anyString())).thenReturn(2L);
+		assertArrayEquals(new int[] { 1, 1 }, client.synchronizeOnce());
+		verify(remote, times(1)).receive("first-payload");
+		verify(remote, times(1)).receive("second-payload");
+	}
+	
+	@Test
+	public void configuredOriginPagesContinuePastLocalOrigin() throws Exception {
+		prepare(0, 0);
+		client.withLimits(new SyncCycleLimits(1, 1));
+		ObjectNode first = mapper.createObjectNode();
+		first.putArray("origins").add(LOCAL);
+		ObjectNode second = mapper.createObjectNode();
+		second.putArray("origins").add(MASTER);
+		ObjectNode last = mapper.createObjectNode();
+		last.putArray("origins");
+		when(remote.get("resource=origins&limit=1")).thenReturn(first);
+		when(remote.get("resource=origins&limit=1&afterOrigin=" + LOCAL)).thenReturn(second);
+		when(remote.get("resource=origins&limit=1&afterOrigin=" + MASTER)).thenReturn(last);
+		assertArrayEquals(new int[] { 0, 0 }, client.synchronizeOnce());
+		verify(remote).get(events(0));
+		verify(remote).get("resource=origins&limit=1&afterOrigin=" + MASTER);
+	}
 }

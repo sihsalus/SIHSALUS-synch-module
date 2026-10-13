@@ -6,7 +6,7 @@ SynchronizationMR es un módulo de OpenMRS desarrollado para el proyecto **SIH.S
 
 El componente se distribuye como un archivo **OMOD** y se ejecuta dentro de OpenMRS. Trabaja con sus entidades nativas —pacientes, encuentros, observaciones y órdenes— y utiliza eventos persistentes para conservar los datos pendientes de transmisión.
 
-> **Estado al 09/10/2026:** flujos clínicos implementados y probados dentro de los contratos admitidos; auditoría implementada con pruebas automatizadas y ensayos de pacientes, encuentros y órdenes entre tres instancias, con conexión y recuperación tras un corte HTTPS. La integración se valida en un laboratorio con tres instancias de OpenMRS, bases independientes y datos ficticios. La instalación en establecimientos reales corresponde a una etapa posterior del proyecto.
+> **Estado al 12/10/2026:** flujos clínicos implementados y probados dentro de los contratos admitidos; auditoría implementada con pruebas automatizadas y ensayos de pacientes, encuentros y órdenes entre tres instancias, con conexión y recuperación tras un corte HTTPS. La integración se valida en un laboratorio con tres instancias de OpenMRS, bases independientes y datos ficticios. La instalación en establecimientos reales corresponde a una etapa posterior del proyecto.
 
 ## Propósito
 
@@ -128,6 +128,12 @@ Instalar el archivo no configura por sí solo la comunicación. Cada nodo necesi
 | Endpoints y programación | Activar el intercambio periódico de los flujos requeridos. |
 | Metadatos compatibles | Resolver referencias a conceptos, ubicaciones, profesionales y demás catálogos utilizados. |
 
+El OMOD requiere endpoints HTTPS alcanzables desde las postas, un certificado válido para el nombre del servidor y confianza configurada en la JVM. HTTPS puede proporcionarlo el servidor de OpenMRS o la infraestructura existente; no exige el contenedor Nginx del laboratorio. Una VPN puede proporcionar conectividad y protección de su túnel, pero no elimina la exigencia HTTPS del transporte actual.
+
+Si se utiliza un proxy, OpenMRS debe reconocer correctamente la conexión original y confiar únicamente en el intermediario previsto; el acceso directo al backend debe ajustarse a esa frontera de confianza. En el laboratorio, Nginx y OpenMRS forman el nodo maestro: HTTPS protege el intercambio entre las postas y su punto de entrada. TLS termina en Nginx y el tramo interno hacia Tomcat utiliza HTTP en el mismo equipo, con confianza en loopback. Esto no cifra el tramo interno. Otra instalación puede proporcionar HTTPS directamente o mediante su propia infraestructura; no necesita el contenedor Nginx del laboratorio. No debe copiarse esa configuración sin revisar la topología de destino. Cada cuenta remota debe vincularse a su nodo mediante `synchronizationmr.peerServerId` y `synchronizationmr.peerRole`, además de tener los permisos de sincronización y de las operaciones clínicas admitidas.
+
+La [guía de configuración del OMOD](CONFIGURACION_OMOD.md) describe la dirección base única `synchronizationmr.masterBaseUrl`, intervalos, lotes y preparación histórica. Las contraseñas se suministran en las propiedades privadas de ejecución del servidor, fuera de las propiedades globales. No hay selector de modos ni lectura de las variables `SYNCMR_*` del script. Los cambios operativos se aplican al reiniciar el módulo. Se comprobó el despliegue mediante SDK y la preparación de registros existentes del maestro con entrega a ambas postas usando esta configuración. La instalación mediante Manage Modules sigue pendiente de ensayo.
+
 La configuración del proceso periódico se valida en [PatientSyncScheduleConfig](synchronizationmr/api/src/main/java/org/openmrs/module/synchronizationmr/sync/PatientSyncScheduleConfig.java). La preparación histórica se habilita explícitamente y se gestiona mediante [PatientPreparationScheduler](synchronizationmr/api/src/main/java/org/openmrs/module/synchronizationmr/sync/PatientPreparationScheduler.java).
 
 Los endpoints del módulo son:
@@ -147,7 +153,7 @@ Se utilizan dos niveles complementarios:
 - **Pruebas automatizadas:** casos aislados con dobles, integración con servicios OpenMRS y H2, migraciones y pruebas web con solicitudes simuladas. Comprueban captura, transacciones, contratos, dependencias, autorizaciones y reintentos.
 - **Laboratorio con tres instancias:** un maestro y dos postas, bases MariaDB independientes y canal HTTPS con Nginx. Se han comprobado creación y distribución de datos, preparación de registros existentes y recuperación después de interrupciones controladas.
 
-La última ejecución completa, del **09/10/2026**, terminó con **511 pruebas: 457 de API y 54 de OMOD**, sin fallos, errores ni omisiones. Incluye captura y recepción, conflictos, permisos, rollback, reintentos, datos históricos, órdenes recibidas después de una anulación y auditoría persistente de intercambios. El conteo corresponde al paquete validado; no representa cobertura del 100 % del código ni aceptación de todos los requisitos.
+La validación automatizada del **12/10/2026**, anterior a la configuración mediante propiedades, reunió **522 pruebas: 460 de API y 62 de OMOD**, sin fallos, errores ni omisiones. Incluye captura y recepción, conflictos, permisos, rollback, reintentos, datos históricos, órdenes recibidas después de una anulación, auditoría persistente y autenticación e identidad de nodos con usuarios reales en una base aislada. La versión con propiedades y dirección base única pasó posteriormente **74 pruebas seleccionadas** de configuración, trabajadores y clientes. Son ejecuciones distintas; sus conteos no deben sumarse ni interpretarse como cobertura del 100 % del código.
 
 En el laboratorio se comprobaron:
 
@@ -172,13 +178,13 @@ Los reportes se generan en `api/target/surefire-reports` y `omod/target/surefire
 
 ## Alcance y evolución
 
-Los flujos implementados abarcan pacientes, encuentros, observaciones, visitas asociadas y órdenes dentro de los contratos descritos. La consulta interna por tipo de entidad, origen y secuencia cubre RF-14. La auditoría de **RF-15** ya registra los intentos en `synchronizationmr_audit`; su instalación, las altas de pacientes, encuentros y órdenes y la recuperación de una modificación de paciente tras desconexión están verificados en los tres nodos del laboratorio. Requiere el permiso `Record Synchronization Audit` en las cuentas técnicas. Cada reintento genera otra fila. Un envío sin confirmación queda como `UNCONFIRMED`; la entrega de una página (`SERVED`) no afirma que el receptor haya guardado sus datos. La auditoría comienza al activar esta versión, sin reconstruir operaciones pasadas, y se consulta mediante SQL.
+Los flujos implementados abarcan pacientes, encuentros, observaciones, visitas asociadas y órdenes dentro de los contratos descritos. La consulta interna por tipo de entidad, origen y secuencia cubre RF-14. La auditoría de **RF-15** ya registra los intentos en `synchronizationmr_audit`; su instalación, las altas de pacientes, encuentros y órdenes y la recuperación de una modificación de paciente tras desconexión están verificados en los tres nodos del laboratorio. Requiere el permiso `Record Synchronization Audit` en las cuentas técnicas. Cada reintento de intercambio de una entidad genera otra fila. Las consultas periódicas, las páginas sin eventos y las solicitudes HTTP genéricas no generan auditoría; un fallo de conexión anterior al intercambio se comunica mediante los logs técnicos. Se conservan las filas históricas de versiones anteriores, sin limpieza automática. El paquete del 12/10 está instalado y verificado: ciclos activos sin intercambios sin nuevas filas, modificación de paciente con conexión y recuperación tras desconexión con auditoría. Un envío sin confirmación queda como `UNCONFIRMED`; la entrega de una página (`SERVED`) no afirma que el receptor haya guardado sus datos. La auditoría comienza al activar esta versión, sin reconstruir operaciones pasadas, y se consulta mediante SQL.
 
 También quedan pendientes:
 
-- Evaluación de desempeño y volumen bajo criterios definidos.
-- Revisión final de seguridad, permisos y configuración de comunicación.
-- Validación de instalación y actualización del OMOD desde Manage Modules y de su configuración operativa.
+- Ampliaciones de evaluación de desempeño para otras cargas o infraestructura: se completaron tres corridas exploratorias locales, con 540 lecturas sin errores y entrega de los lotes a los tres nodos; esto no determina capacidad máxima ni rendimiento en campo.
+- Comprobar un registro nuevo desde una posta después de desactivar la preparación histórica, con la configuración operativa actual.
+- Validación de instalación y actualización del OMOD desde Manage Modules. El despliegue SDK y la configuración de comunicación con cuentas técnicas y confianza TLS ya se comprobaron en el laboratorio.
 
 Los diagnósticos estructurados, Conditions, imágenes y otros contenidos no admitidos por los contratos actuales quedan fuera del alcance implementado. La anulación es lógica y conserva historial; no se ofrece borrado físico ni restauración de registros anulados. Las visitas se publican mediante sus encuentros, no como un flujo independiente de visitas vacías.
 
