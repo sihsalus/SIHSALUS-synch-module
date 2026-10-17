@@ -17,13 +17,13 @@ import org.springframework.stereotype.Repository;
 /** Recibe órdenes tardías como historial de una anulación publicada, sin reabrir sus padres. */
 @Repository("synchronizationmr.OrderAnnulledEncounterDao")
 public class OrderAnnulledEncounterDao {
-
+	
 	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessions;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.VisitVoidDao")
 	private VisitVoidDao visits;
-
+	
 	public boolean isPublished(Encounter encounter) {
         if (encounter == null || encounter.getId() == null || !Boolean.TRUE.equals(encounter.getVoided())) return false;
         if (visits.isPublished(encounter.getVisit())) return true;
@@ -34,18 +34,18 @@ public class OrderAnnulledEncounterDao {
             }
         });
     }
-
+	
 	public boolean applies(OrderIncomingEvent event) {
 		return isPublished(Context.getEncounterService().getEncounterByUuid(
 		    event.root.path("payload").path("encounterUuid").asText()));
 	}
-
+	
 	public boolean allowsPrevious(OrderIncomingEvent event) {
 		String uuid = event.root.path("payload").path("previousOrderUuid").asText(null);
 		Order previous = uuid == null ? null : Context.getOrderService().getOrderByUuid(uuid);
 		return previous != null && isPublished(previous.getEncounter());
 	}
-
+	
 	public Order save(Connection c, Order incoming, OrderIncomingEvent event) throws SQLException {
         Encounter encounter = incoming.getEncounter();
         if (!isPublished(encounter)) throw new APIException("Falta la anulación publicada del encuentro o visita");
@@ -91,7 +91,7 @@ public class OrderAnnulledEncounterDao {
         sessions.getCurrentSession().refresh(saved);
         return saved;
     }
-
+	
 	private Timestamp timestamp(OrderIncomingEvent event, String field) {
 		String value = event.root.path("payload").path(field).asText(null);
 		return value == null ? null : Timestamp.from(Instant.parse(value));

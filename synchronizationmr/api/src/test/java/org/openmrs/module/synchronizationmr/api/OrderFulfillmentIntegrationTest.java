@@ -22,15 +22,15 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /** Ejercita API nativa, eventos, conflictos, reintentos y confirmaciones con base real de pruebas. */
 public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveTest {
-
+	
 	private final ObjectMapper json = new ObjectMapper();
-
+	
 	private OrderCreationAdvice advice;
-
+	
 	private final String sourceOrigin = "posta_a_" + UUID.randomUUID();
-
+	
 	private final Instant base = Instant.now().minusSeconds(100);
-
+	
 	@BeforeEach
 	public void prepare() throws Exception {
 		new Liquibase("src/main/resources/liquibase.xml", new FileSystemResourceAccessor(), new JdbcConnection(
@@ -39,20 +39,20 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
 		advice = new OrderCreationAdvice();
 		Context.addAdvice(OrderService.class, advice);
 	}
-
+	
 	@AfterEach
 	public void cleanup() {
 		Context.removeAdvice(OrderService.class, advice);
 	}
-
+	
 	private OrderSyncService sync() {
 		return Context.getService(OrderSyncService.class);
 	}
-
+	
 	private OrderReceiveService receive() {
 		return Context.getService(OrderReceiveService.class);
 	}
-
+	
 	private Order sample() {
 		Order order = new Order();
 		order.setPatient(Context.getPatientService().getPatient(2));
@@ -65,7 +65,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
 		order.setInstructions("Prescripción ficticia que debe conservarse");
 		return order;
 	}
-
+	
 	private Order imported() {
 		Order order = sample();
 		String event = new OrderCreationPayloadSerializer().serialize(order, sourceOrigin, 1, UUID.randomUUID().toString(),
@@ -73,24 +73,24 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
 		receive().receiveOrder(event);
 		return Context.getOrderService().getOrderByUuid(order.getUuid());
 	}
-
+	
 	private ObjectNode change(Order order, String origin, long seq, long seconds, String status) throws Exception {
 		ObjectNode event = (ObjectNode) json
 		        .readTree(OrderFulfillment.create(order, origin, seq, base.plusSeconds(seconds)));
 		((ObjectNode) event.get("payload")).put("fulfillerStatus", status);
 		return event;
 	}
-
+	
 	private Order fresh(Order order) {
 		Context.flushSession();
 		Context.clearSession();
 		return Context.getOrderService().getOrderByUuid(order.getUuid());
 	}
-
+	
 	private long number(String sql) throws Exception {
         try (Statement s = getConnection().createStatement(); ResultSet r = s.executeQuery(sql)) { r.next(); return r.getLong(1); }
     }
-
+	
 	@Test
 	public void capturesNativeThreeAndFourArgumentUpdatesInOneSequenceWithoutNoops() throws Exception {
 		Order order = Context.getOrderService().saveOrder(sample(), null);
@@ -113,7 +113,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
 		assertEquals("LAB-001", event.root.path("payload").path("accessionNumber").asText());
 		assertEquals(Order.FulfillerStatus.COMPLETED, fresh(order).getFulfillerStatus());
 	}
-
+	
 	@Test
 	public void receivesAndRelaysWithoutRecaptureOrChangingPrescriptionAndRetriesAreIdempotent() throws Exception {
 		Order order = imported();
@@ -134,7 +134,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
 		assertEquals(event.toString(), sync().getOrderEventsAfter(sourceOrigin, 1, 1).get(0).getPayloadJson());
 		assertEquals(1, number("select count(*) from synchronizationmr_order_update"));
 	}
-
+	
 	@Test
     public void rejectsChangedReplayAndGap() throws Exception {
         Order order = imported();
@@ -145,7 +145,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
         assertThrows(APIException.class, () -> receive().receiveOrder(event.toString()));
         assertEquals(2, receive().getConfirmedOrderSequence(sourceOrigin));
     }
-
+	
 	@Test
     public void missingOrderDoesNotConfirm() throws Exception {
         String event = change(sample(), "posta_b", 1, 1, "COMPLETED").toString();
@@ -153,7 +153,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
         assertEquals(0, receive().getConfirmedOrderSequence("posta_b"));
         assertEquals(0, number("select count(*) from synchronizationmr_order_update"));
     }
-
+	
 	@Test
     public void rejectsForeignPatientAndEncounter() throws Exception {
         Order order = imported();
@@ -165,7 +165,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
         assertEquals(1, receive().getConfirmedOrderSequence(sourceOrigin));
         assertNull(fresh(order).getFulfillerStatus());
     }
-
+	
 	@Test
     public void rejectsUnknownFieldsInvalidStatusMissingValuesAndDuplicateJsonKeys() throws Exception {
         ObjectNode valid = change(sample(), sourceOrigin, 1, 1, "COMPLETED");
@@ -180,7 +180,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
         assertThrows(APIException.class, () -> new OrderIncomingEvent(valid.toString().replace("\"schemaVersion\":2", "\"schemaVersion\":2,\"schemaVersion\":2")));
         assertThrows(APIException.class, () -> new OrderIncomingEvent(valid.toString() + "{}"));
     }
-
+	
 	@Test
 	public void latestWinsInBothArrivalOrdersAndLosingEventIsRetained() throws Exception {
 		for (boolean reverse : Arrays.asList(false, true)) {
@@ -195,7 +195,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
 			assertEquals(older.toString(), sync().getOrderEventsAfter(a, 0, 1).get(0).getPayloadJson());
 		}
 	}
-
+	
 	private Order importedWithUniqueOrigin() {
 		Order order = sample();
 		receive().receiveOrder(
@@ -203,7 +203,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
 		            .toString(), java.util.Date.from(base)));
 		return Context.getOrderService().getOrderByUuid(order.getUuid());
 	}
-
+	
 	@Test
 	public void tieUsesOriginRegardlessOfArrivalOrder() throws Exception {
 		for (boolean reverse : Arrays.asList(false, true)) {
@@ -216,7 +216,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
 			assertEquals(Order.FulfillerStatus.COMPLETED, fresh(order).getFulfillerStatus());
 		}
 	}
-
+	
 	@Test
 	public void appliesExplicitNullSnapshotWithoutPreservingStaleValues() throws Exception {
 		Order order = imported();
@@ -231,7 +231,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
 		assertNull(saved.getFulfillerComment());
 		assertNull(saved.getAccessionNumber());
 	}
-
+	
 	@Test
 	public void historicalPreparationUsesLatestStateWithoutPublishingAnUpdateBeforeCreation() throws Exception {
 		Context.removeAdvice(OrderService.class, advice);
@@ -244,7 +244,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
 		        .get(0).getPayloadJson();
 		assertEquals("COMPLETED", json.readTree(event).path("payload").path("fulfillerStatus").asText());
 	}
-
+	
 	@Test
 	public void incomingUpdateNeverReactivatesVoidedOrder() throws Exception {
 		Order order = imported();
@@ -255,7 +255,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
 		assertNull(saved.getFulfillerStatus());
 		assertEquals(2, receive().getConfirmedOrderSequence(sourceOrigin));
 	}
-
+	
 	@Test
 	public void localChangeAfterRemoteVersionUsesLaterTimestamp() throws Exception {
 		Order order = imported();
@@ -267,7 +267,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
 		        .getPayloadJson());
 		assertTrue(local.occurredAt.after(new OrderIncomingEvent(remote.toString()).occurredAt));
 	}
-
+	
 	@Test
 	public void rollbackUndoesClinicalChangeEventAndSequence() throws Exception {
 		Order order = Context.getOrderService().saveOrder(sample(), null);
@@ -291,7 +291,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
 				TestTransaction.start();
 		}
 	}
-
+	
 	@Test
     public void rejectsEventUuidReusedAcrossCreationAndUpdate() throws Exception {
         Order order = imported();
@@ -302,7 +302,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
         assertEquals(1, receive().getConfirmedOrderSequence(sourceOrigin));
         assertNull(fresh(order).getFulfillerStatus());
     }
-
+	
 	@Test
 	public void receiveRollbackUndoesStatusReceiptAndVersion() throws Exception {
 		Order order = imported();
@@ -326,7 +326,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
 				TestTransaction.start();
 		}
 	}
-
+	
 	@Test
     public void technicalRoleNeedsEditOrdersAndCanApplyWithoutAdministrator() throws Exception {
         for (boolean edit : Arrays.asList(false, true)) {
@@ -358,7 +358,7 @@ public class OrderFulfillmentIntegrationTest extends BaseModuleContextSensitiveT
             assertEquals(edit ? Order.FulfillerStatus.COMPLETED : null, fresh(order).getFulfillerStatus());
         }
     }
-
+	
 	@Test
 	public void fulfillmentDoesNotAlterResultObservationOrItsOrderLink() throws Exception {
 		Order order = imported();

@@ -22,15 +22,15 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /** Ejercita API nativa, eventos, conflictos, reintentos y confirmaciones con base real de pruebas. */
 public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveTest {
-
+	
 	private final ObjectMapper json = new ObjectMapper();
-
+	
 	private OrderCreationAdvice advice;
-
+	
 	private final String sourceOrigin = "posta_a_" + UUID.randomUUID();
-
+	
 	private final Instant base = Instant.ofEpochSecond(System.currentTimeMillis() / 1000).minusSeconds(100);
-
+	
 	@BeforeEach
 	public void prepare() throws Exception {
 		new Liquibase("src/main/resources/liquibase.xml", new FileSystemResourceAccessor(), new JdbcConnection(
@@ -39,20 +39,20 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
 		advice = new OrderCreationAdvice();
 		Context.addAdvice(OrderService.class, advice);
 	}
-
+	
 	@AfterEach
 	public void cleanup() {
 		Context.removeAdvice(OrderService.class, advice);
 	}
-
+	
 	private OrderSyncService sync() {
 		return Context.getService(OrderSyncService.class);
 	}
-
+	
 	private OrderReceiveService receive() {
 		return Context.getService(OrderReceiveService.class);
 	}
-
+	
 	private Order sample() {
 		Order order = new Order();
 		order.setPatient(Context.getPatientService().getPatient(2));
@@ -65,7 +65,7 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
 		order.setInstructions("Prescripción ficticia que debe conservarse");
 		return order;
 	}
-
+	
 	private Order imported() {
 		Order order = sample();
 		String event = new OrderCreationPayloadSerializer().serialize(order, sourceOrigin, 1, UUID.randomUUID().toString(),
@@ -73,13 +73,13 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
 		receive().receiveOrder(event);
 		return Context.getOrderService().getOrderByUuid(order.getUuid());
 	}
-
+	
 	private Order fresh(Order order) {
 		Context.flushSession();
 		Context.clearSession();
 		return Context.getOrderService().getOrderByUuid(order.getUuid());
 	}
-
+	
 	private ObjectNode branch(Order previous, String origin, long seq, long seconds, boolean discontinue) throws Exception {
 		Order next = discontinue ? previous.cloneForDiscontinuing() : previous.cloneForRevision();
 		next.setEncounter(previous.getEncounter());
@@ -93,13 +93,13 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
 		((ObjectNode) event.get("payload")).put("previousOrderDateStopped", base.plusSeconds(seconds - 1).toString());
 		return event;
 	}
-
+	
 	private Order saved(ObjectNode event) {
 		Context.flushSession();
 		Context.clearSession();
 		return Context.getOrderService().getOrderByUuid(event.path("payload").path("orderUuid").asText());
 	}
-
+	
 	private Encounter encounter(boolean withVisit) {
 		Encounter e = new Encounter();
 		e.setPatient(Context.getPatientService().getPatient(2));
@@ -118,12 +118,12 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
 		        java.util.Date.from(base)));
 		return Context.getEncounterService().getEncounterByUuid(e.getUuid());
 	}
-
+	
 	private String orderEvent(Order order, long seq) {
 		return new OrderCreationPayloadSerializer().serialize(order, sourceOrigin, seq, UUID.randomUUID().toString(),
 		    java.util.Date.from(base));
 	}
-
+	
 	private void annul(Encounter e, boolean visit) {
 		String event;
 		if (visit) {
@@ -143,7 +143,7 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
 		}
 		Context.getService(EncounterReceiveService.class).receiveEncounter(event);
 	}
-
+	
 	private void late(boolean visit) throws Exception {
 		long localBefore = sync().getHighestOrderSequence("testServer_1");
 		Encounter e = encounter(visit);
@@ -163,17 +163,17 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
 		assertEquals(event, sync().getOrderEventsAfter(sourceOrigin, 0, 1).get(0).getPayloadJson());
 		assertEquals(localBefore, sync().getHighestOrderSequence("testServer_1"));
 	}
-
+	
 	@Test
 	public void newOrderAfterEncounterAnnulmentIsHistoryAndReplayIsExact() throws Exception {
 		late(false);
 	}
-
+	
 	@Test
 	public void newOrderAfterVisitAnnulmentIsHistoryAndReplayIsExact() throws Exception {
 		late(true);
 	}
-
+	
 	@Test
 	public void revisionsAndDiscontinuationAfterAnnulmentDoNotReactivateParent() throws Exception {
 		Encounter e = encounter(false);
@@ -192,7 +192,7 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
 		assertTrue(saved(stop).getVoided());
 		assertEquals(3, receive().getConfirmedOrderSequence(sourceOrigin));
 	}
-
+	
 	@Test public void unpublishedAnnulmentRemainsRejected() throws Exception {
         Encounter e = encounter(false);
         Order order = sample(); order.setEncounter(e);
@@ -201,7 +201,7 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
         assertThrows(APIException.class, () -> receive().receiveOrder(event));
         assertEquals(0, receive().getConfirmedOrderSequence(sourceOrigin));
     }
-
+	
 	@Test
 	public void nextValidOrderIsNotBlockedByHistoricalOne() throws Exception {
 		Encounter e = encounter(false);
@@ -216,7 +216,7 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
 		assertFalse(fresh(next).getVoided());
 		assertEquals(2, receive().getConfirmedOrderSequence(sourceOrigin));
 	}
-
+	
 	private void observationLink(boolean beforeOrder) throws Exception {
         Encounter e = encounter(false);
         Order order = sample(); order.setEncounter(e); String event = orderEvent(order, 1);
@@ -235,17 +235,17 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
         assertTrue(stored.getOrder().getVoided());
         assertEquals(0, receive().countPendingOrderLinks());
     }
-
+	
 	@Test
 	public void resultBeforeLateOrderKeepsHistoricalLink() throws Exception {
 		observationLink(true);
 	}
-
+	
 	@Test
 	public void resultAfterLateOrderKeepsHistoricalLink() throws Exception {
 		observationLink(false);
 	}
-
+	
 	@Test
 	public void rollbackDoesNotConfirmOrLeaveHistoricalOrder() throws Exception {
 		Encounter e = encounter(false);
@@ -272,7 +272,7 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
 				TestTransaction.start();
 		}
 	}
-
+	
 	@Test public void invalidPatientStillRejectedWithoutConfirmation() throws Exception {
         Encounter e = encounter(false); Order order = sample(); order.setEncounter(e);
         ObjectNode event = (ObjectNode) json.readTree(orderEvent(order, 1));
@@ -281,7 +281,7 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
         assertThrows(APIException.class, () -> receive().receiveOrder(event.toString()));
         assertEquals(0, receive().getConfirmedOrderSequence(sourceOrigin));
     }
-
+	
 	@Test public void nativeValidationStillRejectsInvalidDates() throws Exception {
         Encounter e = encounter(false); Order order = sample(); order.setEncounter(e);
         ObjectNode event = (ObjectNode) json.readTree(orderEvent(order, 1));
@@ -291,7 +291,7 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
         assertEquals(0, receive().getConfirmedOrderSequence(sourceOrigin));
         assertNull(Context.getOrderService().getOrderByUuid(order.getUuid()));
     }
-
+	
 	@Test public void missingPredecessorStillBlocksHistoricalRevision() throws Exception {
         Encounter e = encounter(false); Order order = sample(); order.setEncounter(e);
         ObjectNode event = branch(order, sourceOrigin, 1, 10, false);
@@ -299,7 +299,7 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
         assertThrows(APIException.class, () -> receive().receiveOrder(event.toString()));
         assertEquals(0, receive().getConfirmedOrderSequence(sourceOrigin));
     }
-
+	
 	@Test
 	public void drugOrderIsStoredAsVoidedWithDoseAndDrugPreserved() throws Exception {
 		Encounter e = encounter(true);
@@ -326,7 +326,7 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
 		assertEquals(drug.getDrug().getUuid(), stored.getDrug().getUuid());
 		assertEquals(10.0, stored.getQuantity());
 	}
-
+	
 	@Test
 	public void lateRenewalDoesNotReactivatePreviousOrder() throws Exception {
 		Encounter e = encounter(false);
@@ -346,7 +346,7 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
 		assertTrue(fresh(renewal).getVoided());
 		assertEquals(root.getUuid(), fresh(renewal).getPreviousOrder().getUuid());
 	}
-
+	
 	@Test
 	public void lateEncounterThenItsOrderStayVoidedUnderDeletedVisit() throws Exception {
 		Encounter anchor = encounter(true);
@@ -371,7 +371,7 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
 		assertTrue(stored.getEncounter().getVisit().getVoided());
 		assertEquals(1, receive().getConfirmedOrderSequence(sourceOrigin));
 	}
-
+	
 	@Test
 	public void historicalRevisionDoesNotChangeActivePredecessorInAnotherEncounter() throws Exception {
 		Encounter e = encounter(false);
@@ -384,7 +384,7 @@ public class OrderLateArrivalIntegrationTest extends BaseModuleContextSensitiveT
 		assertNull(fresh(root).getDateStopped());
 		assertTrue(saved(revision).getVoided());
 	}
-
+	
 	@Test public void technicalRoleNeedsDeleteOrdersForHistoricalImport() throws Exception {
         Encounter e = encounter(false); Order order = sample(); order.setEncounter(e);
         String event = orderEvent(order, 1); annul(e, false);

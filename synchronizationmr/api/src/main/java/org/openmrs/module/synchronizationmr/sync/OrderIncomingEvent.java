@@ -23,7 +23,7 @@ public final class OrderIncomingEvent {
 	public final long sequence;
 	
 	public final boolean fulfillmentUpdate;
-
+	
 	public final java.util.Date occurredAt;
 	
 	public OrderIncomingEvent(String json) {
@@ -82,11 +82,11 @@ public final class OrderIncomingEvent {
 	public Order toOrder() {
 		return toOrder(false);
 	}
-
+	
 	public Order toOrder(boolean allowSupersededPrevious) {
 		return toOrder(allowSupersededPrevious, false);
 	}
-
+	
 	public Order toOrder(boolean allowSupersededPrevious, boolean allowAnnulledEncounter) {
         if (fulfillmentUpdate) throw invalid();
         JsonNode d=root.get("payload"); String kind=text(d,"kind",true);

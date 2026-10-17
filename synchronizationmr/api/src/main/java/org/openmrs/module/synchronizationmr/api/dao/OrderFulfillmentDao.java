@@ -13,16 +13,16 @@ import org.springframework.stereotype.Repository;
 /** Guarda cambios de cumplimiento, su versión ganadora y el evento en la misma transacción. */
 @Repository("synchronizationmr.OrderFulfillmentDao")
 public class OrderFulfillmentDao {
-
+	
 	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessions;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.OrderConflictDao")
 	private OrderConflictDao conflicts;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.LocalNodeDao")
 	private LocalNodeDao node;
-
+	
 	/** Bloquea antes del guardado nativo y lee valores persistidos, sin adelantar el flush. */
 	public String before(Order order) {
         node.getLocalServerId();
@@ -42,7 +42,7 @@ public class OrderFulfillmentDao {
             }
         });
     }
-
+	
 	public void capture(Order order, String before) {
         if (before == null || Boolean.TRUE.equals(order.getVoided())
                 || before.equals(OrderFulfillment.snapshot(order).toString())) return;
@@ -66,7 +66,7 @@ public class OrderFulfillmentDao {
             }
         });
     }
-
+	
 	public void receive(Connection c, OrderIncomingEvent event) throws SQLException {
         if (!Context.hasPrivilege("Edit Orders")) throw new APIAuthenticationException("El cumplimiento requiere Edit Orders");
         Order order = Context.getOrderService().getOrderByUuid(event.orderUuid);
@@ -90,7 +90,7 @@ public class OrderFulfillmentDao {
         // También se conserva el evento perdedor para retransmitirlo y confirmar su secuencia.
         insert(c, order, event);
     }
-
+	
 	private OrderIncomingEvent version(Connection c, int id) throws SQLException {
         for (String table : new String[] {"synchronizationmr_order_state", "synchronizationmr_order_event"}) {
             String field = table.endsWith("state") ? "version_json" : "payload_json";
@@ -107,7 +107,7 @@ public class OrderFulfillmentDao {
         }
         return null;
     }
-
+	
 	private void saveVersion(Connection c, Order order, OrderIncomingEvent event) throws SQLException {
         try (PreparedStatement q = c.prepareStatement("update synchronizationmr_order_state set version_json=? where order_id=?")) {
             q.setString(1, event.json); q.setInt(2, order.getId());
@@ -117,7 +117,7 @@ public class OrderFulfillmentDao {
             q.setInt(1, order.getId()); q.setString(2, event.json); q.executeUpdate();
         }
     }
-
+	
 	private void insert(Connection c, Order order, OrderIncomingEvent event) throws SQLException {
         try (PreparedStatement q = c.prepareStatement("insert into synchronizationmr_order_update (event_uuid,order_id,order_uuid,origin_server_id,entity_sequence,date_created,payload_json) values (?,?,?,?,?,?,?)")) {
             q.setString(1, event.eventUuid); q.setInt(2, order.getId()); q.setString(3, order.getUuid());

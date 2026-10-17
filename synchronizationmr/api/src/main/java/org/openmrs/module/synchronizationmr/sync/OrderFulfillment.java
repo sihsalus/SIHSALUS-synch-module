@@ -10,12 +10,12 @@ import static org.openmrs.module.synchronizationmr.sync.EventJson.*;
 
 /** Instantánea acotada del cumplimiento; no modifica la prescripción ni sus resultados. */
 public final class OrderFulfillment {
-
+	
 	private static final ObjectMapper JSON = new ObjectMapper();
-
+	
 	private OrderFulfillment() {
 	}
-
+	
 	public static ObjectNode snapshot(Order order) {
 		ObjectNode data = JSON.createObjectNode();
 		data.put("fulfillerStatus", order.getFulfillerStatus() == null ? null : order.getFulfillerStatus().name());
@@ -24,7 +24,7 @@ public final class OrderFulfillment {
 		validate(data);
 		return data;
 	}
-
+	
 	public static void validate(JsonNode data) {
 		if (data == null || !data.isObject())
 			throw invalid();
@@ -44,7 +44,7 @@ public final class OrderFulfillment {
 			throw invalid();
 		}
 	}
-
+	
 	public static String create(Order order, String origin, long sequence, Instant time) {
 		ObjectNode root = JSON.createObjectNode();
 		root.put("schemaVersion", 2).put("entityType", "ORDER").put("operation", "UPDATE_FULFILLMENT");
@@ -56,7 +56,7 @@ public final class OrderFulfillment {
 		root.set("payload", data);
 		return root.toString();
 	}
-
+	
 	/** Desempate estable para que todos los nodos elijan la misma instantánea. */
 	public static int compare(OrderIncomingEvent left, OrderIncomingEvent right) {
 		int c = left.occurredAt.compareTo(right.occurredAt);
@@ -68,7 +68,7 @@ public final class OrderFulfillment {
 			c = left.eventUuid.compareTo(right.eventUuid);
 		return c;
 	}
-
+	
 	public static void apply(JsonNode data, Order order) {
 		validate(data);
 		String status = text(data, "fulfillerStatus", false);

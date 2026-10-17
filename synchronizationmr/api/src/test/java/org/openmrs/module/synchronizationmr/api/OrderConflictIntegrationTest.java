@@ -22,15 +22,15 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /** Ejercita API nativa, eventos, conflictos, reintentos y confirmaciones con base real de pruebas. */
 public class OrderConflictIntegrationTest extends BaseModuleContextSensitiveTest {
-
+	
 	private final ObjectMapper json = new ObjectMapper();
-
+	
 	private OrderCreationAdvice advice;
-
+	
 	private final String sourceOrigin = "posta_a_" + UUID.randomUUID();
-
+	
 	private final Instant base = Instant.now().minusSeconds(100);
-
+	
 	@BeforeEach
 	public void prepare() throws Exception {
 		new Liquibase("src/main/resources/liquibase.xml", new FileSystemResourceAccessor(), new JdbcConnection(
@@ -39,20 +39,20 @@ public class OrderConflictIntegrationTest extends BaseModuleContextSensitiveTest
 		advice = new OrderCreationAdvice();
 		Context.addAdvice(OrderService.class, advice);
 	}
-
+	
 	@AfterEach
 	public void cleanup() {
 		Context.removeAdvice(OrderService.class, advice);
 	}
-
+	
 	private OrderSyncService sync() {
 		return Context.getService(OrderSyncService.class);
 	}
-
+	
 	private OrderReceiveService receive() {
 		return Context.getService(OrderReceiveService.class);
 	}
-
+	
 	private Order sample() {
 		Order order = new Order();
 		order.setPatient(Context.getPatientService().getPatient(2));
@@ -65,7 +65,7 @@ public class OrderConflictIntegrationTest extends BaseModuleContextSensitiveTest
 		order.setInstructions("Prescripción ficticia que debe conservarse");
 		return order;
 	}
-
+	
 	private Order imported() {
 		Order order = sample();
 		String event = new OrderCreationPayloadSerializer().serialize(order, sourceOrigin, 1, UUID.randomUUID().toString(),
@@ -73,24 +73,24 @@ public class OrderConflictIntegrationTest extends BaseModuleContextSensitiveTest
 		receive().receiveOrder(event);
 		return Context.getOrderService().getOrderByUuid(order.getUuid());
 	}
-
+	
 	private ObjectNode change(Order order, String origin, long seq, long seconds, String status) throws Exception {
 		ObjectNode event = (ObjectNode) json
 		        .readTree(OrderFulfillment.create(order, origin, seq, base.plusSeconds(seconds)));
 		((ObjectNode) event.get("payload")).put("fulfillerStatus", status);
 		return event;
 	}
-
+	
 	private Order fresh(Order order) {
 		Context.flushSession();
 		Context.clearSession();
 		return Context.getOrderService().getOrderByUuid(order.getUuid());
 	}
-
+	
 	private long number(String sql) throws Exception {
         try (Statement s = getConnection().createStatement(); ResultSet r = s.executeQuery(sql)) { r.next(); return r.getLong(1); }
     }
-
+	
 	private ObjectNode branch(Order previous, String origin, long seq, long seconds, boolean discontinue) throws Exception {
 		Order next = discontinue ? previous.cloneForDiscontinuing() : previous.cloneForRevision();
 		next.setEncounter(previous.getEncounter());
@@ -104,13 +104,13 @@ public class OrderConflictIntegrationTest extends BaseModuleContextSensitiveTest
 		((ObjectNode) event.get("payload")).put("previousOrderDateStopped", base.plusSeconds(seconds - 1).toString());
 		return event;
 	}
-
+	
 	private Order saved(ObjectNode event) {
 		Context.flushSession();
 		Context.clearSession();
 		return Context.getOrderService().getOrderByUuid(event.path("payload").path("orderUuid").asText());
 	}
-
+	
 	private void competing(boolean firstDc, boolean secondDc, boolean reverse) throws Exception {
 		Order root = imported();
 		ObjectNode first = branch(root, "posta_b_" + sourceOrigin, 1, 10, firstDc);
@@ -126,47 +126,47 @@ public class OrderConflictIntegrationTest extends BaseModuleContextSensitiveTest
 		assertFalse(saved(second).getVoided());
 		assertEquals(1, number("select count(*) from synchronizationmr_order_conflict"));
 	}
-
+	
 	@Test
 	public void revisionsOldThenNew() throws Exception {
 		competing(false, false, false);
 	}
-
+	
 	@Test
 	public void revisionsNewThenOld() throws Exception {
 		competing(false, false, true);
 	}
-
+	
 	@Test
 	public void cancellationWinsAfterRevision() throws Exception {
 		competing(false, true, false);
 	}
-
+	
 	@Test
 	public void cancellationWinsBeforeRevision() throws Exception {
 		competing(false, true, true);
 	}
-
+	
 	@Test
 	public void revisionWinsAfterCancellation() throws Exception {
 		competing(true, false, false);
 	}
-
+	
 	@Test
 	public void revisionWinsBeforeCancellation() throws Exception {
 		competing(true, false, true);
 	}
-
+	
 	@Test
 	public void cancellationsOldThenNew() throws Exception {
 		competing(true, true, false);
 	}
-
+	
 	@Test
 	public void cancellationsNewThenOld() throws Exception {
 		competing(true, true, true);
 	}
-
+	
 	@Test
 	public void lateDescendantOfLosingBranchRemainsHistorical() throws Exception {
 		Order root = imported();
@@ -181,7 +181,7 @@ public class OrderConflictIntegrationTest extends BaseModuleContextSensitiveTest
 		assertFalse(saved(second).getVoided());
 		assertNull(saved(second).getDateStopped());
 	}
-
+	
 	@Test
 	public void descendantReceivedBeforeConflictIsAlsoSuperseded() throws Exception {
 		Order root = imported();
@@ -196,7 +196,7 @@ public class OrderConflictIntegrationTest extends BaseModuleContextSensitiveTest
 		assertFalse(saved(second).getVoided());
 		assertNull(saved(second).getDateStopped());
 	}
-
+	
 	@Test
 	public void winnerCanBeRevisedAgainWithoutRevivingOtherBranch() throws Exception {
 		Order root = imported();
@@ -210,7 +210,7 @@ public class OrderConflictIntegrationTest extends BaseModuleContextSensitiveTest
 		assertFalse(saved(descendant).getVoided());
 		assertEquals(base.plusSeconds(29).toEpochMilli(), saved(second).getDateStopped().getTime());
 	}
-
+	
 	@Test
 	public void originBreaksEqualTimestampTie() throws Exception {
 		Order root = imported();
@@ -221,7 +221,7 @@ public class OrderConflictIntegrationTest extends BaseModuleContextSensitiveTest
 		assertTrue(saved(a).getVoided());
 		assertFalse(saved(b).getVoided());
 	}
-
+	
 	@Test
 	public void rollbackRestoresWholeChainAndReceipt() throws Exception {
 		Order root = imported();
@@ -249,7 +249,7 @@ public class OrderConflictIntegrationTest extends BaseModuleContextSensitiveTest
 				TestTransaction.start();
 		}
 	}
-
+	
 	@Test public void clinicallyVoidedEncounterIsNeverReopened() throws Exception {
         Order root = imported();
         ObjectNode first = branch(root, "posta_b_" + sourceOrigin, 1, 10, false);
@@ -260,7 +260,7 @@ public class OrderConflictIntegrationTest extends BaseModuleContextSensitiveTest
         assertTrue(fresh(root).getEncounter().getVoided());
         assertEquals(0, receive().getConfirmedOrderSequence("posta_c_" + sourceOrigin));
     }
-
+	
 	@Test
 	public void fulfillmentOfSupersededBranchIsKeptWithoutReactivatingIt() throws Exception {
 		Order root = imported();
@@ -273,7 +273,7 @@ public class OrderConflictIntegrationTest extends BaseModuleContextSensitiveTest
 		assertEquals(Order.FulfillerStatus.COMPLETED, saved(first).getFulfillerStatus());
 		assertFalse(saved(second).getVoided());
 	}
-
+	
 	@Test
 	public void drugRevisionConflictPreservesDosesAndSingleActiveBranch() throws Exception {
 		Encounter encounter = new Encounter();
@@ -309,7 +309,7 @@ public class OrderConflictIntegrationTest extends BaseModuleContextSensitiveTest
 		assertEquals(325.0, ((DrugOrder) saved(second)).getDose());
 		assertNull(saved(second).getDateStopped());
 	}
-
+	
 	@Test public void missingDeletePrivilegeLeavesChainUntouched() throws Exception {
         Order root = imported();
         ObjectNode first = branch(root, "posta_b_" + sourceOrigin, 1, 10, false);
@@ -350,7 +350,7 @@ public class OrderConflictIntegrationTest extends BaseModuleContextSensitiveTest
         } finally { Context.logout(); Context.authenticate(admin); }
         assertTrue(saved(first).getVoided()); assertFalse(saved(second).getVoided());
     }
-
+	
 	@Test
 	public void threeConcurrentChangesConvergeAndKeepOriginalPayloads() throws Exception {
 		Order root = imported();

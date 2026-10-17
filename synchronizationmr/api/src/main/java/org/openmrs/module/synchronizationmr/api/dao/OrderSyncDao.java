@@ -17,7 +17,7 @@ public class OrderSyncDao {
 	// Altas y cambios comparten la secuencia ORDER, sin reescribir el evento original.
 	public static final String EVENTS = "(select event_uuid,order_uuid,origin_server_id,entity_sequence,payload_json from synchronizationmr_order_event"
 	        + " union all select event_uuid,order_uuid,origin_server_id,entity_sequence,payload_json from synchronizationmr_order_update)";
-
+	
 	private static final String PENDING = " from orders c left join synchronizationmr_order_event e on e.order_id = c.order_id"
 	        + " where c.voided = false and (e.event_uuid is null or e.payload_json is null or trim(e.payload_json) = '')";
 	

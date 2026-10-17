@@ -16,12 +16,12 @@ import org.springframework.stereotype.Repository;
 /** Resuelve revisiones y suspensiones concurrentes de una misma versión, conservando sus ramas. */
 @Repository("synchronizationmr.OrderConflictDao")
 public class OrderConflictDao {
-
+	
 	public static final String REASON = "Sincronizacion: version de orden desplazada por un cambio posterior";
-
+	
 	@javax.annotation.Resource(name = "sessionFactory")
 	private SessionFactory sessions;
-
+	
 	public boolean isSuperseded(Order order) {
         if (order == null || !Boolean.TRUE.equals(order.getVoided()) || !REASON.equals(order.getVoidReason())) return false;
         return sessions.getCurrentSession().doReturningWork(c -> {
@@ -31,30 +31,30 @@ public class OrderConflictDao {
             }
         });
     }
-
+	
 	public boolean allowsPrevious(OrderIncomingEvent event) {
 		JsonNode id = event.root.path("payload").get("previousOrderUuid");
 		return replaces(event) && id != null && id.isTextual()
 		        && isSuperseded(Context.getOrderService().getOrderByUuid(id.asText()));
 	}
-
+	
 	private static boolean replaces(OrderIncomingEvent event) {
 		String action = event.root.path("payload").path("action").asText();
 		return "REVISE".equals(action) || "DISCONTINUE".equals(action);
 	}
-
+	
 	private static String parent(OrderIncomingEvent event) {
 		return replaces(event) ? event.root.path("payload").path("previousOrderUuid").asText() : null;
 	}
-
+	
 	private static final class Entry {
-
+		
 		final Order order;
-
+		
 		final OrderIncomingEvent event;
-
+		
 		final boolean clinicalVoid;
-
+		
 		Entry(Order order, OrderIncomingEvent event, boolean managed) {
 			this.order = order;
 			this.event = event;
@@ -62,18 +62,18 @@ public class OrderConflictDao {
 			        || Boolean.TRUE.equals(order.getEncounter().getVoided());
 		}
 	}
-
+	
 	public final class Resolution {
-
+		
 		private final Map<String, Entry> entries;
-
+		
 		private final String root;
-
+		
 		private Resolution(Map<String, Entry> entries, String root) {
 			this.entries = entries;
 			this.root = root;
 		}
-
+		
 		/** Solo después del guardado nativo y de conservar el evento recibido. */
 		public void finish(Connection c, Order saved, OrderIncomingEvent event) throws SQLException {
             entries.put(saved.getUuid(), new Entry(saved, event, false));
@@ -127,7 +127,7 @@ public class OrderConflictDao {
             }
         }
 	}
-
+	
 	/**
 	 * Prepara temporalmente la cadena para validación nativa; cualquier fallo revierte toda la
 	 * transacción.
@@ -208,7 +208,7 @@ public class OrderConflictDao {
         }
         return new Resolution(group, root);
     }
-
+	
 	private static Timestamp timestamp(JsonNode node) {
 		return node == null || node.isNull() ? null : Timestamp.from(Instant.parse(node.asText()));
 	}

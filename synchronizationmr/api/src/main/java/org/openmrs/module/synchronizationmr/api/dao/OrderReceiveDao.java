@@ -25,13 +25,13 @@ public class OrderReceiveDao {
 	
 	@javax.annotation.Resource(name = "synchronizationmr.OrderFulfillmentDao")
 	private OrderFulfillmentDao fulfillment;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.OrderConflictDao")
 	private OrderConflictDao conflicts;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.OrderAnnulledEncounterDao")
 	private OrderAnnulledEncounterDao annulled;
-
+	
 	public long confirmed(String origin) {
         return sessionFactory.getCurrentSession().doReturningWork(connection -> confirmed(connection, origin));
     }

@@ -23,10 +23,10 @@ public class OrderLinkDao {
 	
 	@javax.annotation.Resource(name = "synchronizationmr.OrderConflictDao")
 	private OrderConflictDao conflicts;
-
+	
 	@javax.annotation.Resource(name = "synchronizationmr.OrderAnnulledEncounterDao")
 	private OrderAnnulledEncounterDao annulled;
-
+	
 	public void record(EncounterIncomingEvent event) {
 		JsonNode payload = event.root.get("payload");
 		for (JsonNode id : payload.path("orderUuids")) {
