@@ -1,50 +1,36 @@
-SynchronizationMR
-==========================
+# SynchronizationMR
 
-Description
------------
-SynchronizationMR es un módulo de OpenMRS desarrollado para el proyecto SIH.SALUS. Sincroniza pacientes, encuentros, observaciones y órdenes entre un servidor maestro y las postas de una microrred de salud. Conserva los cambios registrados sin conexión y los transmite al restablecerse la comunicación, manteniendo la identidad de origen y el historial de las operaciones admitidas.
+Módulo de OpenMRS para el proyecto **SIH.SALUS**. Sincroniza pacientes, encuentros, observaciones, visitas asociadas y órdenes entre un maestro y las postas de una microrred de salud. Conserva eventos localmente y retoma su intercambio cuando la comunicación está disponible, manteniendo la identidad de origen y el historial de las operaciones admitidas.
 
-Building from Source
---------------------
-You will need to have Java 1.6+ and Maven 2.x+ installed.  Use the command 'mvn package' to 
-compile and package the module.  The .omod file will be in the omod/target folder.
+La [documentación principal del componente](../README.md) describe sus capacidades, arquitectura, configuración, auditoría y alcance.
 
-Alternatively you can add the snippet provided in the [Creating Modules](https://wiki.openmrs.org/x/cAEr) page to your 
-omod/pom.xml and use the mvn command:
+## Estructura
 
-    mvn package -P deploy-web -D deploy.path="../../openmrs-1.8.x/webapp/src/main/webapp"
+- **api:** captura de eventos, servicios, persistencia, contratos JSON, clientes HTTPS y trabajadores periódicos.
+- **omod:** servlets, autorización de pares, descriptor de OpenMRS y empaquetado del archivo instalable.
 
-It will allow you to deploy any changes to your web 
-resources such as jsp or js files without re-installing the module. The deploy path says 
-where OpenMRS is deployed.
+## Construcción y pruebas
 
-Running Spotless
-----------------
-This project uses Spotless for code formatting. Spotless is embedded in the build process, so when you run `mvn clean package`, Spotless will automatically format your code according to the project's style guidelines.
+El proyecto compila contra **OpenMRS Platform 2.4.2**, con destino de bytecode Java 8. El entorno de construcción y validación utiliza **JDK 21** y Maven; el POM incluye un perfil de pruebas para JDK modernos.
 
-If you want to run Spotless separately, you can use the following Maven commands:
+Desde esta carpeta:
 
-To apply the formatting:
+```shell
+mvn clean install
+```
 
-    mvn spotless:apply
+El comando compila, ejecuta las pruebas y genera `omod/target/synchronizationmr-1.0.0-SNAPSHOT.omod`. También instala el artefacto en el repositorio Maven local; no lo despliega automáticamente en OpenMRS.
 
-This will automatically format your code according to the project's style guidelines. It's recommended to run this command before committing your changes.
+Para ejecutar las pruebas y empaquetar sin instalar el artefacto en el repositorio Maven local:
 
-To check if your code adheres to the style guidelines without making any changes, you can run:
+```shell
+mvn package
+```
 
-    mvn spotless:check
+Los reportes están en `api/target/surefire-reports` y `omod/target/surefire-reports`. La batería automatizada utiliza pruebas aisladas, contexto OpenMRS con H2, migraciones y solicitudes web simuladas; no requiere levantar las instancias del laboratorio.
 
-If this command reports any violations, you can then run `mvn spotless:apply` to fix them.
+## Instalación
 
-Remember, in most cases, you don't need to run these commands separately as Spotless will run automatically during the build process with `mvn clean package`.
+Incorporar el archivo OMOD mediante **Administration → Manage Modules** o el procedimiento de instalación de módulos de la distribución. Configurar la identidad del nodo, su rol, las cuentas técnicas y el canal HTTPS según la [sección de instalación y configuración](../README.md#instalación-y-configuración).
 
-Installation
-------------
-1. Build the module to produce the .omod file.
-2. Use the OpenMRS Administration > Manage Modules screen to upload and install the .omod file.
-
-If uploads are not allowed from the web (changable via a runtime property), you can drop the omod
-into the ~/.OpenMRS/modules folder.  (Where ~/.OpenMRS is assumed to be the Application 
-Data Directory that the running openmrs is currently using.)  After putting the file in there 
-simply restart OpenMRS/tomcat and the module will be loaded and started.
+El intercambio periódico y la preparación de datos existentes están desactivados por defecto. Las contraseñas se suministran mediante propiedades privadas de ejecución de OpenMRS. Configurar `server.id` antes de registrar datos con el módulo activo.

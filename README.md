@@ -4,15 +4,7 @@
 
 SynchronizationMR es un módulo de OpenMRS desarrollado para el proyecto **SIH.SALUS**, en el contexto de la Microrred de Salud del Napo. Permite registrar información localmente y distribuirla entre un servidor maestro y las postas cuando el canal de comunicación está disponible.
 
-El componente se distribuye como un archivo **OMOD** y se ejecuta dentro de OpenMRS. Trabaja con sus entidades nativas —pacientes, encuentros, observaciones y órdenes— y utiliza eventos persistentes para conservar los datos pendientes de transmisión.
-
-> **Estado al 12/10/2026:** flujos clínicos implementados y probados dentro de los contratos admitidos; auditoría implementada con pruebas automatizadas y ensayos de pacientes, encuentros y órdenes entre tres instancias, con conexión y recuperación tras un corte HTTPS. La integración se valida en un laboratorio con tres instancias de OpenMRS, bases independientes y datos ficticios. La instalación en establecimientos reales corresponde a una etapa posterior del proyecto.
-
-## Propósito
-
-La atención local no debe depender de que otro establecimiento esté conectado. El módulo separa el registro clínico del intercambio por red: guarda los eventos en la base local y ejecuta la sincronización posteriormente.
-
-Cuando se restablece el canal, el proceso retoma el intercambio desde las confirmaciones registradas. La recepción reconoce los reintentos para evitar crear nuevamente un registro que ya fue recibido.
+El componente se distribuye como un archivo **OMOD** y se ejecuta dentro de OpenMRS. Sincroniza pacientes, encuentros, observaciones, visitas asociadas y órdenes mediante eventos persistentes, manteniendo la identidad de origen y el historial de las operaciones admitidas.
 
 ## Arquitectura
 
@@ -24,50 +16,55 @@ flowchart LR
 
 Las postas inician los intercambios: envían sus eventos y consultan los que les faltan. El maestro conserva el origen de los datos y permite que otras postas los reciban. También puede generar registros propios. La comunicación entre postas pasa por el maestro.
 
-Cada instalación conserva su base de datos. El intercambio ocurre mediante los servicios del módulo; no utiliza replicación directa de bases de datos ni requiere un motor de sincronización externo al proceso de OpenMRS.
+Cada instalación conserva su base de datos. El intercambio utiliza los servicios del módulo y no requiere replicación directa de bases de datos ni un motor de sincronización externo al proceso de OpenMRS.
 
-## Capacidades de la versión actual
+## Capacidades
 
-| Área | Funcionalidad implementada |
+| Área | Funcionalidad |
 | --- | --- |
-| **Pacientes** | Captura y recepción de altas con los datos de identificación, nombres, direcciones y atributos admitidos por el contrato. |
-| **Modificaciones de pacientes** | Eventos UPDATE, identidad conservada y prevalencia del cambio más reciente por grupo de datos. Validado con pruebas automatizadas y ensayos de laboratorio dentro del alcance documentado. |
-| **Encuentros** | Captura y recepción de encuentros, observaciones y grupos; conservación de la relación con la visita mediante una instantánea. |
-| **Fechas y cierre de visitas** | `UPDATE_VISIT` para inicio/fin de visitas ya publicadas mediante encuentros. Intervalo versionado y conservación del historial. Cierre conectado, desconectado y recepción de encuentros pendientes tras el cierre comprobados en tres nodos. Reapertura comprobada en tres nodos; conflictos de intervalo con cobertura automatizada. |
-| **Anulación de visitas** | `VOID_VISIT` para visitas publicadas mediante encuentros; cascada nativa sobre encuentros, observaciones y órdenes ya presentes, conservando historial. Verificado automáticamente y comprobado en tres nodos con encuentro y observaciones, con conexión y tras restablecer HTTPS. También comprobada la cascada sobre una orden de hemograma ya sincronizada y sus resultados, conservando valores y relaciones como historial anulado. También se verificó en los tres nodos que un encuentro pendiente de B, recibido por el maestro después de anular la visita, queda anulado con sus observaciones sin reactivar la visita. |
-| **Datos y atributos de visita** | Actualización de tipo, ubicación, indicación y atributos de texto o conceptos con catálogos compatibles. Conserva el historial de atributos sustituidos y aplica la versión más reciente de la visita. Verificado automáticamente y en tres nodos para tipo, ubicación, incorporación, modificación y retirada de póliza y puntualidad por concepto; conflicto de puntualidad entre A y B sin conexión resuelto en tres nodos con la versión más reciente. |
-| **Modificaciones de encuentros** | UPDATE de fecha, tipo, ubicación, formulario y profesionales asociados, con resolución de conflictos por campo. Validado automáticamente; pendiente de ensayo multinodo. |
-| **Órdenes** | Creación de órdenes de examen y medicamento, revisiones, renovaciones y suspensiones mediante nuevas órdenes vinculadas. Comprobadas en laboratorio revisiones y suspensiones tras cortes HTTPS. Actualización del estado de cumplimiento, comentario y referencia mediante `UPDATE_FULFILLMENT`; comprobada en tres nodos al registrar resultados de hemograma con HTTPS disponible y de hemoglobina durante un corte, con entrega posterior al reconectar. |
-| **Resultados y notas** | Incorporación mediante `ADD_OBS`, corrección de versiones mediante `CORRECT_OBS` y anulación de observaciones publicadas mediante `VOID_OBS`, conservando valores anteriores. Ediciones de Vitals y SOAP, conflictos entre cambios desconectados y corrección frente a anulación comprobados en tres nodos. |
-| **Anulación de encuentros** | `VOID_ENCOUNTER` para encuentros publicados: anulación lógica con historial, cascada nativa y reintentos sin duplicados. Validado automáticamente y comprobado con notas SOAP entre tres nodos, con conexión disponible y entrega tras restablecer HTTPS. |
-| **Datos existentes** | Preparación explícita por lotes de pacientes, encuentros, órdenes y resultados anteriores que aún no tienen eventos publicados. Comprobados pacientes y encuentros modificados antes de activar el módulo, y una orden creada y revisada con el módulo inactivo: se conserva su cadena y queda vigente la revisión. |
-| **Interrupciones** | Persistencia local de eventos, intercambio periódico y reintentos al recuperar la comunicación. |
-| **Consulta de sincronización (RF-14)** | Consulta entre nodos por tipo de entidad, origen y secuencia para identificar y recuperar los registros pendientes. |
-| **Integridad** | Identidad de origen, secuencias por flujo, confirmaciones consecutivas y recepción idempotente. |
-| **Auditoría (RF-15)** | Tabla local persistente por intento, con origen, destino, fecha, flujo de entidad y resultado. Conserva fallos y reintentos sin copiar datos clínicos ni credenciales. Validada automáticamente y mediante altas de pacientes, encuentros y órdenes y modificación de pacientes entre tres nodos, incluida recuperación tras desconexión. |
-| **Comunicación** | JSON versionado sobre HTTPS, autenticación y comprobación de permisos e identidad del nodo remoto. |
-
-Las revisiones y suspensiones concurrentes de una orden sobre el mismo predecesor se resuelven por la marca temporal más reciente, con desempate por origen, secuencia y UUID del evento. Las alternativas se conservan anuladas como historial. Se comprobaron entre nodos revisión frente a revisión y revisión frente a suspensión durante un corte HTTPS. Las renovaciones independientes no se concilian mediante esta regla.
-
-Las órdenes pendientes recibidas después de una anulación publicada de su encuentro o visita se conservan como historial anulado, sin reactivar el contexto clínico. Este caso también se comprobó en las tres instancias.
-
-Estas capacidades cubren los contratos y escenarios admitidos por esta versión. No equivalen a la sincronización de todas las entidades o de todos los cambios posibles en OpenMRS.
+| **Pacientes** | Altas y modificaciones de identificación, nombres, direcciones y atributos admitidos. Conserva la identidad y resuelve conflictos por grupo de datos. |
+| **Encuentros** | Creación y modificación de fecha, tipo, ubicación, formulario y profesionales asociados, con resolución de conflictos por campo. |
+| **Observaciones y resultados** | Captura de valores y grupos, incorporación posterior mediante `ADD_OBS`, corrección mediante `CORRECT_OBS` y anulación mediante `VOID_OBS`, conservando versiones anteriores y vínculos con órdenes. |
+| **Visitas asociadas** | Inicio y fin, cierre y reapertura, tipo, ubicación, indicación y atributos admitidos. Se publican mediante sus encuentros y se actualizan con `UPDATE_VISIT`. |
+| **Órdenes** | Órdenes de examen y medicamento, revisiones, renovaciones y suspensiones mediante órdenes vinculadas. Incluye estado de cumplimiento, comentario y referencia mediante `UPDATE_FULFILLMENT`. |
+| **Anulaciones** | `VOID_ENCOUNTER` y `VOID_VISIT` conservan el historial y aplican las cascadas correspondientes sobre los datos clínicos asociados. |
+| **Datos existentes** | Preparación explícita por lotes de pacientes, encuentros, órdenes y resultados anteriores que aún no tienen eventos publicados. |
+| **Recuperación de la comunicación** | Persistencia local de eventos, intercambio periódico y continuación desde las confirmaciones registradas. |
+| **Consulta entre nodos** | Identificación y recuperación de eventos por tipo de entidad, origen y secuencia, con paginación. |
+| **Integridad** | Secuencias por flujo, confirmaciones consecutivas y recepción idempotente para evitar duplicados por reintentos. |
+| **Seguridad** | JSON versionado sobre HTTPS, autenticación de cuentas técnicas y comprobación de permisos e identidad del nodo remoto. |
+| **Auditoría** | Registro local persistente de intentos de intercambio, con identidad del evento, origen, destino, tiempos y resultado. |
 
 ## Cómo funciona
 
-1. **Captura.** El personal registra datos mediante los servicios habituales de OpenMRS. Los interceptores del módulo detectan las operaciones admitidas.
+1. **Captura.** Los interceptores detectan las operaciones admitidas realizadas mediante los servicios de OpenMRS.
 2. **Persistencia local.** El dato clínico y su evento se guardan en la misma transacción. El evento conserva origen, secuencia, UUID y una representación JSON.
 3. **Comparación.** El proceso periódico consulta las confirmaciones del maestro y determina qué eventos enviar o recibir.
 4. **Recepción.** El destino valida el mensaje y sus dependencias; guarda los datos, el evento y la confirmación dentro de una transacción.
 5. **Continuación.** Los ciclos posteriores retoman los pendientes. Un reintento exacto se reconoce sin duplicar el registro.
 
-El guardado local no espera una respuesta de red. Sí requiere una base local funcional, una configuración válida y contenido compatible con el contrato del módulo.
+El guardado local no espera una respuesta de red. Requiere una base local funcional, identidad de nodo configurada y contenido compatible con el contrato del módulo. Cada posta tiene su propio trabajador: el intervalo configurado es la espera después de finalizar un ciclo, no una garantía de entrega en ese plazo.
 
-### Identidad entre nodos
+### Identidad y resolución de conflictos
 
 Los identificadores numéricos internos de OpenMRS pueden diferir entre bases. El módulo conserva el **UUID clínico** y registra por separado el **origen y la secuencia de sincronización**. Las confirmaciones se gestionan por origen y flujo, sin asumir un contador global para toda la microrred.
 
-La información de sincronización se almacena en tablas propias, creadas mediante Liquibase. El módulo utiliza los servicios nativos y ajustes específicos de importación para conservar los datos y sus relaciones.
+Las actualizaciones comparan versiones para aplicar el cambio más reciente en la unidad correspondiente: grupo de datos del paciente, campo del encuentro o versión de la observación, visita u orden. Los desempates utilizan origen, secuencia y UUID del evento según el contrato. Las alternativas de observaciones y órdenes se conservan como historial; no se eliminan físicamente.
+
+Las revisiones y suspensiones de una orden sobre el mismo predecesor se concilian entre sí. Las renovaciones independientes no se concilian mediante esa regla. Los encuentros y órdenes pendientes que llegan después de una anulación publicada de su contexto clínico se conservan anulados, sin reactivar la visita o el encuentro.
+
+Las tablas propias se crean mediante Liquibase. La aplicación de datos utiliza los servicios de OpenMRS y actualizaciones JDBC específicas sobre observaciones y órdenes para completar relaciones, preservar fechas y reconciliar versiones y anulaciones.
+
+### Auditoría
+
+La tabla `synchronizationmr_audit` conserva los intentos de intercambio sin copiar datos clínicos ni credenciales. Requiere el privilegio `Record Synchronization Audit` en las cuentas técnicas.
+
+- Cada intento de intercambio de una entidad tiene su propio registro. Un reintento genera otra fila y conserva el resultado anterior.
+- Un envío cuya confirmación no se obtiene queda como `UNCONFIRMED`: el destinatario podría haberlo guardado aunque se haya perdido la respuesta.
+- La entrega de eventos en una página (`SERVED`) no afirma que el receptor los haya guardado.
+- Las consultas periódicas sin intercambio, las páginas vacías y los fallos de conexión anteriores al intercambio no generan filas de auditoría. Los fallos se comunican mediante los logs técnicos.
+
+La auditoría se consulta mediante SQL. Registra las operaciones desde su activación y no reconstruye intercambios anteriores ni elimina automáticamente su historial.
 
 ## Organización del repositorio
 
@@ -78,12 +75,12 @@ synchronizationmr/
 │   └── src/
 │       ├── main/java/          Captura, servicios, DAO, contratos y clientes
 │       ├── main/resources/     Configuración Spring y migraciones Liquibase
-│       └── test/               Pruebas aisladas y de integración interna
+│       └── test/               Pruebas aisladas y con contexto OpenMRS
 └── omod/
     └── src/
-        ├── main/java/          Servlets de sincronización
+        ├── main/java/          Servlets de sincronización y autorización
         ├── main/resources/     Descriptor del módulo OpenMRS
-        └── test/               Pruebas de endpoints y autorización
+        └── test/               Pruebas de endpoints y sesiones de pares
 ```
 
 Puntos de entrada para revisar la implementación:
@@ -91,14 +88,14 @@ Puntos de entrada para revisar la implementación:
 - [Captura de eventos clínicos](synchronizationmr/api/src/main/java/org/openmrs/module/synchronizationmr/advice).
 - [Servicios y persistencia](synchronizationmr/api/src/main/java/org/openmrs/module/synchronizationmr/api).
 - [Contratos, clientes y programación](synchronizationmr/api/src/main/java/org/openmrs/module/synchronizationmr/sync).
-- [Endpoints HTTP](synchronizationmr/omod/src/main/java/org/openmrs/module/synchronizationmr/web).
+- [Endpoints HTTP y autorización](synchronizationmr/omod/src/main/java/org/openmrs/module/synchronizationmr/web).
 - [Migraciones de la base de datos](synchronizationmr/api/src/main/resources/liquibase.xml).
 
 ## Compilación
 
-El proyecto utiliza Maven y compila contra la API de **OpenMRS Platform 2.4.2**, con destino de bytecode Java 8. El entorno de desarrollo y validación ha utilizado **JDK 21**; el POM incluye un perfil de compatibilidad para ejecutar las pruebas con JDK modernos.
+El proyecto compila contra la API de **OpenMRS Platform 2.4.2**, con destino de bytecode Java 8. El entorno de construcción y validación utiliza **JDK 21**; el POM incluye un perfil para ejecutar las pruebas con JDK modernos.
 
-Con Java y Maven disponibles en la terminal, ejecutar desde la raíz del repositorio:
+Con Java y Maven disponibles, ejecutar desde la raíz del repositorio:
 
 ```shell
 cd synchronizationmr
@@ -115,28 +112,64 @@ synchronizationmr/omod/target/synchronizationmr-1.0.0-SNAPSHOT.omod
 
 ## Instalación y configuración
 
-La incorporación del OMOD se realiza mediante **Administration → Manage Modules** o el procedimiento de instalación de módulos de la distribución utilizada. La compatibilidad debe comprobarse con la versión y los módulos de cada instalación.
+El OMOD se incorpora mediante **Administration → Manage Modules** o el procedimiento de instalación de módulos de la distribución utilizada. Cada nodo necesita una versión compatible de OpenMRS, cuentas técnicas autorizadas y catálogos compatibles para resolver conceptos, ubicaciones, profesionales y demás referencias clínicas.
 
-Instalar el archivo no configura por sí solo la comunicación. Cada nodo necesita:
+### Identidad y propiedades operativas
 
-| Configuración | Finalidad |
+La comunicación y la preparación de datos existentes están **desactivadas por defecto**. Instalar el OMOD no las activa. Configurar `server.id` antes de registrar datos con el módulo activo.
+
+| Propiedad global | Uso | Valor predeterminado |
+| --- | --- | --- |
+| `server.id` | Identidad única y estable del establecimiento; no cambiarla después de publicar eventos. | Vacío |
+| `synchronizationmr.nodeRole` | Rol `MASTER` o `POSTA`. | `UNCONFIGURED` |
+| `synchronizationmr.enabled` | Activa el intercambio periódico en una posta. En el maestro se mantiene en `false`; puede recibir y servir eventos. | `false` |
+| `synchronizationmr.masterBaseUrl` | URL HTTPS de la aplicación del maestro, por ejemplo `https://maestro.example/openmrs`, sin `/spa`, `/login` ni `/moduleServlet`. | Vacío |
+| `synchronizationmr.masterServerId` | `server.id` esperado del maestro. | Vacío |
+| `synchronizationmr.localUsername` | Cuenta técnica local para ejecutar intercambio o preparación. | Vacío |
+| `synchronizationmr.remoteUsername` | Cuenta técnica en el maestro autorizada para la posta. | Vacío |
+| `synchronizationmr.intervalSeconds` | Espera entre ciclos de intercambio, de 10 a 86400 segundos. | `60` |
+| `synchronizationmr.eventsPerCycle` | Máximo enviado por flujo y descargado por origen y flujo en cada ciclo, de 1 a 100. | `100` |
+| `synchronizationmr.originsPageSize` | Orígenes por página, de 1 a 100; no limita el total de orígenes atendidos. | `100` |
+
+Los cambios de configuración operativa se aplican al reiniciar el módulo. Las rutas de pacientes, encuentros y órdenes se construyen a partir de `masterBaseUrl`; no es necesario configurar cada endpoint por separado ni utilizar un script de arranque del laboratorio.
+
+### Cuentas técnicas y contraseñas
+
+Las cuentas deben disponer de los privilegios de consulta, recepción y auditoría del módulo, además de los permisos clínicos de las operaciones que ejecutan. Cada cuenta utilizada por un par remoto se vincula a su nodo mediante las propiedades de usuario `synchronizationmr.peerServerId` y `synchronizationmr.peerRole`.
+
+Las contraseñas se suministran en las **propiedades privadas de ejecución de OpenMRS**, no en sus propiedades globales:
+
+| Propiedad privada | Uso |
 | --- | --- |
-| `server.id` | Identidad única del establecimiento. Debe definirse antes de capturar datos y conservarse una vez utilizados sus eventos. |
-| `synchronizationmr.nodeRole` | Rol `MASTER` o `POSTA`. |
-| Cuentas técnicas y permisos | Autorizar las operaciones locales y el intercambio entre nodos. |
-| HTTPS y confianza de certificados | Proteger y autenticar el canal de comunicación. |
-| Endpoints y programación | Activar el intercambio periódico de los flujos requeridos. |
-| Metadatos compatibles | Resolver referencias a conceptos, ubicaciones, profesionales y demás catálogos utilizados. |
+| `synchronizationmr.localPassword` | Contraseña de la cuenta técnica local, necesaria para los trabajadores habilitados. |
+| `synchronizationmr.remotePassword` | Contraseña de la cuenta técnica remota, necesaria para el intercambio desde la posta. |
 
-El OMOD requiere endpoints HTTPS alcanzables desde las postas, un certificado válido para el nombre del servidor y confianza configurada en la JVM. HTTPS puede proporcionarlo el servidor de OpenMRS o la infraestructura existente; no exige el contenedor Nginx del laboratorio. Una VPN puede proporcionar conectividad y protección de su túnel, pero no elimina la exigencia HTTPS del transporte actual.
+El maestro puede preparar datos existentes con su cuenta local sin habilitar el trabajador de intercambio ni configurar credenciales remotas. Las contraseñas deben mantenerse fuera del repositorio y de los registros públicos.
 
-Si se utiliza un proxy, OpenMRS debe reconocer correctamente la conexión original y confiar únicamente en el intermediario previsto; el acceso directo al backend debe ajustarse a esa frontera de confianza. En el laboratorio, Nginx y OpenMRS forman el nodo maestro: HTTPS protege el intercambio entre las postas y su punto de entrada. TLS termina en Nginx y el tramo interno hacia Tomcat utiliza HTTP en el mismo equipo, con confianza en loopback. Esto no cifra el tramo interno. Otra instalación puede proporcionar HTTPS directamente o mediante su propia infraestructura; no necesita el contenedor Nginx del laboratorio. No debe copiarse esa configuración sin revisar la topología de destino. Cada cuenta remota debe vincularse a su nodo mediante `synchronizationmr.peerServerId` y `synchronizationmr.peerRole`, además de tener los permisos de sincronización y de las operaciones clínicas admitidas.
+### Preparación de datos existentes
 
-La [guía de configuración del OMOD](CONFIGURACION_OMOD.md) describe la dirección base única `synchronizationmr.masterBaseUrl`, intervalos, lotes y preparación histórica. Las contraseñas se suministran en las propiedades privadas de ejecución del servidor, fuera de las propiedades globales. No hay selector de modos ni lectura de las variables `SYNCMR_*` del script. Los cambios operativos se aplican al reiniciar el módulo. Se comprobó el despliegue mediante SDK y la preparación de registros existentes del maestro con entrega a ambas postas usando esta configuración. La instalación mediante Manage Modules sigue pendiente de ensayo.
+La preparación puede ejecutarse en maestro y postas. Publica los registros anteriores admitidos que todavía no tienen eventos de sincronización; el transporte de esos eventos utiliza el mismo mecanismo de confirmaciones.
 
-La configuración del proceso periódico se valida en [PatientSyncScheduleConfig](synchronizationmr/api/src/main/java/org/openmrs/module/synchronizationmr/sync/PatientSyncScheduleConfig.java). La preparación histórica se habilita explícitamente y se gestiona mediante [PatientPreparationScheduler](synchronizationmr/api/src/main/java/org/openmrs/module/synchronizationmr/sync/PatientPreparationScheduler.java).
+| Propiedad global | Uso | Valor predeterminado |
+| --- | --- | --- |
+| `synchronizationmr.prepareExistingEnabled` | Habilita preparación de pacientes. | `false` |
+| `synchronizationmr.prepareEncountersEnabled` | Prepara encuentros; requiere preparación de pacientes. | `false` |
+| `synchronizationmr.prepareOrdersEnabled` | Prepara órdenes; requiere preparación de encuentros. | `false` |
+| `synchronizationmr.prepareResultsEnabled` | Prepara observaciones históricas admitidas; requiere preparación de órdenes. | `false` |
+| `synchronizationmr.prepareBatchSize` | Registros por lote de preparación, de 1 a 100. | `25` |
+| `synchronizationmr.prepareIntervalSeconds` | Espera entre ciclos de preparación, de 10 a 86400 segundos. | `60` |
 
-Los endpoints del módulo son:
+La preparación es independiente del trabajador de intercambio. Para distribuir los eventos preparados, las postas deben tener habilitada su comunicación con el maestro.
+
+Las propiedades se declaran en el [descriptor del módulo](synchronizationmr/omod/src/main/resources/config.xml). Su resolución está en [SyncOperationalConfig](synchronizationmr/api/src/main/java/org/openmrs/module/synchronizationmr/sync/SyncOperationalConfig.java), la programación del intercambio en [PatientSyncScheduleConfig](synchronizationmr/api/src/main/java/org/openmrs/module/synchronizationmr/sync/PatientSyncScheduleConfig.java) y la preparación en [PatientPreparationScheduler](synchronizationmr/api/src/main/java/org/openmrs/module/synchronizationmr/sync/PatientPreparationScheduler.java).
+
+### Canal de comunicación
+
+Las postas necesitan acceso HTTPS al maestro, un certificado válido para el nombre del servidor y confianza configurada en su JVM. HTTPS puede proporcionarlo el servidor OpenMRS o la infraestructura de publicación existente. El componente no exige el contenedor Nginx utilizado en el laboratorio. Una VPN puede proporcionar conectividad, pero no sustituye la exigencia HTTPS del transporte.
+
+Si se utiliza un proxy, OpenMRS debe reconocer la conexión original y confiar únicamente en el intermediario previsto. El cifrado del tramo entre el proxy y OpenMRS depende de la configuración de esa infraestructura: HTTPS en el punto de entrada no implica por sí solo que ese tramo interno esté cifrado.
+
+Para una aplicación publicada bajo `/openmrs`, los endpoints son:
 
 ```text
 /openmrs/moduleServlet/synchronizationmr/patientSync
@@ -144,59 +177,30 @@ Los endpoints del módulo son:
 /openmrs/moduleServlet/synchronizationmr/orderSync
 ```
 
-Las credenciales deben proporcionarse de forma protegida y mantenerse fuera del código y de los registros públicos. El aprovisionamiento y el arranque desatendido para instalaciones reales forman parte de la etapa posterior de despliegue.
+## Pruebas y validación
 
-## Validación
+La batería automatizada comprende **540 casos en 43 suites: 478 casos de API y 62 de OMOD**, con ejecución completa sin fallos, errores ni omisiones. Incluye pruebas aisladas, integración con servicios OpenMRS y H2, migraciones Liquibase y pruebas web con solicitudes simuladas y autorización de pares.
 
-Se utilizan dos niveles complementarios:
+Comprueba captura transaccional, secuencias concurrentes, contratos, dependencias, conflictos, anulaciones, preparación histórica, reintentos, auditoría y configuración. El número de casos no representa un porcentaje de cobertura del código.
 
-- **Pruebas automatizadas:** casos aislados con dobles, integración con servicios OpenMRS y H2, migraciones y pruebas web con solicitudes simuladas. Comprueban captura, transacciones, contratos, dependencias, autorizaciones y reintentos.
-- **Laboratorio con tres instancias:** un maestro y dos postas, bases MariaDB independientes y canal HTTPS con Nginx. Se han comprobado creación y distribución de datos, preparación de registros existentes y recuperación después de interrupciones controladas.
+La validación funcional utiliza un laboratorio con un maestro y dos postas, bases MariaDB independientes y datos ficticios. Abarca altas y modificaciones, corrección de observaciones, visitas, órdenes y resultados, conflictos, preparación de datos existentes y recuperación tras interrupciones de comunicación. Los metadatos de encuentros tienen cobertura automatizada; no se presentan como un ensayo multinodo. La validación de laboratorio no equivale a una certificación de cualquier infraestructura, formulario o catálogo externo.
 
-La validación automatizada del **12/10/2026**, anterior a la configuración mediante propiedades, reunió **522 pruebas: 460 de API y 62 de OMOD**, sin fallos, errores ni omisiones. Incluye captura y recepción, conflictos, permisos, rollback, reintentos, datos históricos, órdenes recibidas después de una anulación, auditoría persistente y autenticación e identidad de nodos con usuarios reales en una base aislada. La versión con propiedades y dirección base única pasó posteriormente **74 pruebas seleccionadas** de configuración, trabajadores y clientes. Son ejecuciones distintas; sus conteos no deben sumarse ni interpretarse como cobertura del 100 % del código.
-
-En el laboratorio se comprobaron:
-
-- Altas y modificaciones de pacientes; recuperación tras desconexión y conflictos entre ediciones.
-- Preparación de pacientes y encuentros existentes con cambios anteriores a la activación del módulo.
-- Registro, corrección y anulación de observaciones; conflictos de temperatura y notas SOAP, y cambios recibidos después de anular un encuentro.
-- Cierre, reapertura, metadatos y atributos de visitas; conflictos de puntualidad y anulación con sus encuentros, observaciones y órdenes.
-- Creación, revisión, renovación y suspensión de órdenes de medicamento; revisión y suspensión de órdenes de examen con desconexión.
-- Resultados de hemograma y hemoglobina, junto con el estado de cumplimiento de la orden, con conexión y tras reconectar.
-- Conflictos entre revisiones y suspensiones, y recepción de una orden pendiente cuya visita se había anulado.
-- Preparación de una orden creada y revisada con el módulo inactivo: las tres bases conservan la original como historial y la revisión como vigente.
-
-Las modificaciones de fecha, tipo, ubicación, formulario y profesionales del encuentro tienen cobertura automatizada; no se presentan como ensayos multinodo. Las pruebas de laboratorio no abarcan todos los formularios, combinaciones de conflictos ni desfases de reloj.
-
-Para ejecutar las pruebas desde `synchronizationmr`:
+Para ejecutar la batería y generar el paquete desde `synchronizationmr`:
 
 ```shell
 mvn package
 ```
 
-Los reportes se generan en `api/target/surefire-reports` y `omod/target/surefire-reports`. La fase `package` ejecuta las pruebas y genera el JAR de API que necesita el submódulo OMOD. Las pruebas automatizadas no requieren levantar las tres instancias del laboratorio. Los ensayos multinodo son una validación separada.
+Los reportes se generan en `api/target/surefire-reports` y `omod/target/surefire-reports`. Las pruebas automatizadas no requieren levantar las tres instancias del laboratorio.
 
-## Alcance y evolución
+## Alcance
 
-Los flujos implementados abarcan pacientes, encuentros, observaciones, visitas asociadas y órdenes dentro de los contratos descritos. La consulta interna por tipo de entidad, origen y secuencia cubre RF-14. La auditoría de **RF-15** ya registra los intentos en `synchronizationmr_audit`; su instalación, las altas de pacientes, encuentros y órdenes y la recuperación de una modificación de paciente tras desconexión están verificados en los tres nodos del laboratorio. Requiere el permiso `Record Synchronization Audit` en las cuentas técnicas. Cada reintento de intercambio de una entidad genera otra fila. Las consultas periódicas, las páginas sin eventos y las solicitudes HTTP genéricas no generan auditoría; un fallo de conexión anterior al intercambio se comunica mediante los logs técnicos. Se conservan las filas históricas de versiones anteriores, sin limpieza automática. El paquete del 12/10 está instalado y verificado: ciclos activos sin intercambios sin nuevas filas, modificación de paciente con conexión y recuperación tras desconexión con auditoría. Un envío sin confirmación queda como `UNCONFIRMED`; la entrega de una página (`SERVED`) no afirma que el receptor haya guardado sus datos. La auditoría comienza al activar esta versión, sin reconstruir operaciones pasadas, y se consulta mediante SQL.
-
-También quedan pendientes:
-
-- Ampliaciones de evaluación de desempeño para otras cargas o infraestructura: se completaron tres corridas exploratorias locales, con 540 lecturas sin errores y entrega de los lotes a los tres nodos; esto no determina capacidad máxima ni rendimiento en campo.
-- Comprobar un registro nuevo desde una posta después de desactivar la preparación histórica, con la configuración operativa actual.
-- Validación de instalación y actualización del OMOD desde Manage Modules. El despliegue SDK y la configuración de comunicación con cuentas técnicas y confianza TLS ya se comprobaron en el laboratorio.
-
-Los diagnósticos estructurados, Conditions, imágenes y otros contenidos no admitidos por los contratos actuales quedan fuera del alcance implementado. La anulación es lógica y conserva historial; no se ofrece borrado físico ni restauración de registros anulados. Las visitas se publican mediante sus encuentros, no como un flujo independiente de visitas vacías.
-
-La conciliación automática de pacientes creados de forma independiente y la distribución de profesionales o catálogos no están implementadas. Estos aspectos deben distinguirse de la recepción de registros que ya comparten una identidad compatible.
-
-Los UPDATE de encuentros requieren **`Edit Encounters`** en la cuenta receptora, además de los permisos de recepción y acceso a los catálogos utilizados. Deben actualizarse todos los nodos antes de probarlos. Los profesionales asociados se comparan como un conjunto; cada otro campo mantiene su propia versión. La recepción de metadatos no vuelve a ejecutar las correcciones automáticas que `saveEncounter` puede generar al cambiar fecha o ubicación: las versiones resultantes viajan por separado mediante `CORRECT_OBS`.
-
-Las correcciones requieren **`Edit Observations`** y los permisos específicos del tipo de encuentro. Conservan los UUID de las versiones generadas en origen y el vínculo con la orden. Ante correcciones incompatibles de la misma observación, prevalece la versión mayor por fecha, origen, secuencia y UUID del evento. Las alternativas permanecen anuladas: sus valores y relaciones originales se conservan en el historial del módulo. Debido a la restricción nativa de un sucesor por observación, `previous_version` representa la cadena ganadora, no todas las ramas alternativas.
-
-Este contrato admite hasta 100 versiones por evento y exige que la observación original ya esté publicada. Las anulaciones se transportan por separado mediante `VOID_OBS`: conservan valores y UUID, y no inventan vínculos entre observaciones que el formulario guardó sin `previous_version`. La preparación explícita permite publicar anulaciones pendientes de observaciones ya sincronizadas. No se incluyen restauraciones, borrados físicos ni archivos complejos. Una edición puede producir varios eventos, recibidos por separado; puede existir un estado intermedio hasta completar la entrega. La corrección de resultados no modifica ni cancela la orden que los solicitó.
-
-La integración desarrollada en el marco de la tesis se valida en **laboratorio**. La instalación en entornos reales, sus formularios y catálogos definitivos, la gestión operativa de credenciales y el arranque automático corresponden a trabajo posterior dentro del proyecto SIH.SALUS.
+- Se sincronizan las entidades y operaciones descritas dentro de sus contratos admitidos. Diagnósticos estructurados, Conditions, imágenes y archivos complejos quedan fuera de ese alcance.
+- Las visitas se publican mediante sus encuentros, no como un flujo independiente de visitas vacías.
+- La anulación es lógica y conserva historial. No se ofrece borrado físico ni restauración de registros anulados.
+- No se realiza conciliación automática de pacientes creados independientemente ni distribución de profesionales o catálogos. Las referencias utilizadas deben ser compatibles entre nodos.
+- Las correcciones conservan las versiones y los vínculos de observaciones. La cadena nativa `previous_version` representa la rama ganadora; las alternativas se conservan en el historial del módulo. No se inventan relaciones entre observaciones que el formulario guardó sin un vínculo de versión reconocido.
+- Una edición puede producir varios eventos que se reciben por separado, por lo que puede existir un estado intermedio hasta completar la entrega. Corregir un resultado no modifica ni cancela la orden que lo solicitó.
 
 ## Licencia
 
