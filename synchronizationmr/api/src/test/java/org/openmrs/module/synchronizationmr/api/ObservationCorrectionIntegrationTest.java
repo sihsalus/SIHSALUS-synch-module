@@ -20,7 +20,123 @@ import org.springframework.test.context.transaction.TestTransaction;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ObservationCorrectionIntegrationTest extends BaseModuleContextSensitiveTest {
-	
+
+	@Test
+	public void correctsMemberOfGroupWhoseConceptIsNotASet() throws Exception {
+		Encounter e = sample();
+		Obs group = unmarkedGroup(e);
+		Obs first = obs(e), other = obs(e);
+		first.setValueNumeric(0.0);
+		other.setValueNumeric(90.0);
+		group.addGroupMember(first);
+		group.addGroupMember(other);
+		e.addObs(group);
+		create(e);
+		Obs change = revision(first, 2);
+		String event = correction(e, "a", 1, 10, change);
+		assertEquals(1, receive().receiveEncounter(event));
+		assertEquals(1, receive().receiveEncounter(event));
+		assertEquals(group.getUuid(), stored(change.getUuid()).getObsGroup().getUuid());
+		assertEquals(first.getUuid(), stored(change.getUuid()).getPreviousVersion().getUuid());
+		assertEquals(2.0, stored(change.getUuid()).getValueNumeric());
+		assertTrue(stored(first.getUuid()).getVoided());
+		assertEquals(0.0, stored(first.getUuid()).getValueNumeric());
+		assertFalse(stored(other.getUuid()).getVoided());
+		assertEquals(90.0, stored(other.getUuid()).getValueNumeric());
+		assertEquals(2, stored(group.getUuid()).getGroupMembers().size());
+		assertFalse(stored(group.getUuid()).getConcept().getSet());
+		assertEquals(before, sync().getHighestEncounterSequence("testServer_1"));
+	}
+
+	@Test
+	public void importsCorrectedGroupWhoseConceptIsNotASet() throws Exception {
+		Encounter e = sample();
+		Obs group = unmarkedGroup(e);
+		Obs member = obs(e);
+		group.addGroupMember(member);
+		e.addObs(group);
+		create(e);
+		Obs changedGroup = Obs.newInstance(stored(group.getUuid()));
+		changedGroup.setPreviousVersion(group);
+		changedGroup.setComment("Corrected group without concept set flag");
+		Obs changedMember = changedGroup.getGroupMembers().iterator().next();
+		changedMember.setValueNumeric(77.0);
+		assertEquals(1, receive().receiveEncounter(correction(e, "a", 1, 10, changedGroup, changedMember)));
+		assertTrue(stored(group.getUuid()).getVoided());
+		assertFalse(stored(changedGroup.getUuid()).getVoided());
+		assertEquals(changedGroup.getUuid(), stored(changedMember.getUuid()).getObsGroup().getUuid());
+		assertEquals(77.0, stored(changedMember.getUuid()).getValueNumeric());
+		assertEquals(group.getUuid(), stored(member.getUuid()).getObsGroup().getUuid());
+	}
+
+	@Test
+	public void rejectsParentGroupFromAnotherEncounterWithoutAdvancingReceipt() throws Exception {
+		Encounter e = sample();
+		Obs original = obs(e);
+		e.addObs(original);
+		create(e);
+		Encounter other = sample();
+		Obs foreignGroup = unmarkedGroup(other);
+		foreignGroup.addGroupMember(obs(other));
+		other.addObs(foreignGroup);
+		receive().receiveEncounter(serializer.serialize(other, prefix + "other", 1,
+		    UUID.randomUUID().toString(), java.util.Date.from(BASE)));
+		Obs changed = revision(original, 2);
+		ObjectNode event = (ObjectNode) mapper.readTree(correction(e, "a", 1, 10, changed));
+		((ObjectNode) event.path("payload").path("obs").get(0)).put("parentGroupUuid", foreignGroup.getUuid());
+		assertThrows(APIException.class, () -> receive().receiveEncounter(event.toString()));
+		assertEquals(0, receive().getConfirmedEncounterSequence(prefix + "a"));
+		assertNull(Context.getObsService().getObsByUuid(changed.getUuid()));
+		assertFalse(stored(original.getUuid()).getVoided());
+	}
+
+	@Test
+	public void rejectsSelfReferencingParentWithoutAdvancingReceipt() throws Exception {
+		Encounter e = sample();
+		Obs original = obs(e);
+		e.addObs(original);
+		create(e);
+		Obs changed = revision(original, 2);
+		ObjectNode event = (ObjectNode) mapper.readTree(correction(e, "a", 1, 10, changed));
+		((ObjectNode) event.path("payload").path("obs").get(0)).put("parentGroupUuid", changed.getUuid());
+		assertThrows(APIException.class, () -> receive().receiveEncounter(event.toString()));
+		assertEquals(0, receive().getConfirmedEncounterSequence(prefix + "a"));
+		assertNull(Context.getObsService().getObsByUuid(changed.getUuid()));
+		assertFalse(stored(original.getUuid()).getVoided());
+	}
+
+	@Test
+	public void rejectsExistingLeafAsParentWithoutAdvancingReceipt() throws Exception {
+		Encounter e = sample();
+		Obs original = obs(e), leaf = obs(e);
+		e.addObs(original);
+		e.addObs(leaf);
+		create(e);
+		Obs changed = revision(original, 2);
+		ObjectNode event = (ObjectNode) mapper.readTree(correction(e, "a", 1, 10, changed));
+		((ObjectNode) event.path("payload").path("obs").get(0)).put("parentGroupUuid", leaf.getUuid());
+		assertThrows(APIException.class, () -> receive().receiveEncounter(event.toString()));
+		assertEquals(0, receive().getConfirmedEncounterSequence(prefix + "a"));
+		assertNull(Context.getObsService().getObsByUuid(changed.getUuid()));
+		assertFalse(stored(original.getUuid()).getVoided());
+		assertFalse(stored(leaf.getUuid()).isObsGrouping());
+	}
+
+	private Obs unmarkedGroup(Encounter e) throws Exception {
+		// Reproduce the existing catalog flag found in the SOAP form's group concept.
+		Context.flushSession();
+		try (Statement statement = getConnection().createStatement()) {
+			statement.executeUpdate("update concept set is_set=false where concept_id=23");
+		}
+		Context.clearSession();
+		Concept concept = Context.getConceptService().getConcept(23);
+		assertFalse(concept.getSet());
+		Obs group = obs(e);
+		group.setValueNumeric(null);
+		group.setConcept(concept);
+		return group;
+	}
+
 	@Test
 	public void importsCorrectedGroupAndItsMembersWithoutChangingHistoricalGrouping() {
 		Encounter e = sample();

@@ -109,7 +109,9 @@ public class ObservationCorrectionDao {
             if (previous == null && (parent == null || !added.containsKey(parent))) throw invalid();
             if (parent != null) {
                 Obs group = added.containsKey(parent) ? added.get(parent) : requireObs(parent, encounter);
-                if (!Boolean.TRUE.equals(group.getConcept().getSet())) throw invalid();
+                // Group membership is represented by obs_group_id, independently of concept.is_set.
+                // requireObs above validates ownership; the traversal below rejects grouping cycles.
+                if (!added.containsKey(parent) && !group.isObsGrouping()) throw invalid();
                 obs.setObsGroup(group);
                 if (added.containsKey(parent)) group.addGroupMember(obs);
             }
