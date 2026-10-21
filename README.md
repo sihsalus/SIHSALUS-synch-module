@@ -179,7 +179,7 @@ Para una aplicación publicada bajo `/openmrs`, los endpoints son:
 
 ## Pruebas y validación
 
-La batería automatizada comprende **540 casos en 43 suites: 478 casos de API y 62 de OMOD**, con ejecución completa sin fallos, errores ni omisiones. Incluye pruebas aisladas, integración con servicios OpenMRS y H2, migraciones Liquibase y pruebas web con solicitudes simuladas y autorización de pares.
+La batería automatizada comprende **545 casos en 43 suites: 483 casos de API y 62 de OMOD**, con ejecución completa sin fallos, errores ni omisiones. Incluye pruebas aisladas, integración con servicios OpenMRS y H2, migraciones Liquibase y pruebas web con solicitudes simuladas y autorización de pares.
 
 Comprueba captura transaccional, secuencias concurrentes, contratos, dependencias, conflictos, anulaciones, preparación histórica, reintentos, auditoría y configuración. El número de casos no representa un porcentaje de cobertura del código.
 
